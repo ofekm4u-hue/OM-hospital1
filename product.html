@@ -1,0 +1,919 @@
+<!doctype html>
+<html dir="rtl" lang="he">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>VERTEX מבית Solace — סילונית דנטלית מקצועית בהנחת השקה 249 ₪</title>
+  <meta name="description" content="VERTEX מבית Solace — סילונית דנטלית אלחוטית עוצמתית, IPX7, 5 מצבי עוצמה, 1600 פעימות לדקה. ניקוי שיניים מקצועי בבית ב-60 שניות. במחיר השקה 249 ₪ במקום 599 ₪." />
+  <meta property="og:title" content="VERTEX מבית Solace — הסילונית הדנטלית המקצועית" />
+  <meta property="og:description" content="מהפכה דנטלית ביתית. ניקוי כמו במרפאה ב-60 שניות, בלי כאב ובלי דימומים. הנחת השקה — 249 ₪." />
+  <meta property="og:type" content="website" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700;800&family=Heebo:wght@300;400;500;700&display=swap" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Heebo', 'system-ui', 'sans-serif'],
+            display: ['Assistant', 'Heebo', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            aqua: {
+              deep:   '#0B4F6C',
+              brand:  '#1B98C4',
+              mid:    '#5BC0EB',
+              mist:   '#E6F4F9',
+              ice:    '#F7FBFD',
+            },
+            ink:    '#0F2027',
+            accent: '#FFB400',
+          },
+          boxShadow: {
+            soft: '0 6px 24px rgba(11, 79, 108, 0.08)',
+            lift: '0 18px 48px rgba(11, 79, 108, 0.16)',
+          },
+        }
+      }
+    };
+  </script>
+
+  <!-- PayPal configuration (site owner replaces these to go live) -->
+  <script>
+    window.PAYPAL_CLIENT_ID  = 'REPLACE_WITH_PAYPAL_CLIENT_ID';
+    window.PRODUCT_PRICE_ILS = 249.00;
+    window.PRODUCT_ORIGINAL  = 599.00;
+  </script>
+  <script src="https://www.paypal.com/sdk/js?client-id=REPLACE_WITH_PAYPAL_CLIENT_ID&currency=ILS&locale=he_IL" data-namespace="paypal_sdk" defer></script>
+
+  <style>
+    :root{
+      --aqua-deep:  #0B4F6C;
+      --aqua-brand: #1B98C4;
+      --aqua-mid:   #5BC0EB;
+      --aqua-mist:  #E6F4F9;
+      --ice:        #F7FBFD;
+      --ink:        #0F2027;
+      --accent:     #FFB400;
+    }
+    html,body{ background: var(--ice); color: var(--ink); }
+    body{ font-family: 'Heebo', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+    .display{ font-family: 'Assistant', 'Heebo', system-ui, sans-serif; font-weight: 700; line-height: 1.1; letter-spacing: -0.01em; }
+    .eyebrow{ font-family: 'Assistant', sans-serif; font-weight: 600; font-size: .78rem; letter-spacing: .18em; text-transform: uppercase; color: var(--aqua-brand); }
+
+    .brand-wordmark{ font-family: 'Assistant', sans-serif; font-weight: 800; letter-spacing: .22em; }
+    .brand-vertex{ font-family: 'Assistant', sans-serif; font-weight: 800; letter-spacing: .28em; background: linear-gradient(180deg, transparent 70%, rgba(255,180,0,.45) 70%); padding: 0 .12em; }
+
+    /* Hero gradient backdrop */
+    .hero-bg{
+      background:
+        radial-gradient(1100px 520px at 80% -10%, rgba(91,192,235,.35), transparent 60%),
+        radial-gradient(900px 480px at 10% 110%, rgba(27,152,196,.22), transparent 60%),
+        linear-gradient(180deg, var(--ice) 0%, #ffffff 100%);
+    }
+
+    /* CTA buttons */
+    .btn-primary{
+      display: inline-flex; align-items: center; gap: .6rem;
+      padding: 1rem 1.5rem; border-radius: 9999px;
+      font-weight: 700; font-size: 1.02rem;
+      color: #fff; background: linear-gradient(180deg, var(--aqua-brand), var(--aqua-deep));
+      box-shadow: 0 10px 24px rgba(11,79,108,.25);
+      transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+    }
+    .btn-primary:hover{ transform: translateY(-2px); filter: brightness(1.06); box-shadow: 0 18px 36px rgba(11,79,108,.32); }
+    .btn-primary:focus-visible{ outline: 3px solid #fff; outline-offset: 3px; box-shadow: 0 0 0 5px var(--aqua-brand); }
+
+    .btn-ghost{
+      display: inline-flex; align-items: center; gap: .5rem;
+      padding: .85rem 1.25rem; border-radius: 9999px;
+      font-weight: 600; color: var(--aqua-deep);
+      border: 1.5px solid rgba(11,79,108,.18); background: rgba(255,255,255,.7); backdrop-filter: blur(6px);
+      transition: all .18s ease;
+    }
+    .btn-ghost:hover{ border-color: var(--aqua-brand); color: var(--aqua-brand); }
+
+    /* Cards */
+    .card{ background: #fff; border-radius: 1.25rem; box-shadow: 0 6px 24px rgba(11,79,108,.08); border: 1px solid rgba(11,79,108,.06); transition: transform .25s ease, box-shadow .25s ease; }
+    .card:hover{ transform: translateY(-4px); box-shadow: 0 18px 48px rgba(11,79,108,.16); }
+
+    /* Form fields */
+    .field{
+      width: 100%; padding: .85rem 1rem;
+      border-radius: .85rem; background: #fff;
+      border: 1.5px solid rgba(11,79,108,.16);
+      font-family: 'Heebo', sans-serif; font-size: 1rem; color: var(--ink);
+      transition: border-color .18s ease, box-shadow .18s ease;
+    }
+    .field::placeholder{ color: rgba(15,32,39,.42); }
+    .field:focus{ outline: none; border-color: var(--aqua-brand); box-shadow: 0 0 0 4px rgba(27,152,196,.15); }
+    .field.invalid{ border-color: #e23a3a; box-shadow: 0 0 0 4px rgba(226,58,58,.12); }
+
+    /* Sections / dividers */
+    .section{ padding: 5rem 0; }
+    .container-x{ max-width: 78rem; margin: 0 auto; padding: 0 1.25rem; }
+    @media (min-width: 768px){ .container-x{ padding: 0 2.5rem; } }
+
+    .wave-top{
+      background: linear-gradient(180deg, transparent, var(--aqua-mist) 60%);
+      height: 64px;
+    }
+    .wave-bottom{
+      background: linear-gradient(0deg, transparent, var(--aqua-mist) 60%);
+      height: 64px;
+    }
+
+    /* Scroll reveal */
+    .reveal{ opacity: 0; transform: translateY(22px); transition: opacity .7s ease, transform .7s ease; }
+    .reveal.is-visible{ opacity: 1; transform: none; }
+
+    /* Sticky nav */
+    .nav-root{ transition: background-color .25s ease, box-shadow .25s ease, padding .25s ease; }
+    .nav-root.is-scrolled{ background: rgba(255,255,255,.92); backdrop-filter: blur(10px); box-shadow: 0 6px 24px rgba(11,79,108,.08); }
+
+    /* FAQ accordion */
+    details.faq{ background: #fff; border-radius: 1rem; border: 1px solid rgba(11,79,108,.08); box-shadow: 0 4px 16px rgba(11,79,108,.06); overflow: hidden; }
+    details.faq + details.faq{ margin-top: .85rem; }
+    details.faq > summary{
+      list-style: none; cursor: pointer; padding: 1.1rem 1.25rem;
+      display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+      font-weight: 700; color: var(--aqua-deep); font-family: 'Assistant', sans-serif; font-size: 1.05rem;
+    }
+    details.faq > summary::-webkit-details-marker{ display: none; }
+    details.faq > summary .chev{ flex: 0 0 auto; width: 26px; height: 26px; border-radius: 9999px; display: inline-flex; align-items: center; justify-content: center; background: var(--aqua-mist); color: var(--aqua-deep); transition: transform .25s ease, background-color .25s ease; }
+    details.faq[open] > summary .chev{ transform: rotate(180deg); background: var(--aqua-brand); color: #fff; }
+    details.faq > .faq-body{ padding: 0 1.25rem 1.25rem; color: rgba(15,32,39,.78); line-height: 1.7; }
+
+    /* Pricing */
+    .price-old{ color: rgba(15,32,39,.5); text-decoration: line-through; text-decoration-thickness: 2px; font-size: 1.1rem; }
+    .price-new{ color: var(--aqua-deep); font-family: 'Assistant', sans-serif; font-weight: 800; font-size: 2.6rem; line-height: 1; }
+    .price-save{ display: inline-block; background: var(--accent); color: #2a1d00; font-weight: 700; padding: .25rem .65rem; border-radius: 9999px; font-size: .82rem; }
+
+    /* Spec table */
+    .spec-table{ width: 100%; border-collapse: separate; border-spacing: 0; background: #fff; border-radius: 1rem; overflow: hidden; box-shadow: 0 6px 24px rgba(11,79,108,.08); }
+    .spec-table th, .spec-table td{ padding: .95rem 1.15rem; text-align: right; font-size: .98rem; }
+    .spec-table thead th{ background: var(--aqua-deep); color: #fff; font-family: 'Assistant', sans-serif; }
+    .spec-table tbody tr:nth-child(even){ background: var(--aqua-mist); }
+    .spec-table tbody tr td:first-child{ color: var(--aqua-deep); font-weight: 600; }
+
+    /* Demo banner */
+    .demo-banner{ background: #fff8de; border: 1px solid #f5d36b; color: #6b5300; padding: .7rem 1rem; border-radius: .85rem; font-size: .92rem; }
+
+    /* Floating product visual */
+    .product-vis{
+      position: relative; aspect-ratio: 4/5; border-radius: 1.5rem; overflow: hidden;
+      background:
+        radial-gradient(180px 180px at 50% 30%, rgba(255,255,255,.95), transparent 70%),
+        radial-gradient(420px 380px at 60% 60%, rgba(91,192,235,.6), transparent 70%),
+        linear-gradient(160deg, var(--aqua-mid), var(--aqua-brand) 60%, var(--aqua-deep));
+      box-shadow: 0 30px 80px rgba(11,79,108,.32);
+    }
+    .product-vis .drop{ position: absolute; inset: 0; display: grid; place-items: center; }
+    .product-vis .drop svg{ width: 58%; max-width: 360px; filter: drop-shadow(0 12px 28px rgba(11,79,108,.4)); }
+
+    @media (prefers-reduced-motion: reduce){
+      .reveal{ opacity: 1; transform: none; transition: none; }
+    }
+  </style>
+</head>
+<body class="font-sans text-ink">
+
+  <!-- ============ NAV ============ -->
+  <header id="nav" class="nav-root fixed top-0 inset-x-0 z-50">
+    <div class="container-x flex items-center justify-between py-3 md:py-4">
+      <a href="#hero" class="flex items-center gap-2.5 text-aqua-deep">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 2C8 8 5 11.5 5 15a7 7 0 1 0 14 0c0-3.5-3-7-7-13Z" fill="currentColor"/>
+        </svg>
+        <span class="brand-wordmark text-[15px]">VERTEX · Solace</span>
+      </a>
+      <nav class="hidden md:flex items-center gap-7 text-[15px] text-aqua-deep/85">
+        <a href="#hook" class="hover:text-aqua-brand">למה VERTEX</a>
+        <a href="#features" class="hover:text-aqua-brand">תכונות</a>
+        <a href="#specs" class="hover:text-aqua-brand">מפרט</a>
+        <a href="#faq" class="hover:text-aqua-brand">שאלות נפוצות</a>
+      </nav>
+      <a href="#order" class="btn-primary !py-2.5 !px-4 !text-[14px]">
+        <span>הזמן עכשיו</span>
+        <span aria-hidden="true">🛒</span>
+      </a>
+    </div>
+  </header>
+
+  <main class="pt-16">
+
+    <!-- ============ HERO ============ -->
+    <section id="hero" class="hero-bg">
+      <div class="container-x section grid md:grid-cols-2 gap-10 md:gap-14 items-center">
+        <div class="order-2 md:order-1">
+          <div class="reveal eyebrow mb-4">VERTEX · מבית Solace</div>
+          <h1 class="reveal display text-aqua-deep text-[2.4rem] sm:text-5xl md:text-[3.4rem] leading-[1.05]">
+            החיוך המושלם שלך מתחיל כאן: <br/>
+            <span class="text-aqua-brand">ניקוי דנטלי עמוק ומקצועי אצלך בבית</span>
+          </h1>
+          <p class="reveal mt-5 text-lg md:text-xl text-ink/75 leading-relaxed max-w-[62ch]">
+            תגיד שלום לחוט הדנטלי המציק. הכר את הסילונית האלחוטית המתקדמת — הדרך הקלה, המהירה והיעילה ביותר לשמור על חניכיים בריאות, נשימה רעננה ושיניים נקיות מפלאק ב-60 שניות בלבד.
+          </p>
+
+          <div class="reveal mt-7 flex flex-wrap items-center gap-3">
+            <a href="#order" class="btn-primary">
+              <span>לרכישה המאובטחת בהנחת השקה</span>
+              <span aria-hidden="true">🛒</span>
+            </a>
+            <a href="#features" class="btn-ghost">גלו את התכונות</a>
+          </div>
+
+          <ul class="reveal mt-8 flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-ink/70">
+            <li class="flex items-center gap-2"><span aria-hidden="true">🚚</span> משלוח חינם עד הבית</li>
+            <li class="flex items-center gap-2"><span aria-hidden="true">🛡️</span> אחריות מלאה לשנה</li>
+            <li class="flex items-center gap-2"><span aria-hidden="true">↩️</span> 30 יום החזר כספי</li>
+          </ul>
+        </div>
+
+        <div class="reveal order-1 md:order-2">
+          <div class="product-vis" role="img" aria-label="סילונית דנטלית VERTEX עם זרם מים נקיים">
+            <div class="drop">
+              <svg viewBox="0 0 200 280" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <defs>
+                  <linearGradient id="dropG" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#ffffff" stop-opacity=".95"/>
+                    <stop offset="100%" stop-color="#cfeaf6" stop-opacity=".8"/>
+                  </linearGradient>
+                </defs>
+                <path d="M100 12 C 60 80, 36 120, 36 168 a 64 64 0 0 0 128 0 C 164 120, 140 80, 100 12 Z"
+                      fill="url(#dropG)" stroke="#ffffff" stroke-width="2"/>
+                <ellipse cx="76" cy="120" rx="14" ry="22" fill="#ffffff" opacity=".55"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PROBLEM HOOK ============ -->
+    <div class="wave-top" aria-hidden="true"></div>
+    <section id="hook" class="bg-aqua-mist">
+      <div class="container-x section">
+        <div class="max-w-[62ch] mx-auto text-center">
+          <div class="reveal eyebrow mb-5 text-aqua-deep">למה דווקא עכשיו?</div>
+
+          <h2 class="reveal display text-aqua-deep text-3xl md:text-5xl leading-[1.1] mb-6">
+            <span class="block italic font-semibold text-aqua-deep/85 text-2xl md:text-3xl">
+              נמאס לכם להיפצע מחוט דנטלי כל ערב?
+            </span>
+            <span class="block italic font-semibold text-aqua-deep/85 text-2xl md:text-3xl mt-2">
+              נמאס מקיסמי שיניים שרק מכאיבים ולא באמת עוזרים לנקות?
+            </span>
+          </h2>
+
+          <p class="reveal display text-2xl md:text-[1.7rem] text-aqua-deep mb-5">
+            תכירו את <span class="brand-vertex">VERTEX</span> מבית Solace —
+            <span class="text-aqua-brand">המהפכה הדנטלית הביתית שלכם.</span>
+          </p>
+
+          <p class="reveal text-lg md:text-xl leading-[1.85] text-ink/80">
+            מנקה שיניים סילוני אלחוטי ועוצמתי שמגיע לכל הפינות שמברשת השיניים שלכם מפספסת.
+            הוא שומר על החניכיים, מונע דלקות ומעניק לכם תחושת רעננות וניקיון של מרפאה
+            <strong class="text-aqua-deep">ב-60 שניות בלבד</strong> — בלי כאב ובלי דימומים.
+          </p>
+
+          <div class="reveal mt-9 inline-flex flex-col sm:flex-row items-center justify-center gap-3">
+            <a href="#order" class="btn-primary">
+              <span>גלו את VERTEX · במחיר השקה 249 ₪ במקום 599 ₪</span>
+              <span aria-hidden="true">←</span>
+            </a>
+            <span class="text-sm text-aqua-deep/70">מלאי מוגבל למבצע ההשקה</span>
+          </div>
+        </div>
+      </div>
+    </section>
+    <div class="wave-bottom" aria-hidden="true"></div>
+
+    <!-- ============ PAIN & SOLUTION ============ -->
+    <section id="pain-solution" class="section">
+      <div class="container-x grid md:grid-cols-2 gap-8">
+        <article class="reveal card p-7 md:p-9 border-r-4 border-r-red-400/70">
+          <div class="eyebrow !text-red-500 mb-3">הבעיה</div>
+          <h3 class="display text-2xl md:text-3xl text-aqua-deep mb-4">המברשת לא מספיקה. החוט פוצע.</h3>
+          <ul class="space-y-3 text-ink/80 leading-relaxed">
+            <li class="flex gap-3"><span class="text-red-500 font-bold flex-shrink-0">✗</span> מברשת שיניים רגילה מגיעה רק ל-60% משטח השן.</li>
+            <li class="flex gap-3"><span class="text-red-500 font-bold flex-shrink-0">✗</span> שאריות מזון ובקטריות נשארות חבויות בין השיניים.</li>
+            <li class="flex gap-3"><span class="text-red-500 font-bold flex-shrink-0">✗</span> ריח רע מהפה, אבנית ודלקות חניכיים.</li>
+            <li class="flex gap-3"><span class="text-red-500 font-bold flex-shrink-0">✗</span> חורים שעולים אלפי שקלים בטיפולי שיניים.</li>
+            <li class="flex gap-3"><span class="text-red-500 font-bold flex-shrink-0">✗</span> חוט דנטלי רגיל — מסורבל, מכאיב ולעיתים פוצע את החניכיים.</li>
+          </ul>
+        </article>
+
+        <article class="reveal card p-7 md:p-9 border-r-4 border-r-aqua-brand">
+          <div class="eyebrow mb-3">הפתרון</div>
+          <h3 class="display text-2xl md:text-3xl text-aqua-deep mb-4">סילונית דנטלית — ניקוי מקצועי בעדינות.</h3>
+          <ul class="space-y-3 text-ink/80 leading-relaxed">
+            <li class="flex gap-3"><span class="text-aqua-brand font-bold flex-shrink-0">✓</span> פולסי מים עוצמתיים חודרים למרווחים הצרים ביותר.</li>
+            <li class="flex gap-3"><span class="text-aqua-brand font-bold flex-shrink-0">✓</span> ניקוי בעדינות אך ביסודיות — בלי לפגוע באמייל או בחניכיים.</li>
+            <li class="flex gap-3"><span class="text-aqua-brand font-bold flex-shrink-0">✓</span> עיסוי חניכיים שמשפר את זרימת הדם ובריאות הפה.</li>
+            <li class="flex gap-3"><span class="text-aqua-brand font-bold flex-shrink-0">✓</span> הסרת פלאק ושאריות מזון תוך 60 שניות בלבד.</li>
+            <li class="flex gap-3"><span class="text-aqua-brand font-bold flex-shrink-0">✓</span> נשימה רעננה לאורך כל היום.</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <!-- ============ KEY FEATURES ============ -->
+    <section id="features" class="bg-white section">
+      <div class="container-x">
+        <div class="text-center mb-12">
+          <div class="reveal eyebrow mb-3">תכונות מרכזיות</div>
+          <h2 class="reveal display text-aqua-deep text-3xl md:text-5xl">כל מה שצריך לחיוך בריא — בכף יד אחת</h2>
+          <p class="reveal mt-4 text-ink/70 max-w-2xl mx-auto text-lg">מפרט מקצועי שנבחר בקפידה כדי להעניק לכם חוויית ניקוי שמרגישה כמו במרפאה.</p>
+        </div>
+
+        <div id="features-grid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+      </div>
+    </section>
+
+    <!-- ============ SPECS TABLE ============ -->
+    <section id="specs" class="bg-aqua-ice section">
+      <div class="container-x max-w-4xl">
+        <div class="text-center mb-10">
+          <div class="reveal eyebrow mb-3">מפרט טכני מלא</div>
+          <h2 class="reveal display text-aqua-deep text-3xl md:text-4xl">המספרים מאחורי הביצועים</h2>
+        </div>
+        <div class="reveal overflow-hidden">
+          <table class="spec-table">
+            <thead>
+              <tr><th>תכונה</th><th>ערך</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>תקן עמידות למים</td><td>IPX7 — אטום למים לחלוטין</td></tr>
+              <tr><td>מצבי עוצמה</td><td>5 מצבים עם אינדיקציית LED</td></tr>
+              <tr><td>תדר פעימות מים</td><td>1,600 פעימות לדקה</td></tr>
+              <tr><td>פיה מסתובבת</td><td>360 מעלות לגישה מלאה</td></tr>
+              <tr><td>סוג טעינה</td><td>Type-C — מהירה ואוניברסלית</td></tr>
+              <tr><td>סוג סוללה</td><td>סוללת ליתיום נטענת</td></tr>
+              <tr><td>נפח מיכל מים</td><td>כ-200 מ"ל, שקוף, ארגונומי</td></tr>
+              <tr><td>זמן שימוש מטעינה</td><td>עד מספר שבועות בשימוש יומי</td></tr>
+              <tr><td>חומר</td><td>פלסטיק ABS איכותי בגימור מט</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ WHAT'S IN THE BOX ============ -->
+    <section id="box" class="section">
+      <div class="container-x">
+        <div class="text-center mb-12">
+          <div class="reveal eyebrow mb-3">מה מחכה לכם בקופסה</div>
+          <h2 class="reveal display text-aqua-deep text-3xl md:text-5xl">ערכה מלאה ומקצועית</h2>
+          <p class="reveal mt-4 text-ink/70 max-w-2xl mx-auto text-lg">כל מה שצריך לחוויית היגיינה מושלמת — אריזה אחת.</p>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-6">
+          <article class="reveal card p-7">
+            <div class="flex items-center gap-4 mb-3">
+              <span class="text-3xl" aria-hidden="true">💎</span>
+              <h3 class="display text-xl text-aqua-deep">1 · מכשיר הסילונית VERTEX</h3>
+            </div>
+            <p class="text-ink/75 leading-relaxed">בעיצוב ארגונומי, נקי ואלגנטי בצבע לבן. אחיזה נוחה ומונעת החלקה.</p>
+          </article>
+
+          <article class="reveal card p-7">
+            <div class="flex items-center gap-4 mb-3">
+              <span class="text-3xl" aria-hidden="true">🔄</span>
+              <h3 class="display text-xl text-aqua-deep">2 · סט 5 פיות החלפה</h3>
+            </div>
+            <ul class="space-y-2 text-ink/80">
+              <li class="flex gap-2"><span class="text-aqua-brand font-bold">•</span> 2 פיות קלאסיות לניקוי יומיומי</li>
+              <li class="flex gap-2"><span class="text-aqua-brand font-bold">•</span> פיה אורתודונטית לגשר וסמכים</li>
+              <li class="flex gap-2"><span class="text-aqua-brand font-bold">•</span> פיה לכיסי חניכיים — עדינה במיוחד</li>
+              <li class="flex gap-2"><span class="text-aqua-brand font-bold">•</span> פיית מגרד לשון לנשימה רעננה</li>
+            </ul>
+          </article>
+
+          <article class="reveal card p-7">
+            <div class="flex items-center gap-4 mb-3">
+              <span class="text-3xl" aria-hidden="true">🔌</span>
+              <h3 class="display text-xl text-aqua-deep">3 · כבל טעינה Type-C</h3>
+            </div>
+            <p class="text-ink/75 leading-relaxed">טעינה מהירה ונוחה מכל מקור — מטען קיר, מחשב או סוללת גיבוי לטיולים.</p>
+          </article>
+
+          <article class="reveal card p-7">
+            <div class="flex items-center gap-4 mb-3">
+              <span class="text-3xl" aria-hidden="true">📘</span>
+              <h3 class="display text-xl text-aqua-deep">4 · ספר הוראות בעברית</h3>
+            </div>
+            <p class="text-ink/75 leading-relaxed">מדריך מפורט להפעלה נכונה, תחזוקה ושמירה על אורך חיי המכשיר.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ AUDIENCE FIT ============ -->
+    <section id="audience" class="bg-aqua-mist section">
+      <div class="container-x">
+        <div class="text-center mb-12">
+          <div class="reveal eyebrow mb-3">למי VERTEX מתאים</div>
+          <h2 class="reveal display text-aqua-deep text-3xl md:text-5xl">בריאות הפה היא לא מותרות</h2>
+        </div>
+
+        <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <article class="reveal card p-6 text-center">
+            <div class="text-4xl mb-3" aria-hidden="true">😁</div>
+            <h3 class="display text-lg text-aqua-deep mb-2">לכל הבית</h3>
+            <p class="text-ink/75 text-sm leading-relaxed">לכל מי שרוצה לשמור על שיניים לבנות וחניכיים בריאות, ללא כאב.</p>
+          </article>
+          <article class="reveal card p-6 text-center">
+            <div class="text-4xl mb-3" aria-hidden="true">🦷</div>
+            <h3 class="display text-lg text-aqua-deep mb-2">גשר, שתל וכתר</h3>
+            <p class="text-ink/75 text-sm leading-relaxed">חובה לבעלי גשר, כתרים, שתלים או קוביות — מברשת לא מגיעה לאזורים האלה.</p>
+          </article>
+          <article class="reveal card p-6 text-center">
+            <div class="text-4xl mb-3" aria-hidden="true">🌬️</div>
+            <h3 class="display text-lg text-aqua-deep mb-2">נשימה רעננה</h3>
+            <p class="text-ink/75 text-sm leading-relaxed">פיית הלשון וניקוי כיסי החניכיים מבטלים את שורש הריח הרע.</p>
+          </article>
+          <article class="reveal card p-6 text-center">
+            <div class="text-4xl mb-3" aria-hidden="true">✈️</div>
+            <h3 class="display text-lg text-aqua-deep mb-2">מטיילים ואנשי עסקים</h3>
+            <p class="text-ink/75 text-sm leading-relaxed">קומפקטי, נטען ב-Type-C — היגיינה ברמה גבוהה גם מחוץ לבית.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ FAQ ============ -->
+    <section id="faq" class="section">
+      <div class="container-x max-w-3xl">
+        <div class="text-center mb-12">
+          <div class="reveal eyebrow mb-3">שאלות נפוצות</div>
+          <h2 class="reveal display text-aqua-deep text-3xl md:text-5xl">כל מה שרציתם לדעת</h2>
+        </div>
+
+        <div class="reveal" id="faq-list">
+          <details class="faq">
+            <summary>
+              <span>האם זה כואב או מדמם?</span>
+              <span class="chev" aria-hidden="true">▾</span>
+            </summary>
+            <div class="faq-body">
+              ממש לא. בזכות 5 מצבי העוצמה, מומלץ להתחיל במצב הנמוך ביותר (עדין) כדי לאפשר לחניכיים להתרגל,
+              ולאחר מכן לעלות בעוצמה בהתאם לנוחות שלכם. תוך מספר ימים תרגישו את ההבדל — חניכיים חזקות יותר וללא דימום.
+            </div>
+          </details>
+          <details class="faq">
+            <summary>
+              <span>כל כמה זמן צריך להטעין את המכשיר?</span>
+              <span class="chev" aria-hidden="true">▾</span>
+            </summary>
+            <div class="faq-body">
+              VERTEX מצויד בסוללת ליתיום חזקה. טעינה מלאה אחת מספיקה לשימוש של מספר שבועות
+              (תלוי בתדירות השימוש היומית). כבל Type-C כלול בערכה.
+            </div>
+          </details>
+          <details class="faq">
+            <summary>
+              <span>האם ניתן להשתמש בזה במקלחת?</span>
+              <span class="chev" aria-hidden="true">▾</span>
+            </summary>
+            <div class="faq-body">
+              בהחלט. המכשיר עומד בתקן אטימות IPX7, כלומר עמיד לחלוטין בפני מים וזרמים חזקים —
+              שימוש במקלחת ושטיפה תחת הברז בטוחים לחלוטין.
+            </div>
+          </details>
+          <details class="faq">
+            <summary>
+              <span>תוך כמה זמן המוצר מגיע ומה לגבי החזרה?</span>
+              <span class="chev" aria-hidden="true">▾</span>
+            </summary>
+            <div class="faq-body">
+              משלוח חינם עד הבית תוך 3–5 ימי עסקים. המוצר מגיע עם 30 יום החזר כספי מלא ואחריות יצרן לשנה —
+              אם אינכם מרוצים, פשוט תחזירו אותנו ונחזיר את הכסף.
+            </div>
+          </details>
+          <details class="faq">
+            <summary>
+              <span>מתאים גם לילדים?</span>
+              <span class="chev" aria-hidden="true">▾</span>
+            </summary>
+            <div class="faq-body">
+              כן, החל מגיל 8 בליווי הורה ובמצב העוצמה הנמוך. הפיה הסובבת 360 מעלות מקלה גם על ילדים עם יישור שיניים.
+            </div>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ ORDER FORM + PAYPAL ============ -->
+    <section id="order" class="bg-aqua-mist section">
+      <div class="container-x max-w-6xl">
+        <div class="text-center mb-10">
+          <div class="reveal eyebrow mb-3">להזמנה מאובטחת</div>
+          <h2 class="reveal display text-aqua-deep text-3xl md:text-5xl">השלימו את ההזמנה תוך דקה</h2>
+          <p class="reveal mt-4 text-ink/75 max-w-2xl mx-auto text-lg">מלאו את הפרטים, בחרו כמות והשלימו תשלום מאובטח דרך PayPal — כולל אפשרות תשלום בכרטיס אשראי.</p>
+        </div>
+
+        <div class="grid lg:grid-cols-5 gap-8">
+
+          <!-- Product summary card -->
+          <aside class="lg:col-span-2 reveal">
+            <div class="card p-6 md:p-7 sticky top-24">
+              <div class="product-vis !aspect-[4/3] mb-5">
+                <div class="drop">
+                  <svg viewBox="0 0 200 280" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <defs><linearGradient id="dropG2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#fff" stop-opacity=".95"/><stop offset="100%" stop-color="#cfeaf6" stop-opacity=".8"/></linearGradient></defs>
+                    <path d="M100 12 C 60 80, 36 120, 36 168 a 64 64 0 0 0 128 0 C 164 120, 140 80, 100 12 Z" fill="url(#dropG2)" stroke="#fff" stroke-width="2"/>
+                  </svg>
+                </div>
+              </div>
+
+              <h3 class="display text-2xl text-aqua-deep mb-2">VERTEX — סילונית דנטלית מקצועית</h3>
+              <p class="text-ink/70 text-sm mb-4">ערכה מלאה: מכשיר VERTEX, 5 פיות החלפה, כבל Type-C וספר הוראות.</p>
+
+              <ul class="space-y-2 mb-5 text-sm text-ink/80">
+                <li class="flex gap-2"><span class="text-aqua-brand">✓</span> 5 מצבי עוצמה · 1600 פעימות/דקה</li>
+                <li class="flex gap-2"><span class="text-aqua-brand">✓</span> תקן IPX7 — עמיד למים</li>
+                <li class="flex gap-2"><span class="text-aqua-brand">✓</span> טעינת Type-C מהירה</li>
+                <li class="flex gap-2"><span class="text-aqua-brand">✓</span> משלוח חינם · אחריות שנה</li>
+              </ul>
+
+              <div class="flex items-end justify-between gap-3 border-t border-aqua-deep/10 pt-5">
+                <div>
+                  <div class="price-old"><span data-original></span> ₪</div>
+                  <div class="price-new"><span data-price></span> ₪</div>
+                </div>
+                <span class="price-save">חיסכון 58%</span>
+              </div>
+
+              <div class="mt-5 flex items-center justify-between">
+                <label for="qty" class="font-semibold text-aqua-deep">כמות</label>
+                <select id="qty" class="field !w-auto !py-2 !px-3" aria-label="בחרו כמות">
+                  <option value="1">יחידה אחת</option>
+                  <option value="2">2 יחידות</option>
+                  <option value="3">3 יחידות</option>
+                  <option value="4">4 יחידות</option>
+                </select>
+              </div>
+
+              <div class="mt-5 flex items-center justify-between text-aqua-deep font-bold text-lg">
+                <span>סה״כ לתשלום</span>
+                <span><span id="subtotal">249.00</span> ₪</span>
+              </div>
+            </div>
+          </aside>
+
+          <!-- Buyer form + PayPal -->
+          <div class="lg:col-span-3">
+            <div id="demo-banner" class="reveal demo-banner mb-5 hidden">
+              <strong>מצב דמו —</strong> לא יבוצע חיוב אמיתי. כדי להפעיל תשלום חי, החליפו את <code>PAYPAL_CLIENT_ID</code> בקובץ <code>product.html</code>.
+            </div>
+
+            <form id="order-form" class="reveal card p-6 md:p-8 space-y-5" novalidate>
+              <h3 class="display text-2xl text-aqua-deep">פרטי הלקוח ויעד המשלוח</h3>
+
+              <div class="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <label for="fullname" class="block text-sm font-semibold text-aqua-deep mb-1.5">שם מלא <span class="text-red-500">*</span></label>
+                  <input id="fullname" name="fullname" type="text" class="field" placeholder="ישראלה ישראלי" required minlength="2" autocomplete="name" />
+                </div>
+                <div>
+                  <label for="email" class="block text-sm font-semibold text-aqua-deep mb-1.5">אימייל <span class="text-red-500">*</span></label>
+                  <input id="email" name="email" type="email" class="field" placeholder="האימייל שלכם" required autocomplete="email" />
+                </div>
+              </div>
+
+              <div class="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <label for="phone" class="block text-sm font-semibold text-aqua-deep mb-1.5">טלפון נייד <span class="text-red-500">*</span></label>
+                  <input id="phone" name="phone" type="tel" class="field" placeholder="050-0000000" required pattern="^0\d{1,2}-?\d{7}$" autocomplete="tel" />
+                </div>
+                <div>
+                  <label for="city" class="block text-sm font-semibold text-aqua-deep mb-1.5">עיר <span class="text-red-500">*</span></label>
+                  <input id="city" name="city" type="text" class="field" placeholder="תל אביב" required autocomplete="address-level2" />
+                </div>
+              </div>
+
+              <div>
+                <label for="address" class="block text-sm font-semibold text-aqua-deep mb-1.5">כתובת מלאה (רחוב ומספר) <span class="text-red-500">*</span></label>
+                <input id="address" name="address" type="text" class="field" placeholder="רחוב הרצל 12, דירה 4" required autocomplete="street-address" />
+              </div>
+
+              <div>
+                <label for="notes" class="block text-sm font-semibold text-aqua-deep mb-1.5">הערות להזמנה (אופציונלי)</label>
+                <textarea id="notes" name="notes" rows="2" class="field" placeholder="קומה, קוד לבניין, שעות חזרה — כל מה שיעזור לשליח"></textarea>
+              </div>
+
+              <div class="border-t border-aqua-deep/10 pt-5">
+                <div id="form-hint" class="text-sm text-aqua-deep/70 mb-3">מלאו את כל השדות המסומנים כדי להפעיל את כפתור התשלום.</div>
+                <div id="paypal-button-container" aria-live="polite"></div>
+              </div>
+
+              <div class="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-ink/60 pt-2">
+                <span class="flex items-center gap-1.5"><span aria-hidden="true">🔒</span> תשלום מאובטח בהצפנת SSL</span>
+                <span class="flex items-center gap-1.5"><span aria-hidden="true">🛡️</span> 30 יום החזר כספי</span>
+                <span class="flex items-center gap-1.5"><span aria-hidden="true">🚚</span> משלוח חינם תוך 3–5 ימים</span>
+              </div>
+            </form>
+
+            <div id="thank-you" class="reveal card p-8 hidden text-center">
+              <div class="text-5xl mb-3" aria-hidden="true">🎉</div>
+              <h3 class="display text-2xl md:text-3xl text-aqua-deep mb-3">תודה על ההזמנה!</h3>
+              <p class="text-ink/75 max-w-md mx-auto leading-relaxed">
+                ההזמנה התקבלה בהצלחה. שלחנו אישור לאימייל שלכם — נחזור אליכם בתוך 24 שעות לתיאום המשלוח.
+                ברוכים הבאים למשפחת VERTEX.
+              </p>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ FINAL CTA ============ -->
+    <section class="bg-aqua-deep text-white section">
+      <div class="container-x max-w-3xl text-center">
+        <h2 class="reveal display text-3xl md:text-5xl mb-5 leading-[1.1]">
+          אל תתפשרו על הבריאות שלכם
+        </h2>
+        <p class="reveal text-aqua-mist/90 text-lg md:text-xl leading-relaxed mb-7">
+          הזמינו עכשיו את VERTEX ותתחילו להרגיש את ההבדל כבר מהשימוש הראשון.
+          מבצע ההשקה — 249 ₪ במקום 599 ₪ — לזמן מוגבל.
+        </p>
+        <a href="#order" class="btn-primary !bg-white !bg-none !text-aqua-deep" style="background: #fff; color: var(--aqua-deep);">
+          <span>להזמנה — 249 ₪ עם משלוח חינם</span>
+          <span aria-hidden="true">🛒</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- ============ FOOTER ============ -->
+    <footer class="bg-white border-t border-aqua-deep/10">
+      <div class="container-x py-10">
+        <div class="grid md:grid-cols-3 gap-8 items-center">
+          <div class="flex items-center gap-2.5 text-aqua-deep">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2C8 8 5 11.5 5 15a7 7 0 1 0 14 0c0-3.5-3-7-7-13Z" fill="currentColor"/></svg>
+            <span class="brand-wordmark">VERTEX · Solace</span>
+          </div>
+          <ul class="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-ink/70">
+            <li class="flex items-center gap-1.5"><span aria-hidden="true">🚚</span> משלוח מהיר</li>
+            <li class="flex items-center gap-1.5"><span aria-hidden="true">🔒</span> רכישה מאובטחת בהצפנת SSL</li>
+            <li class="flex items-center gap-1.5"><span aria-hidden="true">📞</span> שירות לקוחות</li>
+          </ul>
+          <div class="text-sm text-ink/60 md:text-left text-center">
+            © <span id="year"></span> Solace · VERTEX · כל הזכויות שמורות
+          </div>
+        </div>
+      </div>
+    </footer>
+
+  </main>
+
+  <!-- ============ JS ============ -->
+  <script>
+    (function () {
+      'use strict';
+
+      const PRICE = +window.PRODUCT_PRICE_ILS || 249;
+      const ORIGINAL = +window.PRODUCT_ORIGINAL || 599;
+      const fmt = (n) => n.toFixed(2);
+
+      /* ---------- Inject price values ---------- */
+      document.querySelectorAll('[data-price]').forEach(el => el.textContent = fmt(PRICE));
+      document.querySelectorAll('[data-original]').forEach(el => el.textContent = fmt(ORIGINAL));
+
+      /* ---------- Year stamp ---------- */
+      const yearEl = document.getElementById('year');
+      if (yearEl) yearEl.textContent = new Date().getFullYear();
+
+      /* ---------- Features grid ---------- */
+      const FEATURES = [
+        { icon: '💧', title: 'עמידות מלאה למים — IPX7', body: 'בטיחות מקסימלית: שימוש קל ונוח גם במקלחת ושטיפה מלאה תחת הברז.' },
+        { icon: '⚙️', title: '5 מצבי עוצמה מותאמים', body: 'ממצב עדין במיוחד לחניכיים רגישות ועד עוצמתי לניקוי עמוק — עם אינדיקציית LED.' },
+        { icon: '🌪️', title: '1,600 פעימות לדקה', body: 'תדר אופטימלי המומלץ על ידי רופאי שיניים — מפרק פלאק בלי לפגוע באמייל.' },
+        { icon: '🔄', title: 'פיה מסתובבת 360°', body: 'גישה נוחה לכל הפינות — שיניים אחוריות, יישור שיניים, גשרים וכתרים.' },
+        { icon: '🔋', title: 'טעינת Type-C מהירה', body: 'סוללת ליתיום עוצמתית לטווח ארוך. אידיאלי לבית ולנסיעות, ללא מטענים מסורבלים.' },
+        { icon: '🍶', title: 'מיכל מים ארגונומי', body: 'שקוף ונוח למילוי — מאפשר לעקוב אחר הכמות, עם אחיזה מונעת החלקה.' },
+      ];
+      const featuresGrid = document.getElementById('features-grid');
+      if (featuresGrid) {
+        featuresGrid.innerHTML = FEATURES.map((f, i) => `
+          <article class="reveal card p-6" style="transition-delay:${i * 60}ms">
+            <div class="text-4xl mb-3" aria-hidden="true">${f.icon}</div>
+            <h3 class="display text-xl text-aqua-deep mb-2">${f.title}</h3>
+            <p class="text-ink/75 leading-relaxed">${f.body}</p>
+          </article>
+        `).join('');
+      }
+
+      /* ---------- Scroll-reveal (IntersectionObserver) ---------- */
+      const revealEls = document.querySelectorAll('.reveal');
+      if ('IntersectionObserver' in window) {
+        const io = new IntersectionObserver((entries) => {
+          entries.forEach(e => {
+            if (e.isIntersecting) { e.target.classList.add('is-visible'); io.unobserve(e.target); }
+          });
+        }, { threshold: 0.12 });
+        revealEls.forEach(el => io.observe(el));
+      } else {
+        revealEls.forEach(el => el.classList.add('is-visible'));
+      }
+
+      /* ---------- Nav scroll state ---------- */
+      const nav = document.getElementById('nav');
+      const onScroll = () => {
+        if (!nav) return;
+        nav.classList.toggle('is-scrolled', window.scrollY > 24);
+      };
+      onScroll();
+      window.addEventListener('scroll', onScroll, { passive: true });
+
+      /* ---------- Smooth scroll for in-page anchors ---------- */
+      document.addEventListener('click', (e) => {
+        const a = e.target.closest('a[href^="#"]');
+        if (!a) return;
+        const id = a.getAttribute('href').slice(1);
+        if (!id) return;
+        const target = document.getElementById(id);
+        if (!target) return;
+        e.preventDefault();
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+
+      /* ---------- FAQ — only one open at a time ---------- */
+      const faqs = document.querySelectorAll('details.faq');
+      faqs.forEach(d => {
+        d.addEventListener('toggle', () => {
+          if (d.open) faqs.forEach(o => { if (o !== d) o.open = false; });
+        });
+      });
+
+      /* ---------- Quantity → subtotal ---------- */
+      const qty = document.getElementById('qty');
+      const subtotalEl = document.getElementById('subtotal');
+      const updateSubtotal = () => {
+        const q = +(qty?.value || 1);
+        if (subtotalEl) subtotalEl.textContent = fmt(q * PRICE);
+      };
+      qty?.addEventListener('change', updateSubtotal);
+      updateSubtotal();
+
+      /* ---------- Form validation ---------- */
+      const form = document.getElementById('order-form');
+      const hint = document.getElementById('form-hint');
+
+      const setInvalid = (el, isInvalid) => el.classList.toggle('invalid', isInvalid);
+
+      const validateForm = () => {
+        if (!form) return false;
+        let ok = true;
+        form.querySelectorAll('input, textarea, select').forEach(el => {
+          if (!el.checkValidity()) {
+            ok = false;
+            if (el.value !== '') setInvalid(el, true); // only show red after user typed
+          } else {
+            setInvalid(el, false);
+          }
+        });
+        if (hint) {
+          hint.textContent = ok
+            ? 'מצוין — הפרטים תקינים. סיימו את התשלום באמצעות הכפתור למטה.'
+            : 'מלאו את כל השדות המסומנים כדי להפעיל את כפתור התשלום.';
+          hint.classList.toggle('text-aqua-brand', ok);
+          hint.classList.toggle('text-aqua-deep/70', !ok);
+        }
+        return ok;
+      };
+
+      // Custom Hebrew validity messages
+      const hebrewMessages = {
+        fullname: 'נא להזין שם מלא',
+        email:    'נא להזין כתובת אימייל תקינה',
+        phone:    'נא להזין מספר טלפון נייד תקין (לדוגמה 050-1234567)',
+        city:     'נא להזין שם עיר',
+        address:  'נא להזין כתובת מלאה',
+      };
+      form?.querySelectorAll('input, textarea').forEach(el => {
+        el.addEventListener('invalid', () => {
+          const msg = hebrewMessages[el.name] || 'נא למלא את השדה';
+          el.setCustomValidity(msg);
+        });
+        el.addEventListener('input', () => {
+          el.setCustomValidity('');
+          validateForm();
+        });
+        el.addEventListener('blur', () => {
+          if (el.value && !el.checkValidity()) setInvalid(el, true);
+        });
+      });
+      validateForm();
+
+      // Block native form submit — PayPal handles purchase
+      form?.addEventListener('submit', (e) => e.preventDefault());
+
+      /* ---------- PayPal Smart Buttons (or demo placeholder) ---------- */
+      const container = document.getElementById('paypal-button-container');
+      const demoBanner = document.getElementById('demo-banner');
+      const thankYou = document.getElementById('thank-you');
+
+      const clientId = window.PAYPAL_CLIENT_ID || '';
+      const isPlaceholder = !clientId || clientId.startsWith('REPLACE_');
+
+      const renderDemoButton = (reason) => {
+        if (!container) return;
+        if (demoBanner) demoBanner.classList.remove('hidden');
+        container.innerHTML = `
+          <button type="button" disabled
+            class="w-full py-3.5 rounded-full font-bold text-aqua-deep/60 bg-aqua-mist border border-aqua-deep/10 cursor-not-allowed">
+            תשלום מאובטח · ${reason || 'מצב דמו — החליפו PAYPAL_CLIENT_ID להפעלה'}
+          </button>
+          <p class="text-xs text-ink/55 mt-2 text-center">למידע על הפעלת התשלום — ראו README.md</p>
+        `;
+      };
+
+      const initPayPal = () => {
+        if (isPlaceholder) { renderDemoButton(); return; }
+
+        const sdk = window.paypal_sdk || window.paypal;
+        if (!sdk || !sdk.Buttons) { renderDemoButton('שירות התשלום לא נטען — נסו לרענן'); return; }
+
+        let actionsRef = null;
+
+        sdk.Buttons({
+          style: { layout: 'vertical', label: 'pay', shape: 'rect', color: 'gold' },
+          onInit: (data, actions) => {
+            actionsRef = actions;
+            actions.disable();
+            const refresh = () => {
+              if (form.checkValidity()) actions.enable();
+              else actions.disable();
+            };
+            form.addEventListener('input', refresh);
+            form.addEventListener('change', refresh);
+            refresh();
+          },
+          onClick: () => {
+            if (!form.checkValidity()) {
+              validateForm();
+              form.querySelectorAll(':invalid').forEach(el => setInvalid(el, true));
+              return false;
+            }
+          },
+          createOrder: (data, actions) => {
+            const q = +(qty?.value || 1);
+            const total = (q * PRICE).toFixed(2);
+            return actions.order.create({
+              purchase_units: [{
+                amount: { value: total, currency_code: 'ILS' },
+                description: `VERTEX מבית Solace — סילונית דנטלית (${q} יחידות)`,
+                shipping: {
+                  name: { full_name: form.fullname.value },
+                  address: {
+                    address_line_1: form.address.value,
+                    admin_area_2: form.city.value,
+                    country_code: 'IL',
+                  }
+                }
+              }],
+              application_context: { shipping_preference: 'SET_PROVIDED_ADDRESS' }
+            });
+          },
+          onApprove: (data, actions) => {
+            return actions.order.capture().then(() => {
+              form.classList.add('hidden');
+              thankYou?.classList.remove('hidden');
+              thankYou?.classList.add('is-visible');
+              thankYou?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            });
+          },
+          onError: () => {
+            alert('אירעה תקלה בתשלום. אנא נסו שוב או צרו איתנו קשר.');
+          }
+        }).render('#paypal-button-container');
+      };
+
+      // PayPal SDK loads with `defer` — wait for it
+      const waitForPayPal = () => {
+        if (isPlaceholder) { renderDemoButton(); return; }
+        let tries = 0;
+        const tick = () => {
+          if (window.paypal_sdk?.Buttons || window.paypal?.Buttons) { initPayPal(); return; }
+          if (++tries > 50) { renderDemoButton('שירות התשלום לא נטען'); return; }
+          setTimeout(tick, 120);
+        };
+        tick();
+      };
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', waitForPayPal);
+      } else {
+        waitForPayPal();
+      }
+    })();
+  </script>
+
+</body>
+</html>
