@@ -1,0 +1,1018 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Solace Aura Estate — The Sanctuary of Your Legacy</title>
+  <meta name="description" content="Solace Aura Estate crafts warm, ultra-luxury private sanctuaries — bespoke villas, water features, spas, cellars, cinemas, and grand entertaining rooms — designed for discerning legacies." />
+  <meta name="theme-color" content="#2C1B10" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            sae: {
+              chocolate: '#2C1B10',
+              coffee:    '#4A3528',
+              walnut:    '#6B4A30',
+              bronze:    '#8C6E4A',
+              gold:      '#B8935B',
+              goldlite:  '#D4B07A',
+              sand:      '#D8C9B1',
+              parchment: '#E8DCC4',
+              ivory:     '#F4EDE0',
+            },
+          },
+          fontFamily: {
+            serif: ['"Cormorant Garamond"', 'Georgia', 'serif'],
+            sans:  ['Inter', 'system-ui', 'sans-serif'],
+          },
+          letterSpacing: {
+            estate: '0.32em',
+          },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    :root {
+      --sae-chocolate: #2C1B10;
+      --sae-coffee:    #4A3528;
+      --sae-walnut:    #6B4A30;
+      --sae-bronze:    #8C6E4A;
+      --sae-gold:      #B8935B;
+      --sae-goldlite:  #D4B07A;
+      --sae-sand:      #D8C9B1;
+      --sae-parchment: #E8DCC4;
+      --sae-ivory:     #F4EDE0;
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      background-color: var(--sae-ivory);
+      color: var(--sae-chocolate);
+      font-family: 'Inter', system-ui, sans-serif;
+      font-weight: 300;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    /* Paper-grain texture used on dark sections (subtle plaster feel) */
+    .grain {
+      position: relative;
+    }
+    .grain::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.06;
+      mix-blend-mode: overlay;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.95 0 0 0 0 0.85 0 0 0 0 0.65 0 0 0 0.6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    }
+
+    /* Decorative wood-grain band */
+    .woodgrain {
+      background:
+        linear-gradient(180deg, rgba(0,0,0,0.0), rgba(0,0,0,0.0)),
+        repeating-linear-gradient(90deg,
+          rgba(44,27,16,0.0) 0px,
+          rgba(44,27,16,0.18) 1px,
+          rgba(44,27,16,0.0) 3px,
+          rgba(44,27,16,0.12) 6px,
+          rgba(44,27,16,0.0) 12px),
+        linear-gradient(180deg, #6B4A30, #4A3528);
+    }
+
+    /* Hairline gold divider */
+    .hairline-gold {
+      display: inline-block;
+      width: 56px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--sae-gold), transparent);
+    }
+
+    /* Smallcaps eyebrow */
+    .eyebrow {
+      font-family: 'Inter', sans-serif;
+      font-weight: 400;
+      font-size: 0.72rem;
+      letter-spacing: 0.32em;
+      text-transform: uppercase;
+      color: var(--sae-gold);
+    }
+
+    /* Serif display sizes */
+    .display {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-weight: 500;
+      line-height: 1.05;
+      letter-spacing: -0.005em;
+    }
+
+    /* Gold CTA pill with shimmer */
+    .btn-gold {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.85rem;
+      padding: 1rem 2.25rem;
+      border-radius: 9999px;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.10), rgba(0,0,0,0.10)),
+        linear-gradient(135deg, #C9A26E 0%, #B8935B 45%, #8C6E4A 100%);
+      color: var(--sae-chocolate);
+      font-family: 'Inter', sans-serif;
+      font-weight: 500;
+      font-size: 0.85rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      border: 1px solid rgba(212, 176, 122, 0.45);
+      box-shadow:
+        0 1px 0 rgba(255, 220, 170, 0.35) inset,
+        0 0 0 1px rgba(0,0,0,0.05),
+        0 18px 40px -16px rgba(184, 147, 91, 0.55);
+      overflow: hidden;
+      transition: transform 320ms cubic-bezier(.2,.7,.2,1), box-shadow 320ms ease, filter 320ms ease;
+      cursor: pointer;
+    }
+    .btn-gold:hover {
+      transform: translateY(-2px);
+      filter: brightness(1.04);
+      box-shadow:
+        0 1px 0 rgba(255, 220, 170, 0.45) inset,
+        0 22px 48px -16px rgba(184, 147, 91, 0.7);
+    }
+    .btn-gold:focus-visible {
+      outline: none;
+      box-shadow:
+        0 0 0 3px rgba(184, 147, 91, 0.35),
+        0 22px 48px -16px rgba(184, 147, 91, 0.7);
+    }
+    .btn-gold::before {
+      content: "";
+      position: absolute;
+      top: 0; bottom: 0; left: -60%;
+      width: 50%;
+      background: linear-gradient(120deg,
+        rgba(255,255,255,0.0) 0%,
+        rgba(255,240,210,0.45) 50%,
+        rgba(255,255,255,0.0) 100%);
+      transform: skewX(-20deg);
+      transition: left 700ms ease;
+      pointer-events: none;
+    }
+    .btn-gold:hover::before { left: 130%; }
+
+    .btn-ghost {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.95rem 1.75rem;
+      border-radius: 9999px;
+      border: 1px solid rgba(244, 237, 224, 0.35);
+      color: var(--sae-ivory);
+      font-family: 'Inter', sans-serif;
+      font-weight: 400;
+      font-size: 0.78rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      transition: border-color 280ms ease, color 280ms ease, background 280ms ease;
+    }
+    .btn-ghost:hover {
+      border-color: var(--sae-gold);
+      color: var(--sae-goldlite);
+      background: rgba(184, 147, 91, 0.08);
+    }
+
+    /* Scroll-reveal */
+    .reveal {
+      opacity: 0;
+      transform: translateY(28px);
+      transition: opacity 800ms cubic-bezier(.2,.7,.2,1),
+                  transform 800ms cubic-bezier(.2,.7,.2,1);
+      will-change: opacity, transform;
+    }
+    .reveal.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Nav */
+    .nav-root {
+      transition: padding 320ms ease, background-color 320ms ease, backdrop-filter 320ms ease, border-color 320ms ease;
+      background-color: rgba(44, 27, 16, 0.0);
+      border-bottom: 1px solid rgba(244, 237, 224, 0.0);
+    }
+    .nav-root.is-scrolled {
+      background-color: rgba(44, 27, 16, 0.82);
+      backdrop-filter: blur(14px) saturate(1.05);
+      -webkit-backdrop-filter: blur(14px) saturate(1.05);
+      border-bottom-color: rgba(184, 147, 91, 0.22);
+    }
+
+    /* Hero image parallax target */
+    .hero-img {
+      will-change: transform;
+      transition: transform 50ms linear;
+    }
+
+    /* Pillar card */
+    .pillar-card {
+      background-color: var(--sae-coffee);
+      border: 1px solid rgba(184, 147, 91, 0.18);
+      border-radius: 4px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: transform 480ms cubic-bezier(.2,.7,.2,1),
+                  border-color 480ms ease,
+                  box-shadow 480ms ease;
+    }
+    .pillar-card:hover {
+      transform: translateY(-6px);
+      border-color: rgba(184, 147, 91, 0.45);
+      box-shadow: 0 32px 60px -28px rgba(0,0,0,0.6);
+    }
+    .pillar-media {
+      position: relative;
+      aspect-ratio: 4 / 3;
+      overflow: hidden;
+      background-color: var(--sae-walnut);
+    }
+    .pillar-media img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 900ms cubic-bezier(.2,.7,.2,1), opacity 600ms ease;
+    }
+    .pillar-card:hover .pillar-media img { transform: scale(1.06); }
+    .pillar-media::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(44,27,16,0.0) 55%, rgba(44,27,16,0.55) 100%);
+      pointer-events: none;
+    }
+    .pillar-fallback {
+      position: absolute; inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background:
+        radial-gradient(140% 80% at 20% 0%, rgba(216,201,177,0.18), transparent 60%),
+        linear-gradient(160deg, var(--sae-walnut), var(--sae-coffee) 70%);
+      color: var(--sae-goldlite);
+    }
+    .pillar-fallback svg { width: 64px; height: 64px; opacity: 0.85; }
+    .pillar-media.is-fallback img { display: none; }
+    .pillar-media.is-fallback .pillar-fallback { display: flex; }
+
+    /* Chip select */
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.5rem 0.95rem;
+      border-radius: 9999px;
+      border: 1px solid rgba(44, 27, 16, 0.25);
+      background: transparent;
+      color: var(--sae-chocolate);
+      font-size: 0.78rem;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+      transition: background 220ms ease, color 220ms ease, border-color 220ms ease;
+    }
+    .chip:hover { border-color: var(--sae-bronze); }
+    .chip[aria-pressed="true"] {
+      background: var(--sae-chocolate);
+      color: var(--sae-ivory);
+      border-color: var(--sae-chocolate);
+    }
+
+    /* Inputs */
+    .field {
+      width: 100%;
+      background: var(--sae-ivory);
+      border: 1px solid rgba(44,27,16,0.18);
+      border-radius: 2px;
+      padding: 0.85rem 1rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.95rem;
+      color: var(--sae-chocolate);
+      transition: border-color 220ms ease, box-shadow 220ms ease, background 220ms ease;
+    }
+    .field:focus {
+      outline: none;
+      border-color: var(--sae-bronze);
+      background: #fff8ec;
+      box-shadow: 0 0 0 3px rgba(184, 147, 91, 0.18);
+    }
+    .field::placeholder { color: rgba(44,27,16,0.45); }
+
+    .seg {
+      display: inline-flex;
+      border: 1px solid rgba(44,27,16,0.2);
+      border-radius: 9999px;
+      padding: 4px;
+      background: var(--sae-ivory);
+    }
+    .seg button {
+      padding: 0.55rem 1.1rem;
+      border-radius: 9999px;
+      font-size: 0.78rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--sae-coffee);
+      transition: background 220ms ease, color 220ms ease;
+    }
+    .seg button[aria-pressed="true"] {
+      background: var(--sae-chocolate);
+      color: var(--sae-ivory);
+    }
+
+    /* Scroll cue */
+    @keyframes scrollcue {
+      0%   { transform: translateY(0); opacity: 0.0; }
+      30%  { opacity: 0.9; }
+      100% { transform: translateY(10px); opacity: 0.0; }
+    }
+    .scrollcue-dot {
+      animation: scrollcue 2.2s ease-in-out infinite;
+    }
+
+    /* Reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      .reveal { transition: opacity 300ms ease; transform: none; }
+      .reveal.is-visible { transform: none; }
+      .hero-img { transform: none !important; }
+      .btn-gold::before { display: none; }
+      .scrollcue-dot { animation: none; }
+      .pillar-card:hover { transform: none; }
+      .pillar-card:hover .pillar-media img { transform: none; }
+    }
+  </style>
+</head>
+
+<body class="bg-sae-ivory text-sae-chocolate">
+
+  <!-- =====================================================================
+       NAV
+       ===================================================================== -->
+  <header class="fixed top-0 inset-x-0 z-50">
+    <nav id="nav" class="nav-root">
+      <div class="max-w-7xl mx-auto px-6 md:px-10 flex items-center justify-between py-5">
+        <a href="#top" class="flex items-center gap-3 group" aria-label="Solace Aura Estate — home">
+          <span aria-hidden="true" class="inline-block w-8 h-8 rounded-full border border-sae-gold/70 flex items-center justify-center text-sae-goldlite font-serif text-lg leading-none">S</span>
+          <span class="text-sae-ivory font-serif text-xl tracking-wide">Solace Aura<span class="text-sae-goldlite"> · </span>Estate</span>
+        </a>
+
+        <ul class="hidden md:flex items-center gap-9 text-sae-ivory/85 text-[0.78rem] tracking-[0.22em] uppercase">
+          <li><a href="#concierge" class="hover:text-sae-goldlite transition">The Stewardship</a></li>
+          <li><a href="#worlds" class="hover:text-sae-goldlite transition">Worlds of Creation</a></li>
+          <li><a href="#visioning" class="hover:text-sae-goldlite transition">Visioning</a></li>
+        </ul>
+
+        <a href="tel:+10000000000" class="hidden sm:inline-flex items-center gap-2 text-sae-ivory/80 hover:text-sae-goldlite text-[0.72rem] tracking-[0.28em] uppercase transition">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+          </svg>
+          Concierge Direct
+        </a>
+      </div>
+    </nav>
+  </header>
+
+  <main id="top">
+
+    <!-- =====================================================================
+         HERO — "Welcome Home"
+         ===================================================================== -->
+    <section id="hero" class="relative overflow-hidden bg-sae-chocolate min-h-screen grain" aria-label="Welcome">
+      <!--
+        IMAGE PROMPT (swap for client photography):
+        Sun-drenched, meticulously designed luxury living space at golden hour:
+        deeply grained walnut paneling, polished plaster walls, low velvet
+        seating, brushed-bronze fixtures. A floor-to-ceiling opening overlooks
+        a private estate — olive trees, a long mirror pool, distant hills in
+        warm haze. Diffused light, no glare. Cinematic, 16:9.
+      -->
+      <img
+        class="hero-img absolute inset-0 w-full h-full object-cover"
+        src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=2000&q=80&auto=format&fit=crop"
+        alt="A warmly lit luxury living room of walnut, velvet, and polished plaster overlooking a private estate at golden hour."
+        onerror="this.style.display='none'; this.parentElement.classList.add('hero-fallback');"
+      />
+      <!-- Fallback hero (renders if image fails) -->
+      <div aria-hidden="true" class="absolute inset-0"
+           style="background:
+             radial-gradient(120% 80% at 70% 30%, rgba(216,201,177,0.35), transparent 60%),
+             radial-gradient(80% 60% at 20% 80%, rgba(184,147,91,0.28), transparent 60%),
+             linear-gradient(160deg, #4A3528 0%, #2C1B10 70%);"></div>
+
+      <!-- Atmospheric overlays -->
+      <div class="absolute inset-0 pointer-events-none"
+           style="background:
+             linear-gradient(180deg, rgba(44,27,16,0.55) 0%, rgba(44,27,16,0.25) 30%, rgba(44,27,16,0.15) 55%, rgba(44,27,16,0.75) 100%);"></div>
+
+      <div class="relative z-10 max-w-7xl mx-auto px-6 md:px-10 pt-40 md:pt-44 pb-32 min-h-screen flex flex-col justify-center">
+        <div class="max-w-4xl">
+          <div class="reveal flex items-center gap-4 mb-8">
+            <span class="hairline-gold"></span>
+            <span class="eyebrow text-sae-goldlite">A Private Welcome</span>
+          </div>
+
+          <h1 class="reveal display text-sae-ivory text-[2.5rem] sm:text-5xl md:text-6xl lg:text-7xl leading-[1.04] font-medium" style="transition-delay:80ms">
+            You haven&rsquo;t just arrived;<br />
+            <span class="italic text-sae-goldlite/95">you&rsquo;ve come home.</span>
+          </h1>
+
+          <p class="reveal mt-8 max-w-2xl text-sae-ivory/85 text-lg md:text-xl leading-relaxed font-light" style="transition-delay:180ms">
+            At Solace Aura Estate, we have been expecting you. We don&rsquo;t just build,
+            we craft legacies&mdash;your sanctuary, designed with your soul in mind,
+            before a single stone was laid.
+          </p>
+
+          <div class="reveal mt-12 flex flex-col sm:flex-row items-start sm:items-center gap-5" style="transition-delay:260ms">
+            <a href="#visioning" class="btn-gold" aria-label="Initiate your visioning session">
+              Initiate Your Visioning Session
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                <path d="M5 12h14M13 5l7 7-7 7"/>
+              </svg>
+            </a>
+            <a href="#worlds" class="btn-ghost">
+              Tour the Worlds
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scroll cue -->
+      <div class="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 text-sae-ivory/60" aria-hidden="true">
+        <span class="text-[0.62rem] tracking-[0.32em] uppercase">Descend</span>
+        <span class="block w-px h-10 bg-sae-gold/40 relative overflow-hidden">
+          <span class="absolute left-0 top-0 w-px h-3 bg-sae-goldlite scrollcue-dot"></span>
+        </span>
+      </div>
+    </section>
+
+    <!-- Wood-grain transition band -->
+    <div aria-hidden="true" class="woodgrain h-3"></div>
+
+    <!-- =====================================================================
+         CONCIERGE STEWARDSHIP (ABOUT)
+         ===================================================================== -->
+    <section id="concierge" class="relative bg-sae-ivory" aria-labelledby="concierge-title">
+      <div class="max-w-7xl mx-auto px-6 md:px-10 py-24 md:py-32 grid lg:grid-cols-12 gap-12 lg:gap-20 items-center">
+
+        <div class="reveal lg:col-span-5 relative">
+          <!--
+            IMAGE PROMPT: An artisan's hands placing brushed-bronze hardware on
+            grained walnut; warm window light, soft shadow, intimate close-up.
+          -->
+          <div class="relative aspect-[4/5] overflow-hidden rounded-sm bg-sae-walnut">
+            <img
+              src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=1200&q=80&auto=format&fit=crop"
+              alt="A craftsman's hands working warm walnut and bronze hardware."
+              class="absolute inset-0 w-full h-full object-cover"
+              loading="lazy"
+              onerror="this.style.display='none'"
+            />
+            <div aria-hidden="true" class="absolute inset-0"
+                 style="background:
+                   radial-gradient(110% 80% at 30% 20%, rgba(216,201,177,0.30), transparent 60%),
+                   linear-gradient(160deg, #6B4A30 0%, #2C1B10 80%);"></div>
+            <div class="absolute inset-0 ring-1 ring-sae-gold/20 pointer-events-none"></div>
+          </div>
+          <!-- Decorative frame echo -->
+          <div aria-hidden="true" class="hidden md:block absolute -bottom-6 -right-6 w-32 h-32 border border-sae-gold/40"></div>
+        </div>
+
+        <div class="lg:col-span-7">
+          <div class="reveal flex items-center gap-4 mb-6" style="transition-delay:80ms">
+            <span class="hairline-gold"></span>
+            <span class="eyebrow">The Stewardship</span>
+          </div>
+
+          <h2 id="concierge-title" class="reveal display text-4xl md:text-5xl lg:text-6xl text-sae-chocolate" style="transition-delay:140ms">
+            A guardian for your vision,<br />
+            <span class="italic text-sae-walnut">not a contractor for hire.</span>
+          </h2>
+
+          <p class="reveal mt-8 text-lg md:text-xl leading-relaxed text-sae-coffee max-w-2xl" style="transition-delay:220ms">
+            Founded by a visionary front-end architect with a soul for craftsmanship,
+            SAE is more than a construction firm; we are the dedicated stewards of
+            your legacy. We serve a discerning global clientele, bringing unparalleled
+            technical mastery, absolute discretion, and unwavering dedication to the
+            most intricate details. You aren&rsquo;t hiring a contractor; you are
+            appointing a guardian for your vision.
+          </p>
+
+          <dl class="reveal mt-10 grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-8 max-w-2xl" style="transition-delay:300ms">
+            <div>
+              <dt class="eyebrow !text-sae-bronze">Discretion</dt>
+              <dd class="display text-3xl mt-2 text-sae-chocolate">Absolute</dd>
+            </div>
+            <div>
+              <dt class="eyebrow !text-sae-bronze">Clientele</dt>
+              <dd class="display text-3xl mt-2 text-sae-chocolate">Global</dd>
+            </div>
+            <div>
+              <dt class="eyebrow !text-sae-bronze">Estates Stewarded</dt>
+              <dd class="display text-3xl mt-2 text-sae-chocolate">By Invitation</dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         WORLDS OF CREATION — SERVICE PILLARS
+         ===================================================================== -->
+    <section id="worlds" class="relative bg-sae-chocolate text-sae-ivory grain" aria-labelledby="worlds-title">
+      <div class="max-w-7xl mx-auto px-6 md:px-10 py-24 md:py-32">
+
+        <div class="max-w-3xl">
+          <div class="reveal flex items-center gap-4 mb-6">
+            <span class="hairline-gold"></span>
+            <span class="eyebrow">Worlds of Creation</span>
+          </div>
+          <h2 id="worlds-title" class="reveal display text-4xl md:text-5xl lg:text-6xl text-sae-ivory" style="transition-delay:80ms">
+            Nine sanctuaries, <span class="italic text-sae-goldlite">one legacy.</span>
+          </h2>
+          <p class="reveal mt-6 text-sae-ivory/80 text-lg leading-relaxed" style="transition-delay:160ms">
+            Each discipline is a private invitation to create. Choose one, or compose
+            them as movements in the same quiet symphony.
+          </p>
+        </div>
+
+        <div id="pillar-grid" class="mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+          <!-- Pillars rendered by JS so we can stagger reveals cleanly -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Wood-grain transition band -->
+    <div aria-hidden="true" class="woodgrain h-3"></div>
+
+    <!-- =====================================================================
+         VIP INQUIRY — "Schedule a Visioning Session"
+         ===================================================================== -->
+    <section id="visioning" class="relative bg-sae-coffee text-sae-ivory grain" aria-labelledby="visioning-title">
+      <div class="max-w-4xl mx-auto px-6 md:px-10 py-24 md:py-32">
+
+        <div class="text-center max-w-2xl mx-auto">
+          <div class="reveal flex items-center justify-center gap-4 mb-6">
+            <span class="hairline-gold"></span>
+            <span class="eyebrow">By Private Invitation</span>
+            <span class="hairline-gold"></span>
+          </div>
+          <h2 id="visioning-title" class="reveal display text-4xl md:text-5xl lg:text-6xl text-sae-ivory" style="transition-delay:80ms">
+            Schedule a <span class="italic text-sae-goldlite">Visioning Session</span>
+          </h2>
+          <p class="reveal mt-6 text-sae-ivory/80 text-lg leading-relaxed" style="transition-delay:160ms">
+            A consultation, not a transaction. Share the contours of the home you carry
+            within you; a single named concierge will reach out to begin the dialogue.
+          </p>
+        </div>
+
+        <div class="reveal mt-14 bg-sae-ivory text-sae-chocolate rounded-sm p-6 sm:p-10 md:p-12 shadow-[0_40px_80px_-40px_rgba(0,0,0,0.55)] relative" style="transition-delay:120ms">
+          <div aria-hidden="true" class="absolute inset-0 ring-1 ring-sae-gold/30 pointer-events-none rounded-sm"></div>
+
+          <form id="visioning-form" class="space-y-7" novalidate>
+            <div class="grid sm:grid-cols-2 gap-6">
+              <label class="block">
+                <span class="eyebrow !text-sae-bronze">Name</span>
+                <input type="text" name="name" class="field mt-2" placeholder="Full name" aria-required="true" required />
+              </label>
+              <label class="block">
+                <span class="eyebrow !text-sae-bronze">Private Email</span>
+                <input type="email" name="email" class="field mt-2" placeholder="you@private.estate" aria-required="true" required />
+              </label>
+            </div>
+
+            <fieldset>
+              <legend class="eyebrow !text-sae-bronze">Preferred Channel</legend>
+              <div class="seg mt-2" role="tablist" aria-label="Preferred contact channel">
+                <button type="button" role="tab" aria-pressed="true" data-seg="contact" data-value="phone">Phone</button>
+                <button type="button" role="tab" aria-pressed="false" data-seg="contact" data-value="email">Email</button>
+                <button type="button" role="tab" aria-pressed="false" data-seg="contact" data-value="encrypted">Encrypted</button>
+              </div>
+              <input type="hidden" name="contact" value="phone" />
+            </fieldset>
+
+            <div class="grid sm:grid-cols-2 gap-6">
+              <label class="block">
+                <span class="eyebrow !text-sae-bronze">Estate Region</span>
+                <select name="region" class="field mt-2" aria-required="true" required>
+                  <option value="">Select a region…</option>
+                  <option>Mediterranean Coast</option>
+                  <option>Côte d&rsquo;Azur</option>
+                  <option>Swiss & Austrian Alps</option>
+                  <option>Tuscan Countryside</option>
+                  <option>Aegean Islands</option>
+                  <option>Persian Gulf</option>
+                  <option>California &amp; Pacific Coast</option>
+                  <option>The Hamptons &amp; Northeast</option>
+                  <option>Caribbean Private Islands</option>
+                  <option>Elsewhere — to be discussed</option>
+                </select>
+              </label>
+              <label class="block">
+                <span class="eyebrow !text-sae-bronze">Investment Horizon</span>
+                <select name="horizon" class="field mt-2" aria-required="true" required>
+                  <option value="">Select a horizon…</option>
+                  <option>Considered (€ / $ 5M – 10M)</option>
+                  <option>Significant (€ / $ 10M – 25M)</option>
+                  <option>Heritage-class (€ / $ 25M – 75M)</option>
+                  <option>Legacy-class (€ / $ 75M +)</option>
+                  <option>Prefer to discuss privately</option>
+                </select>
+              </label>
+            </div>
+
+            <fieldset>
+              <legend class="eyebrow !text-sae-bronze">Vision Focus</legend>
+              <p class="text-sm text-sae-coffee/80 mt-1">Select every world that calls to you.</p>
+              <div id="chips" class="flex flex-wrap gap-2 mt-3" role="group" aria-label="Vision focus pillars">
+                <!-- chips rendered by JS -->
+              </div>
+              <input type="hidden" name="focus" value="" />
+            </fieldset>
+
+            <label class="block">
+              <span class="eyebrow !text-sae-bronze">Tell us about the sanctuary you envision</span>
+              <textarea name="vision" rows="5" class="field mt-2" placeholder="The light it should hold, the mornings it should make possible, the people it will gather…"></textarea>
+            </label>
+
+            <div class="flex items-center gap-3 pt-2">
+              <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-sae-bronze/40 bg-sae-parchment/60 text-[0.7rem] tracking-[0.22em] uppercase text-sae-walnut">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                  <rect x="4" y="11" width="16" height="10" rx="2"/>
+                  <path d="M8 11V8a4 4 0 0 1 8 0v3"/>
+                </svg>
+                Privacy &amp; Discretion Guaranteed
+              </span>
+              <p class="text-xs text-sae-coffee/75 leading-snug">
+                All correspondence is handled by a single named concierge under strict NDA.
+              </p>
+            </div>
+
+            <div class="pt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
+              <p class="text-xs text-sae-coffee/70 max-w-sm">
+                By submitting you authorise SAE to contact you for a private consultation.
+                No mailing list. No third parties. Ever.
+              </p>
+              <button type="submit" class="btn-gold">
+                Request Private Audience
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                  <path d="M5 12h14M13 5l7 7-7 7"/>
+                </svg>
+              </button>
+            </div>
+          </form>
+
+          <!-- Post-submit confirmation -->
+          <div id="visioning-confirm" hidden class="text-center py-6">
+            <span class="hairline-gold inline-block"></span>
+            <h3 class="display text-3xl md:text-4xl mt-6 text-sae-chocolate">
+              Your audience is being arranged.
+            </h3>
+            <p class="mt-4 text-sae-coffee max-w-md mx-auto leading-relaxed">
+              A concierge will reach you within twenty-four hours through your preferred
+              channel. Until then, rest assured — your vision is already in trusted hands.
+            </p>
+            <p class="eyebrow !text-sae-bronze mt-8">Solace Aura Estate</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         FOOTER
+         ===================================================================== -->
+    <footer class="bg-sae-chocolate text-sae-ivory/80 grain" aria-label="Site footer">
+      <div class="max-w-7xl mx-auto px-6 md:px-10 pt-16 pb-10">
+        <div class="flex items-center gap-4 mb-12">
+          <span class="hairline-gold"></span>
+          <span class="eyebrow">Solace Aura Estate</span>
+          <span class="hairline-gold flex-1 !w-auto"></span>
+        </div>
+
+        <div class="grid md:grid-cols-12 gap-10">
+          <div class="md:col-span-5">
+            <a href="#top" class="flex items-center gap-3 group" aria-label="Solace Aura Estate — home">
+              <span aria-hidden="true" class="inline-block w-9 h-9 rounded-full border border-sae-gold/70 flex items-center justify-center text-sae-goldlite font-serif text-xl leading-none">S</span>
+              <span class="font-serif text-2xl text-sae-ivory">Solace Aura<span class="text-sae-goldlite"> · </span>Estate</span>
+            </a>
+            <p class="mt-5 max-w-sm text-sm leading-relaxed text-sae-ivory/70">
+              Guardians of warm, ultra-luxury sanctuaries. By private invitation,
+              for clients who understand that a home is a quiet inheritance.
+            </p>
+          </div>
+
+          <div class="md:col-span-3">
+            <h3 class="eyebrow mb-4">Concierge</h3>
+            <ul class="space-y-2 text-sm">
+              <li><a href="mailto:concierge@solaceaura.com" class="text-sae-goldlite hover:text-sae-ivory transition">concierge@solaceaura.com</a></li>
+              <li class="text-sae-ivory/75">By appointment — daily, 09:00–21:00 CET</li>
+              <li class="text-sae-ivory/75">Atelier &amp; Studios · Private addresses on request</li>
+            </ul>
+          </div>
+
+          <div class="md:col-span-4">
+            <h3 class="eyebrow mb-4">Discreet Channels</h3>
+            <div class="flex items-center gap-4">
+              <a href="#" aria-label="Solace Aura Estate on Instagram"
+                 class="w-10 h-10 rounded-full border border-sae-gold/40 flex items-center justify-center text-sae-goldlite hover:text-sae-ivory hover:border-sae-goldlite transition">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                  <rect x="3" y="3" width="18" height="18" rx="4"/>
+                  <circle cx="12" cy="12" r="4"/>
+                  <circle cx="17.5" cy="6.5" r="1" fill="currentColor"/>
+                </svg>
+              </a>
+              <a href="#" aria-label="Solace Aura Estate on LinkedIn"
+                 class="w-10 h-10 rounded-full border border-sae-gold/40 flex items-center justify-center text-sae-goldlite hover:text-sae-ivory hover:border-sae-goldlite transition">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM3 9h4v12H3zM10 9h3.8v1.7h.05c.53-1 1.83-2.05 3.77-2.05 4.03 0 4.78 2.65 4.78 6.1V21H18.4v-5.4c0-1.3-.03-2.97-1.8-2.97-1.8 0-2.08 1.4-2.08 2.87V21H10z"/>
+                </svg>
+              </a>
+              <a href="mailto:concierge@solaceaura.com" aria-label="Email the concierge"
+                 class="w-10 h-10 rounded-full border border-sae-gold/40 flex items-center justify-center text-sae-goldlite hover:text-sae-ivory hover:border-sae-goldlite transition">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                  <rect x="3" y="5" width="18" height="14" rx="2"/>
+                  <path d="M3 7l9 6 9-6"/>
+                </svg>
+              </a>
+            </div>
+            <p class="text-xs mt-5 text-sae-ivory/55 leading-relaxed">
+              We do not publish portfolios. References are provided privately, after introduction.
+            </p>
+          </div>
+        </div>
+
+        <div class="mt-14 pt-6 border-t border-sae-gold/15 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-[0.7rem] tracking-[0.28em] uppercase text-sae-ivory/55">
+          <span>© <span id="year"></span> Solace Aura Estate · Crafted with reverence</span>
+          <span>Discretion · Mastery · Legacy</span>
+        </div>
+      </div>
+    </footer>
+  </main>
+
+  <!-- =====================================================================
+       SCRIPTS
+       ===================================================================== -->
+  <script>
+  (function () {
+    'use strict';
+
+    // -------- Pillar data (single source of truth) --------
+    const PILLARS = [
+      {
+        title: 'Masterpiece Villas',
+        body: "Your sanctuary from the ground up. We initiate our partnership with an intimate &lsquo;Legacy Dialogue,&rsquo; delving into the smallest details of how you live, how you feel, and what your heart desires. From initial permits to the final handcrafted key handover, we are the guardians of your architectural dream.",
+        // IMAGE PROMPT: ground-up villa blending with natural landscape; warm stone, olive groves, low sun.
+        img: 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=1400&q=80&auto=format&fit=crop',
+        alt: 'A ground-up luxury villa blending into a warm, olive-strewn landscape.',
+        icon: 'villa',
+      },
+      {
+        title: 'Solace Water Features',
+        body: "The Solace approach to water is engineering meets meditation. We design unique crystalline sanctuaries&mdash;infinity pools that merge with the horizon, custom bi-level systems, and natural stone basins. Every pool is a bespoke artwork designed for reflection, sun-drenched relaxation, and family communion.",
+        // IMAGE PROMPT: a unique, sunlit luxury pool with Italian mosaics; infinity edge meeting horizon.
+        img: 'https://images.unsplash.com/photo-1582268611958-ebfd161df9bf?w=1400&q=80&auto=format&fit=crop',
+        alt: 'A sunlit infinity pool with Italian mosaic detailing meeting the horizon.',
+        icon: 'water',
+      },
+      {
+        title: 'Artisanal Spa & Wellness',
+        body: "Dedicated rejuvenation within your home. We craft bespoke Saunas using aromatic Canadian Red Cedar and Hemlock, alongside custom ergonomic Jacuzzis carved from single stone blocks. We integrate diffused lighting and integrated sound to create the ultimate private escape for body and mind.",
+        // IMAGE PROMPT: sauna of Canadian Red Cedar, diffused warm lighting, soft steam.
+        img: 'https://images.unsplash.com/photo-1610501687385-c40057151215?w=1400&q=80&auto=format&fit=crop',
+        alt: 'A warm cedar sauna interior with diffused light and quiet steam.',
+        icon: 'spa',
+      },
+      {
+        title: 'The Vintage Treasury',
+        body: "A museum for your taste. Our cellars are climate-controlled temples built with rich, dark Oak and Walnut wood, cladded with natural stone. Each space is designed not just for perfect preservation, but as a magnificent private gallery to showcase your curated collection in stunning personal style.",
+        // IMAGE PROMPT: climate-controlled wine cellar with dark oak racks, stone walls, warm spotlights.
+        img: 'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=1400&q=80&auto=format&fit=crop',
+        alt: 'A climate-controlled wine cellar of dark oak, stone, and warm gallery lighting.',
+        icon: 'cellar',
+      },
+      {
+        title: 'Bespoke Cinema Workshops',
+        body: "Immersive artistry. We design private home theaters with meticulously tailored ergonomics and professional-grade acoustics. From acoustic wall paneling designed as art to tiered velvet seating and state-of-the-art technology, we craft the perfect environment for shared stories.",
+        // IMAGE PROMPT: private cinema with velvet seating, acoustic paneling as art, warm sconces.
+        img: 'https://images.unsplash.com/photo-1489599735734-79b4af4b3f8f?w=1400&q=80&auto=format&fit=crop',
+        alt: 'A private cinema with tiered velvet seating and acoustic paneling as art.',
+        icon: 'cinema',
+      },
+      {
+        title: 'Grand Spirits Bars',
+        body: "The heart of entertainment. We craft grand, magnificent bars featuring backlighting integrated with rare stone (like Onyx), exotic wood shelving, and integrated gold or bronze accents. Designed for intimate conversations and legendary hosting.",
+        // IMAGE PROMPT: grand bar with onyx backlit panel, exotic wood shelving, gold accents.
+        img: 'https://images.unsplash.com/photo-1572116469696-31de0f17cc34?w=1400&q=80&auto=format&fit=crop',
+        alt: 'A magnificent home bar with a backlit onyx panel and gold-accented shelving.',
+        icon: 'bar',
+      },
+      {
+        title: 'Landscaped Estate Grounds',
+        body: "The first hush of arrival. We compose sculpted gardens, processional drives lined with mature olive and cypress, and mirror ponds that double the sky &mdash; landscapes drawn to belong to the architecture, and the architecture drawn to belong to the land.",
+        // IMAGE PROMPT: sculpted estate gardens with cypress, mirror pond, processional gravel drive.
+        img: 'https://images.unsplash.com/photo-1542435503-956c469947f6?w=1400&q=80&auto=format&fit=crop',
+        alt: 'Sculpted estate gardens with cypress allées and a still mirror pond.',
+        icon: 'grounds',
+      },
+      {
+        title: 'Sovereign Garage Salons',
+        body: "Gallery, not garage. Climate-stable rooms with show-floor lighting, rare-wood plinths, brushed bronze rails, and quiet acoustics &mdash; designed so a curated automotive collection lives as deliberately as the art on the walls upstairs.",
+        // IMAGE PROMPT: gallery-style collector car salon with rare-wood paneling and museum lighting.
+        img: 'https://images.unsplash.com/photo-1592853625511-ad0bd7c61b3a?w=1400&q=80&auto=format&fit=crop',
+        alt: 'A gallery-style collector-car salon with warm wood paneling and museum lighting.',
+        icon: 'salon',
+      },
+      {
+        title: 'Discreet Staff Sanctums',
+        body: "Stewardship, made invisible. Dignified private quarters and back-of-house circulation that allow your household team to live, work and move with comfort and grace &mdash; while the principal experience of the home remains serene and unbroken.",
+        // IMAGE PROMPT: dignified staff quarters of warm plaster, oak joinery, soft daylight.
+        img: 'https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=1400&q=80&auto=format&fit=crop',
+        alt: 'A dignified private staff quarter of warm plaster and oak joinery.',
+        icon: 'sanctum',
+      },
+    ];
+
+    // -------- Inline SVG icons used as image fallbacks --------
+    const ICONS = {
+      villa: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M8 34 32 16l24 18"/><path d="M14 34v18h36V34"/><path d="M26 52V40h12v12"/><path d="M4 56h56"/></svg>',
+      water: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M6 38c5 0 5 4 10 4s5-4 10-4 5 4 10 4 5-4 10-4 5 4 10 4"/><path d="M6 48c5 0 5 4 10 4s5-4 10-4 5 4 10 4 5-4 10-4 5 4 10 4"/><path d="M32 12c4 6 8 10 8 16a8 8 0 1 1-16 0c0-6 4-10 8-16z"/></svg>',
+      spa: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M32 10c-6 8-12 14-12 22a12 12 0 0 0 24 0c0-8-6-14-12-22z"/><path d="M16 46c4 4 10 6 16 6s12-2 16-6"/><path d="M10 54h44"/></svg>',
+      cellar: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="12" y="8" width="40" height="48" rx="3"/><path d="M20 8v48M44 8v48M12 20h40M12 32h40M12 44h40"/></svg>',
+      cinema: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="6" y="14" width="52" height="28" rx="2"/><path d="M6 42l8 8h36l8-8"/><circle cx="32" cy="28" r="6"/></svg>',
+      bar: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M14 14h36L36 32v18"/><path d="M28 50h16"/><path d="M22 18l20 8"/></svg>',
+      grounds: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M20 54V30c0-8 4-14 4-14s4 6 4 14v24"/><path d="M36 54V24c0-10 4-16 4-16s4 6 4 16v30"/><path d="M6 54h52"/></svg>',
+      salon: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 38l6-14h36l6 14"/><rect x="6" y="38" width="52" height="14" rx="2"/><circle cx="20" cy="50" r="3"/><circle cx="44" cy="50" r="3"/></svg>',
+      sanctum: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M10 30 32 14l22 16"/><path d="M14 30v22h36V30"/><rect x="26" y="36" width="12" height="16"/><path d="M32 36v16"/></svg>',
+    };
+
+    // -------- Render pillar grid --------
+    const grid = document.getElementById('pillar-grid');
+    if (grid) {
+      const html = PILLARS.map((p, i) => `
+        <article class="pillar-card reveal" style="transition-delay:${Math.min(i, 5) * 70}ms">
+          <div class="pillar-media">
+            <img
+              src="${p.img}"
+              alt="${p.alt}"
+              loading="lazy"
+              onerror="this.closest('.pillar-media').classList.add('is-fallback');"
+            />
+            <div class="pillar-fallback" aria-hidden="true">${ICONS[p.icon] || ''}</div>
+          </div>
+          <div class="p-7 md:p-8 flex flex-col flex-1">
+            <span class="eyebrow !text-sae-goldlite">Pillar ${String(i + 1).padStart(2, '0')}</span>
+            <h3 class="display text-3xl md:text-4xl mt-3 text-sae-ivory">${p.title}</h3>
+            <p class="mt-4 text-sae-ivory/80 leading-relaxed font-light">${p.body}</p>
+            <a href="#visioning" class="mt-6 inline-flex items-center gap-2 text-sae-goldlite text-[0.72rem] tracking-[0.28em] uppercase hover:text-sae-ivory transition" data-focus="${p.title}">
+              Inquire Privately
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+                <path d="M5 12h14M13 5l7 7-7 7"/>
+              </svg>
+            </a>
+          </div>
+        </article>
+      `).join('');
+      grid.innerHTML = html;
+    }
+
+    // -------- Render chips in form --------
+    const chips = document.getElementById('chips');
+    if (chips) {
+      chips.innerHTML = PILLARS.map(p => `
+        <button type="button" class="chip" aria-pressed="false" data-chip="${p.title}">${p.title}</button>
+      `).join('');
+    }
+
+    // -------- Scroll-reveal (IntersectionObserver) --------
+    const revealEls = document.querySelectorAll('.reveal');
+    if ('IntersectionObserver' in window) {
+      const io = new IntersectionObserver((entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) {
+            e.target.classList.add('is-visible');
+            io.unobserve(e.target);
+          }
+        }
+      }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+      revealEls.forEach(el => io.observe(el));
+    } else {
+      revealEls.forEach(el => el.classList.add('is-visible'));
+    }
+
+    // -------- Nav shrink on scroll --------
+    const nav = document.getElementById('nav');
+    const onScroll = () => {
+      if (!nav) return;
+      if (window.scrollY > 24) nav.classList.add('is-scrolled');
+      else nav.classList.remove('is-scrolled');
+    };
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+
+    // -------- Hero parallax (rAF-throttled, respects reduced motion) --------
+    const heroImg = document.querySelector('.hero-img');
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (heroImg && !prefersReduced) {
+      let ticking = false;
+      const update = () => {
+        const y = Math.min(window.scrollY, 800);
+        heroImg.style.transform = `translate3d(0, ${y * 0.22}px, 0) scale(1.06)`;
+        ticking = false;
+      };
+      heroImg.style.transform = 'scale(1.06)';
+      window.addEventListener('scroll', () => {
+        if (!ticking) {
+          requestAnimationFrame(update);
+          ticking = true;
+        }
+      }, { passive: true });
+    }
+
+    // -------- Segmented control (Preferred Channel) --------
+    document.querySelectorAll('[data-seg]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const group = btn.dataset.seg;
+        const value = btn.dataset.value;
+        document.querySelectorAll(`[data-seg="${group}"]`).forEach(b => {
+          b.setAttribute('aria-pressed', b === btn ? 'true' : 'false');
+        });
+        const hidden = document.querySelector(`input[name="${group}"]`);
+        if (hidden) hidden.value = value;
+      });
+    });
+
+    // -------- Chip multi-select --------
+    const focusInput = document.querySelector('input[name="focus"]');
+    const updateFocus = () => {
+      const selected = Array.from(document.querySelectorAll('[data-chip][aria-pressed="true"]'))
+        .map(c => c.dataset.chip);
+      if (focusInput) focusInput.value = selected.join(', ');
+    };
+    document.addEventListener('click', (e) => {
+      const t = e.target.closest('[data-chip]');
+      if (!t) return;
+      const pressed = t.getAttribute('aria-pressed') === 'true';
+      t.setAttribute('aria-pressed', pressed ? 'false' : 'true');
+      updateFocus();
+    });
+
+    // -------- Pre-select chip when "Inquire" link is clicked from a pillar card --------
+    document.addEventListener('click', (e) => {
+      const t = e.target.closest('a[data-focus]');
+      if (!t) return;
+      const focus = t.dataset.focus;
+      const chip = document.querySelector(`[data-chip="${CSS.escape(focus)}"]`);
+      if (chip && chip.getAttribute('aria-pressed') !== 'true') {
+        chip.setAttribute('aria-pressed', 'true');
+        updateFocus();
+      }
+    });
+
+    // -------- Form submit (no network call; show confirmation) --------
+    const form = document.getElementById('visioning-form');
+    const confirm = document.getElementById('visioning-confirm');
+    if (form && confirm) {
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        // simple required-field check (visual only)
+        const required = form.querySelectorAll('[required]');
+        let ok = true;
+        required.forEach(el => {
+          if (!el.value.trim()) {
+            ok = false;
+            el.style.borderColor = '#9c3b2a';
+            el.style.boxShadow = '0 0 0 3px rgba(156,59,42,0.18)';
+            setTimeout(() => { el.style.borderColor = ''; el.style.boxShadow = ''; }, 1800);
+          }
+        });
+        if (!ok) return;
+        form.hidden = true;
+        confirm.hidden = false;
+        confirm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    }
+
+    // -------- Footer year --------
+    const yearEl = document.getElementById('year');
+    if (yearEl) yearEl.textContent = new Date().getFullYear();
+  })();
+  </script>
+</body>
+</html>
