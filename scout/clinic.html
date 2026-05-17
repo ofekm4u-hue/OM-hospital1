@@ -167,9 +167,9 @@
 <script>
 (function () {
   'use strict';
-  const { ScoutDB, Bus, UI, SOS, Toast, util } = Scout;
+  const { ScoutDB, Bus, UI, SOS, Toast, util, Auth } = Scout;
 
-  if (!ScoutDB.get('currentPersona', null)) UI.setPersona({ name: 'ד״ר נועה לוי', role: 'clinic-chief' });
+  if (!Auth.requireLogin()) return;
   document.getElementById('header').innerHTML = UI.header({ title: 'אחראי מרפאה — Medical Dispatch' });
   UI.bindHeader(document.body);
   UI.mockBadge('דמו פרזנטציה');

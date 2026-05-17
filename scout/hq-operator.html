@@ -192,12 +192,9 @@
 <script>
 (function () {
   'use strict';
-  const { ScoutDB, Bus, UI, SOS, Geo, Toast, util, FORESTS } = Scout;
+  const { ScoutDB, Bus, UI, SOS, Geo, Toast, util, FORESTS, Auth } = Scout;
 
-  // Persona (fallback)
-  if (!ScoutDB.get('currentPersona', null)) {
-    UI.setPersona({ name: 'תורן עידו', role: 'hq-op' });
-  }
+  if (!Auth.requireLogin()) return;
 
   const forestId = util.getParam('forest') || ScoutDB.get('currentForest', 'ben-shemen');
   ScoutDB.set('currentForest', forestId);

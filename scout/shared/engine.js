@@ -700,7 +700,8 @@
           <span class="persona-pill"><span>${escapeHtml(p.name)}</span><span class="role">${escapeHtml(p.roleLabel)}</span></span>
           <span class="clock" data-clock>--:--:--</span>
           ${showArm ? `<button class="arm-pill" data-arm>🔊 הפעל התראות</button>` : ''}
-          <a href="index.html" class="btn btn--sm btn--ghost" title="חזרה למסך הבית הלאומי">⌂ ראשי</a>
+          <a href="home.html" class="btn btn--sm btn--ghost" title="חזרה למסך הבית הלאומי">⌂ ראשי</a>
+          <button class="btn btn--sm btn--ghost" data-logout title="התנתקות מהמערכת">⤴ יציאה</button>
         </header>
       `;
     }
@@ -736,6 +737,12 @@
         updateOnline();
         global.addEventListener('online', updateOnline);
         global.addEventListener('offline', updateOnline);
+      }
+      const logoutBtn = root.querySelector('[data-logout]');
+      if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+          if (confirm('להתנתק מהמערכת?')) Auth.logout();
+        });
       }
     }
 
@@ -827,10 +834,88 @@
     };
   })();
 
+  // ---------- Auth ----------
+
+  const Auth = (function () {
+    // Demo credentials: username → { role, name, password }
+    const CREDENTIALS = {
+      'national': { role: 'national',     name: 'אורי שדה — מנהל ארצי', password: '1234' },
+      'kabat':    { role: 'kabat',        name: 'קב״ט ניר אלון',         password: '1234' },
+      'operator': { role: 'hq-op',        name: 'תורן עידו',              password: '1234' },
+      'guard':    { role: 'guard',        name: 'מאבטח אופיר',           password: '1234' },
+      'tribe':    { role: 'tribe',        name: 'מרכז שבט נחל',           password: '1234' },
+      'clinic':   { role: 'clinic-chief', name: 'ד״ר נועה לוי',           password: '1234' },
+    };
+
+    const ROUTES = {
+      'national':     'home.html',
+      'kabat':        'kabat.html',
+      'hq-op':        'hq-operator.html',
+      'guard':        'gate-guard.html',
+      'tribe':        'tribe.html',
+      'clinic-chief': 'clinic.html',
+    };
+
+    function login(username, password) {
+      const u = String(username || '').trim().toLowerCase();
+      const cred = CREDENTIALS[u];
+      if (!cred) return { ok: false, error: 'שם משתמש לא קיים במערכת' };
+      if (cred.password !== password) return { ok: false, error: 'סיסמה שגויה' };
+      UI.setPersona({ name: cred.name, role: cred.role });
+      ScoutDB.set('loggedIn', true);
+      ScoutDB.set('loginTs', nowMs());
+      ScoutDB.set('loginUser', u);
+      ScoutDB.appendAudit({
+        action: 'LOGIN', channel: 'auth',
+        details: 'התחבר בתור ' + u,
+        actor: cred.name + ' / ' + (UI.ROLE_LABELS[cred.role] || cred.role),
+      });
+      return { ok: true, persona: { name: cred.name, role: cred.role } };
+    }
+
+    function logout() {
+      const p = UI.currentPersona();
+      ScoutDB.appendAudit({
+        action: 'LOGOUT', channel: 'auth',
+        details: 'התנתק מהמערכת',
+        actor: p.name + ' / ' + p.roleLabel,
+      });
+      ScoutDB.set('loggedIn', false);
+      ScoutDB.remove('rememberMe');
+      Bus.emit('auth:logout', {});
+      location.replace('index.html');
+    }
+
+    function isLoggedIn() {
+      return !!ScoutDB.get('loggedIn', false);
+    }
+
+    function requireLogin() {
+      if (!isLoggedIn()) {
+        location.replace('index.html');
+        return false;
+      }
+      return true;
+    }
+
+    function routeForRole(role) {
+      return ROUTES[role] || 'home.html';
+    }
+
+    function listDemoUsers() {
+      return Object.entries(CREDENTIALS).map(([user, c]) => ({
+        user, role: c.role, name: c.name,
+        roleLabel: UI.ROLE_LABELS[c.role] || c.role,
+      }));
+    }
+
+    return { login, logout, isLoggedIn, requireLogin, routeForRole, listDemoUsers };
+  })();
+
   // ---------- Export ----------
 
   global.Scout = {
-    ScoutDB, Bus, Audio, DMS, SOS, Geo, Toast, Modal, UI,
+    ScoutDB, Bus, Audio, DMS, SOS, Geo, Toast, Modal, UI, Auth,
     util: { uuid, nowMs, fmtTime, fmtDate, pick, clamp, escapeHtml, getParam },
     FORESTS,
   };

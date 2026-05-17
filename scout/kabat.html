@@ -196,9 +196,9 @@
 <script>
 (function () {
   'use strict';
-  const { ScoutDB, Bus, UI, SOS, Toast, util } = Scout;
+  const { ScoutDB, Bus, UI, SOS, Toast, util, Auth } = Scout;
 
-  if (!ScoutDB.get('currentPersona', null)) UI.setPersona({ name: 'קב״ט ניר אלון', role: 'kabat' });
+  if (!Auth.requireLogin()) return;
   document.getElementById('header').innerHTML = UI.header({ title: 'דשבורד קב"ט — Super Admin' });
   UI.bindHeader(document.body);
   UI.mockBadge('דמו פרזנטציה');

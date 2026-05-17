@@ -183,9 +183,9 @@
 <script>
 (function () {
   'use strict';
-  const { ScoutDB, Bus, UI, SOS, Toast, util, DMS } = Scout;
+  const { ScoutDB, Bus, UI, SOS, Toast, util, DMS, Auth } = Scout;
 
-  if (!ScoutDB.get('currentPersona', null)) UI.setPersona({ name: 'מאבטח אופיר', role: 'guard' });
+  if (!Auth.requireLogin()) return;
 
   document.getElementById('header').innerHTML = UI.header({ title: 'מאבטח ש"ג — שער ראשי' });
   UI.bindHeader(document.body);

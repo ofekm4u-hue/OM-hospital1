@@ -136,9 +136,9 @@
 <script>
 (function () {
   'use strict';
-  const { ScoutDB, Bus, UI, Toast, util } = Scout;
+  const { ScoutDB, Bus, UI, Toast, util, Auth } = Scout;
 
-  if (!ScoutDB.get('currentPersona', null)) UI.setPersona({ name: 'מרכז שבט נחל', role: 'tribe' });
+  if (!Auth.requireLogin()) return;
   document.getElementById('header').innerHTML = UI.header({ title: 'מרכז שבט — ניהול נוכחות וחניכים' });
   UI.bindHeader(document.body);
   UI.mockBadge('דמו פרזנטציה');
