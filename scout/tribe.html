@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>שו"ב | מרכז שבט</title>
+<link rel="stylesheet" href="shared/tokens.css">
+<style>
+  .page { padding: 16px; max-width: 1200px; margin: 0 auto; }
+
+  .tribe-head {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    padding: 18px 22px;
+    display: flex; align-items: center; gap: 18px;
+    margin-bottom: 14px;
+  }
+  .tribe-mark {
+    width: 56px; height: 56px;
+    background: linear-gradient(135deg, var(--accent), var(--info));
+    border-radius: var(--r-md);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-ui);
+    font-weight: 800;
+    color: white;
+    font-size: 24px;
+  }
+  .tribe-head h1 { font-size: 22px; }
+  .tribe-head .sub { color: var(--text-mid); font-size: 13px; }
+
+  .stat-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .stat {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    padding: 14px;
+  }
+  .stat .n { font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .stat .l { font-size: 11px; color: var(--text-low); text-transform: uppercase; letter-spacing: .12em; margin-top: 4px; }
+  .stat.ok .n { color: var(--ok); }
+  .stat.warn .n { color: var(--warn); }
+  .stat.danger .n { color: var(--danger); }
+
+  .toolbar {
+    display: flex; gap: 8px; align-items: center;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+
+  .roster {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    overflow: hidden;
+  }
+
+  /* Checkout modal animation */
+  .checkout-card {
+    background: var(--bg-panel);
+    border: 3px solid var(--danger);
+    border-radius: var(--r-lg);
+    padding: 28px;
+    width: min(520px, 92vw);
+    box-shadow: 0 30px 80px rgba(0,0,0,.6), 0 0 60px var(--danger-glow);
+    animation: blink-danger 1.8s infinite;
+  }
+  .checkout-card h2 { font-size: 22px; }
+  .checkout-card .who { color: var(--accent); font-weight: 700; }
+
+  .allergy-chip {
+    display: inline-block;
+    padding: 2px 8px;
+    background: rgba(255,71,87,0.16);
+    color: var(--danger);
+    border-radius: var(--r-pill);
+    font-size: 11px;
+    font-weight: 600;
+    margin-right: 4px;
+  }
+</style>
+</head>
+<body class="tactical-grid">
+  <div id="header"></div>
+
+  <div class="page">
+    <div class="tribe-head">
+      <div class="tribe-mark" id="tribe-mark">?</div>
+      <div>
+        <h1>שבט <span id="tribe-name">—</span></h1>
+        <div class="sub">מרכז שבט: <strong id="tribe-coord">—</strong> · <span id="tribe-forest">—</span></div>
+      </div>
+      <span style="flex:1"></span>
+      <select class="select" id="tribe-select" style="width: auto; padding: 8px 12px;"></select>
+    </div>
+
+    <div class="stat-bar" id="stat-bar"></div>
+
+    <div class="toolbar">
+      <h2 style="font-family: var(--font-ui); font-size: 18px;">רשימת חניכים</h2>
+      <span style="flex:1"></span>
+      <button class="btn btn--sm" id="btn-import-excel">📥 ייבא Excel</button>
+      <button class="btn btn--sm" id="btn-export-excel">📤 ייצא Excel</button>
+      <button class="btn btn--sm btn--danger" id="btn-trigger-checkout">⚠ הדגם בקשת יציאת חניך</button>
+    </div>
+
+    <div class="roster">
+      <table class="table" id="roster-table">
+        <thead>
+          <tr>
+            <th>שם</th>
+            <th>גיל</th>
+            <th>סטטוס</th>
+            <th>רגישויות</th>
+            <th>פעולה</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div style="margin-top: 18px; padding: 14px; background: var(--bg-panel); border: 1px solid var(--border); border-radius: var(--r-md);">
+      <div class="section-title">📡 פיד פושים מהמערכת</div>
+      <div id="push-feed" style="font-size: 13px; color: var(--text-mid);">
+        אין פושים חדשים. אירועים כמו טיפול במרפאה, אישור מבנה ובקשת יציאת חניך — יופיעו כאן.
+      </div>
+    </div>
+  </div>
+
+<script src="shared/engine.js"></script>
+<script>
+(function () {
+  'use strict';
+  const { ScoutDB, Bus, UI, Toast, util } = Scout;
+
+  if (!ScoutDB.get('currentPersona', null)) UI.setPersona({ name: 'מרכז שבט נחל', role: 'tribe' });
+  document.getElementById('header').innerHTML = UI.header({ title: 'מרכז שבט — ניהול נוכחות וחניכים' });
+  UI.bindHeader(document.body);
+  UI.mockBadge('דמו פרזנטציה');
+
+  // Pick a tribe (URL or first)
+  const tribes = ScoutDB.get('tribes', []);
+  const sel = document.getElementById('tribe-select');
+  sel.innerHTML = tribes.map(t => `<option value="${t.id}">שבט ${util.escapeHtml(t.name)}</option>`).join('');
+
+  const tribeIdParam = util.getParam('tribe');
+  let activeTribeId = tribeIdParam || ScoutDB.get('lastTribeId', tribes[0] && tribes[0].id);
+  if (!tribes.find(t => t.id === activeTribeId)) activeTribeId = tribes[0] && tribes[0].id;
+  sel.value = activeTribeId;
+  sel.addEventListener('change', () => {
+    activeTribeId = sel.value;
+    ScoutDB.set('lastTribeId', activeTribeId);
+    renderAll();
+  });
+
+  function tribe() { return tribes.find(t => t.id === activeTribeId) || tribes[0]; }
+
+  function renderHead() {
+    const t = tribe();
+    if (!t) return;
+    document.getElementById('tribe-name').textContent = t.name;
+    document.getElementById('tribe-mark').textContent = t.name[0];
+    document.getElementById('tribe-coord').textContent = UI.currentPersona().name;
+    const f = (ScoutDB.get('forests', []).find(x => x.id === t.forestId) || {});
+    document.getElementById('tribe-forest').textContent = f.name || '—';
+  }
+
+  function tribeHanichim() {
+    return ScoutDB.get('hanichim', []).filter(h => h.tribeId === activeTribeId);
+  }
+
+  function renderStats() {
+    const hs = tribeHanichim();
+    const present = hs.filter(h => h.status === 'present').length;
+    const clinic = hs.filter(h => h.status === 'clinic').length;
+    const released = hs.filter(h => h.status === 'released').length;
+    document.getElementById('stat-bar').innerHTML = `
+      <div class="stat ok"><div class="n">${present}</div><div class="l">נוכחים</div></div>
+      <div class="stat warn"><div class="n">${clinic}</div><div class="l">במרפאה</div></div>
+      <div class="stat"><div class="n">${released}</div><div class="l">שוחררו</div></div>
+      <div class="stat"><div class="n">${hs.length}</div><div class="l">סה״כ ברישום</div></div>
+    `;
+  }
+
+  const STATUS_CHIP = {
+    present:   '<span class="chip chip--ok">נוכח</span>',
+    clinic:    '<span class="chip chip--warn">במרפאה</span>',
+    released:  '<span class="chip">שוחרר</span>',
+    evacuated: '<span class="chip chip--danger">פונה לבי״ח</span>',
+  };
+
+  function renderRoster() {
+    const hs = tribeHanichim();
+    const tbody = document.querySelector('#roster-table tbody');
+    tbody.innerHTML = hs.map(h => `
+      <tr data-h="${h.id}">
+        <td><strong>${util.escapeHtml(h.name)}</strong></td>
+        <td>${h.age}</td>
+        <td>${STATUS_CHIP[h.status] || h.status}</td>
+        <td>${h.allergy ? `<span class="allergy-chip">⚠ ${util.escapeHtml(h.allergy)}</span>` : '<span style="color: var(--text-low);">—</span>'}</td>
+        <td>
+          ${h.status === 'present'
+            ? `<button class="btn btn--sm" data-checkout="${h.id}">בקש אישור יציאה</button>`
+            : `<button class="btn btn--sm" data-reset="${h.id}">החזר לסטטוס נוכח</button>`}
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  // Trigger demo checkout request (locally) — usually this comes from gate-guard
+  function requestCheckout(hanichId, reason) {
+    Bus.emit('bus:checkout', { hanichId, reason: reason || 'הורה הגיע לאיסוף', requestedBy: 'ש"ג שער ראשי', ts: util.nowMs() });
+  }
+
+  document.addEventListener('click', e => {
+    const co = e.target.dataset.checkout;
+    const rs = e.target.dataset.reset;
+    if (co) {
+      requestCheckout(co);
+      Toast.show('בקשת יציאה נשלחה. תופיע מיד כאישור.', { kind: 'warn' });
+    }
+    if (rs) {
+      ScoutDB.patch('hanichim', l => l.map(h => h.id === rs ? Object.assign({}, h, { status: 'present' }) : h));
+      ScoutDB.appendAudit({ action: 'HANICH-RESET', channel: 'tribe', details: 'איפוס סטטוס' });
+      renderAll();
+    }
+  });
+
+  // Big red demo trigger
+  document.getElementById('btn-trigger-checkout').addEventListener('click', () => {
+    const present = tribeHanichim().filter(h => h.status === 'present');
+    if (!present.length) { Toast.show('אין חניכים נוכחים בשבט.'); return; }
+    const h = util.pick(present);
+    requestCheckout(h.id, 'דמו: הורה ממתין בשער');
+  });
+
+  document.getElementById('btn-import-excel').addEventListener('click', () => Toast.show('ייבוא Excel — יושק בגרסת ה-PROD.', { kind: 'warn' }));
+  document.getElementById('btn-export-excel').addEventListener('click', () => Toast.show('ייצוא Excel — יושק בגרסת ה-PROD.', { kind: 'warn' }));
+
+  // ----- Checkout pop-up listener -----
+  function pushFeed(line) {
+    const el = document.getElementById('push-feed');
+    if (el.dataset.empty !== 'no') { el.innerHTML = ''; el.dataset.empty = 'no'; }
+    const row = document.createElement('div');
+    row.style.cssText = 'padding: 8px 10px; border-bottom: 1px solid var(--border-soft); display:flex; gap:8px;';
+    row.innerHTML = `<span style="color: var(--text-low); font-family: var(--font-mono); font-size: 11px;">${util.fmtTime()}</span><span>${line}</span>`;
+    el.prepend(row);
+  }
+
+  Bus.on('bus:checkout', payload => {
+    const h = ScoutDB.get('hanichim', []).find(x => x.id === payload.hanichId);
+    if (!h || h.tribeId !== activeTribeId) return; // siloed
+
+    Scout.Audio.play('echo-bell');
+    Scout.Audio.play('voice-prompt', { text: 'בקשת אישור יציאה עבור חניך משבטך' });
+
+    const host = document.createElement('div');
+    host.className = 'modal-host';
+    host.innerHTML = `
+      <div class="checkout-card">
+        <div style="color: var(--danger); font-family: var(--font-ui); font-weight: 800; letter-spacing: .18em; text-transform: uppercase; font-size: 12px;">🚪 בקשת אישור יציאה</div>
+        <h2 style="margin: 10px 0 6px;">החניך <span class="who">${util.escapeHtml(h.name)}</span> ממתין ביציאה</h2>
+        <div style="color: var(--text-mid); font-size: 13px; margin-bottom: 14px;">${util.escapeHtml(payload.reason)} · ${util.escapeHtml(payload.requestedBy || '')}</div>
+        ${h.allergy ? `<div class="allergy-chip">⚠ רגישות: ${util.escapeHtml(h.allergy)}</div>` : ''}
+        <div style="margin-top: 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <button class="btn btn--ok btn--lg" data-act="approve">✅ אשר יציאה</button>
+          <button class="btn btn--danger btn--lg" data-act="deny">❌ סרב יציאה</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(host);
+
+    host.addEventListener('click', ev => {
+      const btn = ev.target.closest('[data-act]');
+      if (!btn) return;
+      const act = btn.dataset.act;
+      if (act === 'deny') {
+        const reason = prompt('סיבת הסירוב (חובה):', 'לא תואם מראש מול ההורים');
+        if (!reason || !reason.trim()) { Toast.show('יש להזין סיבת סירוב.', { kind: 'warn' }); return; }
+        Bus.emit('bus:checkout:denied', { hanichId: h.id, reason });
+        ScoutDB.appendAudit({ action: 'CHECKOUT-DENY', channel: 'tribe', details: `${h.name} — ${reason}` });
+        Toast.show('הסירוב נשלח לשער ולחמ"ל.', { kind: 'danger' });
+      } else {
+        ScoutDB.patch('hanichim', l => l.map(x => x.id === h.id ? Object.assign({}, x, { status: 'released' }) : x));
+        Bus.emit('bus:checkout:approved', { hanichId: h.id });
+        ScoutDB.appendAudit({ action: 'CHECKOUT-APPROVE', channel: 'tribe', details: h.name });
+        Toast.show('היציאה אושרה. השער יראה ירוק.', { kind: 'ok' });
+      }
+      host.remove();
+      renderAll();
+    });
+  });
+
+  // Medical push
+  Bus.on('bus:medical:new', payload => {
+    if (payload.tribeId !== activeTribeId) return;
+    const h = ScoutDB.get('hanichim', []).find(x => x.id === payload.hanichId);
+    pushFeed(`🚑 החניך <strong>${util.escapeHtml(h ? h.name : '?')}</strong> מטופל כעת במרפאה — ${util.escapeHtml(payload.complaint || '')}`);
+    Scout.Audio.play('blip');
+    renderAll();
+  });
+
+  Bus.on('bus:broadcast', p => {
+    pushFeed(`📢 כריזה: ${util.escapeHtml(p.text)}`);
+  });
+
+  Bus.on('bus:checkout:approved', p => {
+    const h = ScoutDB.get('hanichim', []).find(x => x.id === p.hanichId);
+    if (!h || h.tribeId !== activeTribeId) return;
+    pushFeed(`✅ יציאת ${util.escapeHtml(h.name)} אושרה`);
+    renderAll();
+  });
+
+  UI.bindGlobalSOS({ lock: false });
+
+  function renderAll() { renderHead(); renderStats(); renderRoster(); }
+  renderAll();
+})();
+</script>
+</body>
+</html>

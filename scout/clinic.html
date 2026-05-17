@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>שו"ב | אחראי מרפאה</title>
+<link rel="stylesheet" href="shared/tokens.css">
+<style>
+  .page { padding: 16px; max-width: 1300px; margin: 0 auto; }
+
+  .alert-lane {
+    background: rgba(255,71,87,0.10);
+    border: 1px solid var(--danger);
+    border-radius: var(--r-md);
+    padding: 12px 16px;
+    margin-bottom: 14px;
+    display: none;
+    align-items: center;
+    gap: 14px;
+    animation: blink-danger 1.2s infinite;
+  }
+  .alert-lane.is-active { display: flex; }
+  .alert-lane .ico { font-size: 22px; }
+
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 7fr) minmax(280px, 3fr);
+    gap: 14px;
+  }
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+
+  .panel-pad { padding: 16px; }
+
+  .add-form {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr) auto;
+    gap: 8px;
+    align-items: end;
+    margin-bottom: 14px;
+  }
+  .add-form label {
+    display: block;
+    font-size: 11px;
+    color: var(--text-mid);
+    margin-bottom: 4px;
+    font-family: var(--font-ui);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+  }
+  @media (max-width: 800px) {
+    .add-form { grid-template-columns: 1fr 1fr; }
+  }
+
+  .medic-card {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    padding: 12px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .medic-card + .medic-card { margin-top: 8px; }
+  .medic-avatar {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    background: var(--ok);
+    color: #052817;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 14px;
+  }
+
+  .status-pill { padding: 4px 10px; border-radius: var(--r-pill); font-size: 11px; font-weight: 700; font-family: var(--font-ui); }
+  .sp-clinic    { background: var(--warn-soft); color: var(--warn); }
+  .sp-released  { background: var(--ok-soft); color: var(--ok); }
+  .sp-evacuated { background: var(--danger-soft); color: var(--danger); }
+
+  .silo-bar {
+    background: rgba(91,141,239,0.06);
+    border: 1px solid rgba(91,141,239,0.2);
+    border-radius: var(--r-md);
+    padding: 8px 12px;
+    color: var(--info);
+    font-size: 12px;
+    font-family: var(--font-ui);
+    font-weight: 600;
+    display: inline-flex; align-items: center; gap: 8px;
+    margin-bottom: 10px;
+  }
+</style>
+</head>
+<body class="tactical-grid">
+  <div id="header"></div>
+
+  <div class="page">
+    <div class="silo-bar">🔒 מידור: גישה רפואית בלבד — אין צפייה בלוגי אבטחה, רשימות שחורות, או חתימות אקונומיה.</div>
+
+    <div class="alert-lane" id="alert-lane">
+      <span class="ico">🚑</span>
+      <div style="flex:1;">
+        <strong data-alert-text>התראה רפואית פעילה</strong>
+        <div style="color: var(--text-mid); font-size: 12px;" data-alert-meta></div>
+      </div>
+      <button class="btn btn--sm" id="btn-dismiss-alert">סגור התראה</button>
+    </div>
+
+    <div class="layout">
+      <div class="panel panel-pad">
+        <div class="section-title">📋 הוספת מטופל מהיר</div>
+        <form class="add-form" id="add-form" autocomplete="off">
+          <div>
+            <label>שם החניך</label>
+            <select class="select" name="hanichId" required></select>
+          </div>
+          <div>
+            <label>תלונה</label>
+            <input class="input" name="complaint" placeholder="לדוגמה: שריטה ביד" required>
+          </div>
+          <div>
+            <label>טיפול שניתן</label>
+            <input class="input" name="treatment" placeholder="לדוגמה: חבישה ופלסטר">
+          </div>
+          <div>
+            <label>סטטוס</label>
+            <select class="select" name="status">
+              <option value="clinic">במנוחה במרפאה</option>
+              <option value="released">שוחרר לשבט</option>
+              <option value="evacuated">פונה לבי״ח</option>
+            </select>
+          </div>
+          <button class="btn btn--primary">הוסף מטופל</button>
+        </form>
+
+        <div class="section-title" style="margin-top: 18px;">🏥 יומן מטופלים פעילים</div>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>זמן</th>
+              <th>שם</th>
+              <th>שבט</th>
+              <th>תלונה</th>
+              <th>טיפול</th>
+              <th>סטטוס</th>
+              <th>פעולות</th>
+            </tr>
+          </thead>
+          <tbody id="patients-body"></tbody>
+        </table>
+      </div>
+
+      <aside>
+        <div class="panel panel-pad" style="margin-bottom: 14px;">
+          <div class="section-title">👥 חובשי שטח</div>
+          <div id="medics"></div>
+        </div>
+        <div class="panel panel-pad">
+          <div class="section-title">⚡ פעולות חירום</div>
+          <button class="btn btn--danger btn--block" id="btn-evac">📞 הזמן נט"ן לפינוי</button>
+          <p style="margin-top: 8px; color: var(--text-mid); font-size: 12px;">לחיצה תתריע בחמ"ל ובש"ג ותתחיל לוג פינוי אוטומטי.</p>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+<script src="shared/engine.js"></script>
+<script>
+(function () {
+  'use strict';
+  const { ScoutDB, Bus, UI, SOS, Toast, util } = Scout;
+
+  if (!ScoutDB.get('currentPersona', null)) UI.setPersona({ name: 'ד״ר נועה לוי', role: 'clinic-chief' });
+  document.getElementById('header').innerHTML = UI.header({ title: 'אחראי מרפאה — Medical Dispatch' });
+  UI.bindHeader(document.body);
+  UI.mockBadge('דמו פרזנטציה');
+
+  // Patient form: select hanichim
+  const hanichSelect = document.querySelector('select[name="hanichId"]');
+  function populateHanichim() {
+    const hs = ScoutDB.get('hanichim', []);
+    const tribes = ScoutDB.get('tribes', []);
+    hanichSelect.innerHTML = hs.map(h => {
+      const t = tribes.find(x => x.id === h.tribeId);
+      return `<option value="${h.id}">${util.escapeHtml(h.name)} — שבט ${util.escapeHtml(t ? t.name : '?')}</option>`;
+    }).join('');
+  }
+  populateHanichim();
+
+  // Submit
+  document.getElementById('add-form').addEventListener('submit', e => {
+    e.preventDefault();
+    const form = e.target;
+    const hanichId = form.hanichId.value;
+    const complaint = form.complaint.value.trim();
+    const treatment = form.treatment.value.trim() || '—';
+    const status = form.status.value;
+    if (!complaint) return;
+
+    const h = ScoutDB.get('hanichim', []).find(x => x.id === hanichId);
+    const patient = {
+      id: util.uuid(),
+      hanichId, name: h.name, tribeId: h.tribeId,
+      complaint, treatment, status,
+      ts: util.nowMs(),
+    };
+    ScoutDB.patch('patients', l => l.concat([patient]));
+    ScoutDB.patch('hanichim', l => l.map(x => x.id === hanichId ? Object.assign({}, x, { status: status === 'released' ? 'released' : (status === 'evacuated' ? 'evacuated' : 'clinic') }) : x));
+
+    Bus.emit('bus:medical:new', { hanichId, tribeId: h.tribeId, complaint, treatment, status });
+    ScoutDB.appendAudit({ action: 'PATIENT-ADD', channel: 'medical', details: `${h.name} — ${complaint}` });
+    Scout.Audio.play('ambulance');
+    showAlert('מטופל חדש: ' + h.name, complaint + ' · ' + treatment);
+    Toast.show('המטופל נרשם. פוש נשלח למרכז השבט.', { kind: 'ok' });
+
+    form.reset();
+    form.status.value = 'clinic';
+    renderPatients();
+  });
+
+  // Patients
+  const STATUS_PILL = {
+    clinic:    '<span class="status-pill sp-clinic">במנוחה במרפאה</span>',
+    released:  '<span class="status-pill sp-released">שוחרר לשבט</span>',
+    evacuated: '<span class="status-pill sp-evacuated">פונה לבי״ח</span>',
+  };
+  function renderPatients() {
+    const patients = ScoutDB.get('patients', []).slice().sort((a, b) => b.ts - a.ts);
+    const tribes = ScoutDB.get('tribes', []);
+    document.getElementById('patients-body').innerHTML = patients.length ? patients.map(p => {
+      const t = tribes.find(x => x.id === p.tribeId);
+      return `
+        <tr>
+          <td style="font-family: var(--font-mono); color: var(--text-low);">${util.fmtTime(p.ts)}</td>
+          <td><strong>${util.escapeHtml(p.name)}</strong></td>
+          <td>${util.escapeHtml(t ? t.name : '—')}</td>
+          <td>${util.escapeHtml(p.complaint)}</td>
+          <td>${util.escapeHtml(p.treatment)}</td>
+          <td>${STATUS_PILL[p.status] || p.status}</td>
+          <td>
+            ${p.status === 'clinic' ? `<button class="btn btn--sm btn--ok" data-release="${p.id}">שחרר</button>` : ''}
+            ${p.status !== 'evacuated' ? `<button class="btn btn--sm btn--danger" data-evac="${p.id}">פנה</button>` : ''}
+          </td>
+        </tr>
+      `;
+    }).join('') : '<tr><td colspan="7" style="text-align: center; color: var(--text-low); padding: 22px;">אין מטופלים פעילים. לחץ "הוסף מטופל" כדי להתחיל.</td></tr>';
+  }
+  document.addEventListener('click', e => {
+    const rel = e.target.dataset.release, ev = e.target.dataset.evac;
+    if (rel) {
+      ScoutDB.patch('patients', l => l.map(p => p.id === rel ? Object.assign({}, p, { status: 'released' }) : p));
+      const p = ScoutDB.get('patients', []).find(x => x.id === rel);
+      if (p) ScoutDB.patch('hanichim', l => l.map(x => x.id === p.hanichId ? Object.assign({}, x, { status: 'released' }) : x));
+      ScoutDB.appendAudit({ action: 'PATIENT-RELEASE', channel: 'medical', details: p ? p.name : '' });
+      Toast.show('המטופל שוחרר. סטטוס שבט עודכן.', { kind: 'ok' });
+      renderPatients();
+    }
+    if (ev) {
+      ScoutDB.patch('patients', l => l.map(p => p.id === ev ? Object.assign({}, p, { status: 'evacuated' }) : p));
+      const p = ScoutDB.get('patients', []).find(x => x.id === ev);
+      if (p) ScoutDB.patch('hanichim', l => l.map(x => x.id === p.hanichId ? Object.assign({}, x, { status: 'evacuated' }) : x));
+      ScoutDB.appendAudit({ action: 'PATIENT-EVAC', channel: 'medical', details: p ? p.name : '' });
+      Scout.Audio.play('tactical-siren', { durationMs: 2200 });
+      Toast.show('המטופל פונה לבי״ח. חמ"ל וקב"ט קיבלו פוש.', { kind: 'danger' });
+      renderPatients();
+    }
+  });
+
+  // Medics list
+  function renderMedics() {
+    const medics = ScoutDB.get('staff', []).filter(s => ['medic','first-aid','doctor'].includes(s.role));
+    document.getElementById('medics').innerHTML = medics.map(m => `
+      <div class="medic-card">
+        <div class="medic-avatar">${util.escapeHtml(m.name.split(' ').slice(-1)[0][0] || '?')}</div>
+        <div style="flex:1">
+          <div style="font-weight: 700; font-size: 13px;">${util.escapeHtml(m.name)}</div>
+          <div style="font-size: 11px; color: var(--text-mid);">${UI.ROLE_LABELS[m.role] || m.role} · <span class="dot dot--ok"></span> זמין</div>
+        </div>
+        <button class="btn btn--sm" data-dispatch="${m.id}">שלח</button>
+      </div>
+    `).join('');
+  }
+  document.addEventListener('click', e => {
+    const id = e.target.dataset.dispatch;
+    if (!id) return;
+    const m = ScoutDB.get('staff', []).find(s => s.id === id);
+    Toast.show(`משימה נשלחה ל-${m.name}. מיקום נצרף אוטומטית.`, { kind: 'ok' });
+    ScoutDB.appendAudit({ action: 'MEDIC-DISPATCH', channel: 'medical', details: m.name });
+  });
+
+  // Alert lane
+  function showAlert(title, meta) {
+    const el = document.getElementById('alert-lane');
+    el.classList.add('is-active');
+    el.querySelector('[data-alert-text]').textContent = title;
+    el.querySelector('[data-alert-meta]').textContent = meta;
+  }
+  document.getElementById('btn-dismiss-alert').addEventListener('click', () => {
+    document.getElementById('alert-lane').classList.remove('is-active');
+  });
+
+  // Evacuation button
+  document.getElementById('btn-evac').addEventListener('click', () => {
+    if (!confirm('להזמין נט"ן מד"א לפינוי דחוף?')) return;
+    SOS.trigger({ source: 'medical-evac', label: 'דרישת נט"ן לפינוי דחוף', forestId: ScoutDB.get('currentForest', 'ben-shemen'), who: UI.currentPersona().name });
+    Toast.show('דרישת פינוי נשלחה. חמ"ל וש"ג קיבלו התראה אדומה.', { kind: 'danger' });
+  });
+
+  // Cross-tab listeners
+  Bus.on('bus:medical:new', payload => {
+    const h = ScoutDB.get('hanichim', []).find(x => x.id === payload.hanichId);
+    if (!h) return;
+    showAlert('מטופל חדש: ' + h.name, payload.complaint);
+    Scout.Audio.play('ambulance');
+    renderPatients();
+  });
+  Bus.on('bus:broadcast', () => renderPatients());
+
+  UI.bindGlobalSOS({ lock: false });
+
+  renderPatients();
+  renderMedics();
+})();
+</script>
+</body>
+</html>

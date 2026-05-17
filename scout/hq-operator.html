@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>שו"ב | תורן חמ"ל — Live GIS</title>
+<link rel="stylesheet" href="shared/tokens.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+<style>
+  body { overflow: hidden; }
+  .page {
+    height: calc(100vh - var(--header-h));
+    display: grid;
+    grid-template-columns: minmax(0, 7fr) minmax(360px, 3fr);
+    gap: 12px;
+    padding: 12px;
+  }
+  @media (max-width: 1080px) {
+    .page { grid-template-columns: 1fr; grid-template-rows: 55vh auto; }
+  }
+
+  .map-card {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .map-card .map-bar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, #131A26, var(--bg-panel));
+  }
+  .map-card .map-bar h2 { font-size: 14px; }
+  #map { flex: 1; background: #0a0a0a; }
+
+  /* Leaflet dark overrides */
+  .leaflet-container { background: #0a0e14; }
+  .leaflet-control-attribution {
+    background: rgba(10,14,20,0.75) !important;
+    color: var(--text-low) !important;
+    border-radius: var(--r-pill);
+    font-size: 10px !important;
+  }
+  .leaflet-control-attribution a { color: var(--accent) !important; }
+  .leaflet-tile { filter: brightness(0.85) saturate(0.85) hue-rotate(-10deg); }
+  .leaflet-marker-icon { transition: transform 1.8s linear; }
+
+  .marker-pin {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 0 12px rgba(0,0,0,0.6), 0 0 18px var(--accent-glow);
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-weight: 700; font-size: 13px;
+    font-family: var(--font-ui);
+  }
+  .marker-pin.patrol { background: var(--accent); }
+  .marker-pin.medic { background: var(--ok); }
+  .marker-pin.logistics { background: var(--warn); }
+  .marker-pin.commander { background: var(--info); }
+  .marker-pin.gate { background: var(--border-hi); }
+
+  .side {
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    gap: 12px;
+    overflow: hidden;
+  }
+  .side .panel { padding: 14px; }
+  .tribe-list {
+    display: flex; flex-direction: column; gap: 6px;
+    overflow-y: auto;
+    max-height: 360px;
+    padding-left: 4px;
+  }
+  .tribe-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    padding: 10px 12px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-soft);
+    border-radius: var(--r-sm);
+    font-size: 13px;
+  }
+  .tribe-row .tribe-name { font-weight: 600; }
+  .tribe-row .meta { color: var(--text-mid); font-size: 11px; margin-top: 2px; }
+
+  .pending-row {
+    padding: 8px 12px;
+    background: rgba(255,181,71,0.07);
+    border: 1px solid rgba(255,181,71,0.25);
+    border-radius: var(--r-sm);
+    margin-bottom: 6px;
+    font-size: 13px;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  .events-strip {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    padding: 10px 14px;
+    display: flex; align-items: center; gap: 12px;
+    overflow: hidden;
+  }
+  .events-strip ul {
+    list-style: none; padding: 0; margin: 0;
+    display: flex; flex-direction: column; gap: 4px;
+    flex: 1;
+    overflow: hidden;
+    max-height: 84px;
+    font-size: 12px;
+    color: var(--text-mid);
+  }
+  .events-strip li { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .events-strip li .ts { color: var(--text-low); font-family: var(--font-mono); margin-left: 6px; }
+
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  .stat-card {
+    background: var(--bg-elev);
+    border: 1px solid var(--border-soft);
+    border-radius: var(--r-sm);
+    padding: 10px;
+    text-align: center;
+  }
+  .stat-card .stat-n { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .stat-card .stat-l { font-size: 10px; color: var(--text-low); text-transform: uppercase; letter-spacing: .12em; }
+  .stat-card.danger .stat-n { color: var(--danger); }
+  .stat-card.warn .stat-n { color: var(--warn); }
+  .stat-card.ok .stat-n { color: var(--ok); }
+</style>
+</head>
+<body class="tactical-grid">
+  <div id="header"></div>
+
+  <div class="page">
+    <!-- Map -->
+    <div class="map-card">
+      <div class="map-bar">
+        <h2>📍 מפת שליטה חיה — <span data-forest-name>—</span></h2>
+        <span class="chip"><span class="dot dot--ok"></span> 3 סיורים</span>
+        <span class="chip"><span class="dot dot--info"></span> 2 חובשים</span>
+        <span class="chip"><span class="dot dot--warn"></span> 1 לוגיסטיקה</span>
+        <span style="flex:1"></span>
+        <select class="select" data-forest-select style="width:auto; padding:6px 10px;"></select>
+        <button class="btn btn--sm" id="btn-broadcast">📢 כריזה המונית</button>
+      </div>
+      <div id="map"></div>
+    </div>
+
+    <!-- Sidebar -->
+    <aside class="side">
+      <div class="panel">
+        <div class="section-title">מצב יער במבט-על</div>
+        <div class="stat-grid">
+          <div class="stat-card ok"><span class="stat-n" data-stat="hanichim">—</span><span class="stat-l">חניכים</span></div>
+          <div class="stat-card"><span class="stat-n" data-stat="staff">—</span><span class="stat-l">סגל</span></div>
+          <div class="stat-card warn"><span class="stat-n" data-stat="clinic">—</span><span class="stat-l">במרפאה</span></div>
+          <div class="stat-card danger"><span class="stat-n" data-stat="pending">—</span><span class="stat-l">ממתינים בשער</span></div>
+        </div>
+      </div>
+
+      <div class="panel" style="display:flex; flex-direction:column; min-height:0;">
+        <div class="section-title">מצב שבטים חי</div>
+        <div id="tribes" class="tribe-list"></div>
+
+        <div class="section-title" style="margin-top: 16px;">בקשות אישור כניסה</div>
+        <div id="pending"></div>
+      </div>
+
+      <div class="panel" style="padding:12px;">
+        <button class="btn btn--danger btn--block" id="btn-sos">⚠ הפעל SOS חמ"ל (דמו)</button>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Events strip docks at the bottom only on wide screens -->
+  <div class="events-strip" style="margin: 0 12px 12px;">
+    <div class="section-title" style="margin: 0;">יומן אירועים</div>
+    <ul id="events"></ul>
+  </div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="shared/engine.js"></script>
+<script>
+(function () {
+  'use strict';
+  const { ScoutDB, Bus, UI, SOS, Geo, Toast, util, FORESTS } = Scout;
+
+  // Persona (fallback)
+  if (!ScoutDB.get('currentPersona', null)) {
+    UI.setPersona({ name: 'תורן עידו', role: 'hq-op' });
+  }
+
+  const forestId = util.getParam('forest') || ScoutDB.get('currentForest', 'ben-shemen');
+  ScoutDB.set('currentForest', forestId);
+  const forest = (ScoutDB.get('forests', []) || FORESTS).find(f => f.id === forestId) || FORESTS[0];
+
+  // Header
+  document.getElementById('header').innerHTML = UI.header({
+    title: 'תורן חמ"ל — שליטה חיה',
+    subtitle: forest.name,
+  });
+  UI.bindHeader(document.body);
+  UI.mockBadge('דמו פרזנטציה');
+  document.querySelector('[data-forest-name]').textContent = forest.name;
+
+  // Forest selector
+  const sel = document.querySelector('[data-forest-select]');
+  sel.innerHTML = (ScoutDB.get('forests', []) || FORESTS).map(f => `<option value="${f.id}" ${f.id === forestId ? 'selected' : ''}>${util.escapeHtml(f.name)}</option>`).join('');
+  sel.addEventListener('change', () => { location.href = 'hq-operator.html?forest=' + sel.value; });
+
+  // Stats
+  function renderStats() {
+    const tribes = ScoutDB.get('tribes', []).filter(t => t.forestId === forestId);
+    const hanichim = ScoutDB.get('hanichim', []).filter(h => tribes.find(t => t.id === h.tribeId));
+    const inClinic = hanichim.filter(h => h.status === 'clinic').length;
+    document.querySelector('[data-stat="hanichim"]').textContent = hanichim.length;
+    document.querySelector('[data-stat="staff"]').textContent = forest.staff;
+    document.querySelector('[data-stat="clinic"]').textContent = inClinic;
+    const pending = (ScoutDB.get('gateExceptions', []) || []).filter(x => !x.resolved).length;
+    document.querySelector('[data-stat="pending"]').textContent = pending;
+  }
+
+  // Tribes list
+  function renderTribes() {
+    const tribes = ScoutDB.get('tribes', []).filter(t => t.forestId === forestId);
+    const hanichim = ScoutDB.get('hanichim', []);
+    const list = document.getElementById('tribes');
+    list.innerHTML = tribes.map(t => {
+      const hs = hanichim.filter(h => h.tribeId === t.id);
+      const present = hs.filter(h => h.status === 'present').length;
+      const clinic = hs.filter(h => h.status === 'clinic').length;
+      const released = hs.filter(h => h.status === 'released').length;
+      const evacuated = hs.filter(h => h.status === 'evacuated').length;
+      const dotKind = clinic > 0 ? 'warn' : (evacuated > 0 ? 'danger' : 'ok');
+      return `
+        <div class="tribe-row">
+          <div>
+            <div class="tribe-name">שבט ${util.escapeHtml(t.name)}</div>
+            <div class="meta">נוכחים: ${present}/${hs.length} · במרפאה: ${clinic} · שוחררו: ${released}</div>
+          </div>
+          <span class="dot dot--${dotKind}" title="סטטוס שבטי"></span>
+        </div>
+      `;
+    }).join('') || '<div style="color: var(--text-low); padding: 8px;">אין שבטים ביער זה.</div>';
+  }
+
+  // Pending gate-exceptions
+  function renderPending() {
+    const items = (ScoutDB.get('gateExceptions', []) || []).filter(x => !x.resolved);
+    const el = document.getElementById('pending');
+    el.innerHTML = items.length
+      ? items.map(x => `
+        <div class="pending-row">
+          <span class="dot dot--warn"></span>
+          <div style="flex:1;">
+            <strong>${util.escapeHtml(x.plate || x.idNum || 'בקשה')}</strong>
+            <div style="color: var(--text-mid); font-size: 11px;">${util.escapeHtml(x.reason || 'אישור חריג מהשער')}</div>
+          </div>
+          <button class="btn btn--sm btn--ok" data-approve="${x.id}">אשר</button>
+          <button class="btn btn--sm" data-deny="${x.id}">דחה</button>
+        </div>
+      `).join('')
+      : '<div style="color: var(--text-low); font-size: 12px; padding: 6px 0;">אין בקשות ממתינות.</div>';
+  }
+  document.addEventListener('click', e => {
+    const ap = e.target.dataset.approve, dn = e.target.dataset.deny;
+    if (ap || dn) {
+      const id = ap || dn;
+      const ok = !!ap;
+      ScoutDB.patch('gateExceptions', list => list.map(x => x.id === id ? Object.assign({}, x, { resolved: true, decision: ok ? 'approved' : 'denied', decidedAt: util.nowMs() }) : x));
+      Bus.emit('bus:gate-exception:resolved', { id, decision: ok ? 'approved' : 'denied' });
+      ScoutDB.appendAudit({ action: ok ? 'GATE-APPROVE' : 'GATE-DENY', channel: 'gate', details: 'בקשה ' + id });
+      Toast.show(ok ? 'אושר. נשלח לשער.' : 'נדחה. נשלח לשער.', { kind: ok ? 'ok' : 'warn' });
+      renderPending(); renderStats();
+    }
+  });
+
+  // Events log strip
+  function renderEvents() {
+    const log = ScoutDB.get('audit', []).slice(-5).reverse();
+    document.getElementById('events').innerHTML = log.map(e =>
+      `<li><span class="ts">${util.fmtTime(e.ts)}</span><strong>${util.escapeHtml(e.action)}</strong> — ${util.escapeHtml(e.details || '')}</li>`
+    ).join('');
+  }
+
+  // ===== Leaflet map =====
+  Geo.seed(forestId);
+  Geo.start(forestId);
+  const map = L.map('map', { zoomControl: true, attributionControl: true }).setView([forest.lat, forest.lng], 15);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> · <a href="https://carto.com/attributions">CARTO</a>',
+  }).addTo(map);
+
+  // Forest "boundary" polygon (artistic)
+  const r = 0.012;
+  L.polygon([
+    [forest.lat + r, forest.lng - r * 0.5],
+    [forest.lat + r * 0.5, forest.lng + r],
+    [forest.lat - r * 0.7, forest.lng + r * 0.8],
+    [forest.lat - r, forest.lng - r * 0.3],
+    [forest.lat - r * 0.3, forest.lng - r],
+  ], { color: '#4DD0E1', weight: 1.5, fillColor: '#4DD0E1', fillOpacity: 0.05, dashArray: '6,6' }).addTo(map);
+
+  const ICONS = {
+    patrol:     L.divIcon({ className: '', html: '<div class="marker-pin patrol">P</div>', iconSize: [28, 28], iconAnchor: [14, 14] }),
+    medic:      L.divIcon({ className: '', html: '<div class="marker-pin medic">+</div>', iconSize: [28, 28], iconAnchor: [14, 14] }),
+    logistics:  L.divIcon({ className: '', html: '<div class="marker-pin logistics">L</div>', iconSize: [28, 28], iconAnchor: [14, 14] }),
+    commander:  L.divIcon({ className: '', html: '<div class="marker-pin commander">★</div>', iconSize: [28, 28], iconAnchor: [14, 14] }),
+    gate:       L.divIcon({ className: '', html: '<div class="marker-pin gate">⛩</div>', iconSize: [28, 28], iconAnchor: [14, 14] }),
+  };
+
+  const markers = {};
+  function refreshMarkers() {
+    Geo.snapshot().forEach(ent => {
+      if (!markers[ent.id]) {
+        markers[ent.id] = L.marker([ent.lat, ent.lng], { icon: ICONS[ent.role] || ICONS.patrol })
+          .bindPopup(`<strong>${ent.label}</strong><br><span style="font-size:11px; color:#888;">${ent.role}</span>`)
+          .addTo(map);
+      } else {
+        markers[ent.id].setLatLng([ent.lat, ent.lng]);
+      }
+    });
+  }
+  refreshMarkers();
+  Bus.on('geo:tick', refreshMarkers);
+
+  // Mass broadcast
+  document.getElementById('btn-broadcast').addEventListener('click', () => {
+    const text = prompt('הזן טקסט לכריזה המונית:', 'התרעה: סבב נוכחות בעוד 5 דקות');
+    if (!text) return;
+    Bus.emit('bus:broadcast', { text, ts: util.nowMs() });
+    Scout.Audio.play('voice-prompt', { text });
+    ScoutDB.appendAudit({ action: 'BROADCAST', channel: 'comms', details: text });
+    Toast.show('כריזה נשלחה לכלל המכשירים', { kind: 'warn' });
+    renderEvents();
+  });
+
+  // SOS demo button
+  document.getElementById('btn-sos').addEventListener('click', () => {
+    SOS.trigger({ source: 'manual', label: 'אירוע SOS מחמ״ל', forestId, who: UI.currentPersona().name });
+    Toast.show('SOS הופעל. הסלמה תופעל אוטומטית אחרי 2 דקות אם לא יאושר.', { kind: 'danger' });
+  });
+
+  // Real-time wiring
+  Bus.on('bus:gate-exception', () => { renderPending(); renderStats(); });
+  Bus.on('bus:gate-exception:resolved', () => { renderPending(); renderStats(); });
+  Bus.on('bus:medical:new', () => { renderStats(); renderTribes(); });
+  Bus.on('audit:append', renderEvents);
+
+  // SOS lockdown for HQ
+  UI.bindGlobalSOS({ lock: true });
+
+  // Initial render
+  renderStats();
+  renderTribes();
+  renderPending();
+  renderEvents();
+})();
+</script>
+</body>
+</html>

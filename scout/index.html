@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>שו"ב | תנועת הצופים — מגדל פיקוח לאומי</title>
+<link rel="stylesheet" href="shared/tokens.css">
+<style>
+  .hero {
+    padding: 22px 24px 0;
+  }
+  .hero-line {
+    color: var(--text-mid);
+    font-size: 13px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    font-family: var(--font-ui);
+    font-weight: 700;
+  }
+  .hero-title {
+    font-size: clamp(28px, 4vw, 40px);
+    margin: 6px 0 8px;
+    font-weight: 800;
+    letter-spacing: -0.015em;
+  }
+  .hero-subtitle {
+    color: var(--text-mid);
+    max-width: 720px;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(320px, 1fr);
+    gap: 22px;
+    padding: 22px 24px 40px;
+  }
+  @media (max-width: 1080px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+
+  /* Israel map panel */
+  .map-panel {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: 18px;
+    position: relative;
+    overflow: hidden;
+  }
+  .map-panel::after {
+    content: '';
+    position: absolute; inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse at 30% 20%, rgba(77,208,225,0.06), transparent 60%),
+      radial-gradient(ellipse at 70% 80%, rgba(91,141,239,0.05), transparent 65%);
+  }
+  .map-toolbar {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 6px;
+  }
+  .map-toolbar h2 { font-size: 16px; }
+
+  .il-map { width: 100%; height: auto; display: block; }
+  .il-coast { fill: #1A2230; stroke: rgba(77,208,225,0.45); stroke-width: 1.4; filter: drop-shadow(0 0 22px rgba(77,208,225,0.10)); }
+  .il-grid line { stroke: rgba(154, 168, 188, 0.05); stroke-width: 0.5; }
+  .il-label { fill: var(--text-low); font-family: 'Heebo', sans-serif; font-size: 13px; font-weight: 500; letter-spacing: .05em; }
+  .forest-pin { cursor: pointer; transition: transform 0.2s var(--ease); }
+  .forest-pin:hover { transform: scale(1.08); transform-origin: center; transform-box: fill-box; }
+  .forest-pin circle.halo { fill: var(--accent); opacity: 0.18; }
+  .forest-pin circle.dot { fill: var(--ok); stroke: white; stroke-width: 1.4; }
+  .forest-pin.warn circle.dot { fill: var(--warn); }
+  .forest-pin.danger circle.dot { fill: var(--danger); animation: pulse-danger 1.1s infinite; }
+  .forest-pin.danger circle.halo { fill: var(--danger); opacity: 0.32; }
+  .forest-pin text { fill: var(--text-hi); font-family: 'Assistant'; font-size: 12px; font-weight: 700; pointer-events: none; }
+
+  /* Forest cards */
+  .forest-card {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: border-color var(--t-fast), background var(--t-fast), transform var(--t-fast);
+    position: relative;
+  }
+  .forest-card:hover {
+    border-color: var(--accent);
+    background: var(--bg-elev-2);
+  }
+  .forest-card.is-alert {
+    border-color: var(--danger);
+    box-shadow: 0 0 0 3px var(--danger-soft);
+    animation: blink-danger 1.4s infinite;
+  }
+  .forest-card-head {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .forest-card-head h3 {
+    font-size: 15px;
+  }
+  .forest-card-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    font-size: 12px;
+  }
+  .forest-card-stats > div {
+    text-align: center;
+    padding: 6px 0;
+    background: rgba(0,0,0,0.2);
+    border-radius: var(--r-sm);
+  }
+  .forest-card-stats .num {
+    display: block;
+    font-size: 18px;
+    color: var(--text-hi);
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .forest-card-stats .lbl {
+    color: var(--text-low);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+  }
+
+  /* Persona modal */
+  .persona-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .persona-grid button {
+    text-align: right;
+    padding: 14px;
+    border: 1px solid var(--border);
+    background: var(--bg-elev);
+    border-radius: var(--r-md);
+    color: var(--text-hi);
+    cursor: pointer;
+    transition: all var(--t-fast);
+  }
+  .persona-grid button:hover {
+    border-color: var(--accent);
+    background: var(--bg-elev-2);
+  }
+  .persona-grid .role-name { font-family: var(--font-ui); font-weight: 700; font-size: 14px; }
+  .persona-grid .role-mod { font-size: 11px; color: var(--text-mid); margin-top: 3px; }
+
+  /* Audit preview */
+  .audit-row {
+    display: grid;
+    grid-template-columns: 80px 1fr 1fr;
+    gap: 8px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border-soft);
+    font-size: 12px;
+  }
+  .audit-row:last-child { border-bottom: 0; }
+  .audit-row .ts { color: var(--text-low); font-family: var(--font-mono); }
+  .audit-row .actor { color: var(--accent); }
+  .audit-row .action { color: var(--text-hi); }
+
+  /* SOS banner */
+  .global-sos {
+    background: var(--danger);
+    color: white;
+    padding: 12px 18px;
+    font-weight: 700;
+    font-family: var(--font-ui);
+    border-radius: var(--r-md);
+    margin: 0 24px 22px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    animation: blink-danger 0.9s infinite;
+    cursor: pointer;
+  }
+  .global-sos[hidden] { display: none; }
+</style>
+</head>
+<body class="tactical-grid">
+  <div id="header"></div>
+
+  <div id="global-sos" class="global-sos" hidden>
+    <span style="font-size: 18px;">⚠</span>
+    <span data-sos-text>אירוע SOS פעיל</span>
+    <span style="flex:1;"></span>
+    <span style="font-size: 12px; opacity:.8;">לחץ למעבר</span>
+  </div>
+
+  <section class="hero">
+    <div class="hero-line">⛺ Multi-Forest Control Tower</div>
+    <h1 class="hero-title">מגדל פיקוח לאומי</h1>
+    <p class="hero-subtitle">תצוגת מצב חיה של כלל היערות הפעילים מטעם תנועת הצופים. לחיצה על יער פותחת מעבר מיידי (SSO) למערכת השו"ב המקומית — אותן הרשאות-על של הקב"ט המקומי.</p>
+  </section>
+
+  <main class="layout">
+    <div class="map-panel">
+      <div class="map-toolbar">
+        <h2>מפת היערות הפעילים</h2>
+        <span class="chip">⚪ 4 יערות</span>
+        <span class="chip chip--ok"><span class="dot dot--ok"></span> תקין</span>
+        <span class="chip chip--warn"><span class="dot dot--warn"></span> אירועים בטיפול</span>
+        <span class="chip chip--danger"><span class="dot dot--danger"></span> SOS</span>
+        <span style="flex:1"></span>
+        <span class="chip chip--demo">SVG • לא אינטראקטיבי על OSM</span>
+      </div>
+
+      <!-- Stylized Israel outline. Coordinates roughly match coastal/inland silhouette. -->
+      <svg class="il-map" viewBox="0 0 400 700" aria-label="מפת ישראל סכמטית">
+        <defs>
+          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <line x1="0" y1="0" x2="40" y2="0" />
+            <line x1="0" y1="0" x2="0" y2="40" />
+          </pattern>
+        </defs>
+        <g class="il-grid"><rect width="400" height="700" fill="url(#grid)"/></g>
+        <!-- Stylized country silhouette (artistic, not geodetically accurate) -->
+        <path class="il-coast" d="
+          M 210 30
+          L 246 80
+          L 252 130
+          L 240 170
+          L 248 215
+          L 235 245
+          L 240 285
+          L 220 320
+          L 215 360
+          L 235 410
+          L 220 458
+          L 200 502
+          L 192 540
+          L 182 580
+          L 164 620
+          L 150 668
+          L 132 668
+          L 138 600
+          L 150 560
+          L 158 510
+          L 154 460
+          L 142 410
+          L 122 360
+          L 110 310
+          L 112 270
+          L 132 220
+          L 152 170
+          L 168 120
+          L 190 70
+          Z
+        "/>
+        <!-- Decorative coastline shadow -->
+        <path d="M 130 250 Q 110 350 145 460 Q 162 500 150 560" fill="none" stroke="rgba(77,208,225,0.15)" stroke-width="0.7" stroke-dasharray="2,4"/>
+
+        <!-- Forest pins (positioned approximately) -->
+        <!-- Horeshat Tal (Galilee, north) -->
+        <g class="forest-pin" data-forest="horeshat-tal" transform="translate(225, 110)">
+          <circle class="halo" cx="0" cy="0" r="18"/>
+          <circle class="dot" cx="0" cy="0" r="7"/>
+          <text x="14" y="-6">יער חורשת טל</text>
+          <text x="14" y="8" style="font-size:10px; fill: var(--text-low); font-weight:500;">צפון</text>
+        </g>
+        <!-- Ben Shemen (center) -->
+        <g class="forest-pin" data-forest="ben-shemen" transform="translate(180, 350)">
+          <circle class="halo" cx="0" cy="0" r="18"/>
+          <circle class="dot" cx="0" cy="0" r="7"/>
+          <text x="-14" y="-6" text-anchor="end">יער בן שמן</text>
+          <text x="-14" y="8" text-anchor="end" style="font-size:10px; fill: var(--text-low); font-weight:500;">מרכז</text>
+        </g>
+        <!-- Haruvit (south-center, lowlands) -->
+        <g class="forest-pin warn" data-forest="haruvit" transform="translate(160, 430)">
+          <circle class="halo" cx="0" cy="0" r="18"/>
+          <circle class="dot" cx="0" cy="0" r="7"/>
+          <text x="-14" y="-6" text-anchor="end">יער חרובית</text>
+          <text x="-14" y="8" text-anchor="end" style="font-size:10px; fill: var(--text-low); font-weight:500;">שפלה</text>
+        </g>
+        <!-- Jerusalem -->
+        <g class="forest-pin" data-forest="jerusalem" transform="translate(220, 400)">
+          <circle class="halo" cx="0" cy="0" r="18"/>
+          <circle class="dot" cx="0" cy="0" r="7"/>
+          <text x="14" y="-6">יערות ירושלים</text>
+          <text x="14" y="8" style="font-size:10px; fill: var(--text-low); font-weight:500;">הרים</text>
+        </g>
+
+        <!-- Decorative labels -->
+        <text class="il-label" x="30" y="40">צפון</text>
+        <text class="il-label" x="30" y="600">דרום</text>
+        <text class="il-label" x="320" y="40" text-anchor="end">N ↑</text>
+      </svg>
+    </div>
+
+    <aside>
+      <h2 class="section-title">סטטוס יערות</h2>
+      <div id="forest-cards" style="display: grid; gap: 10px;"></div>
+
+      <h2 class="section-title" style="margin-top: 28px;">לוג פעולות לאומי (Master Audit)</h2>
+      <div id="audit-preview" class="panel" style="max-height: 280px; overflow-y: auto;"></div>
+
+      <h2 class="section-title" style="margin-top: 28px;">פעולות מהירות</h2>
+      <div style="display:grid; gap: 8px;">
+        <button class="btn" id="btn-clear-data">איפוס דמו (Reseed)</button>
+        <button class="btn" id="btn-trigger-sos-demo">⚠ הפעלת SOS דמו (בן שמן)</button>
+      </div>
+    </aside>
+  </main>
+
+<script src="shared/engine.js"></script>
+<script>
+(function () {
+  'use strict';
+  const { ScoutDB, Bus, UI, SOS, Toast, util } = Scout;
+
+  // Header
+  UI.setPersona({ name: 'אורי שדה — מנהל ארצי', role: 'national' });
+  document.getElementById('header').innerHTML = UI.header({ title: 'מגדל פיקוח לאומי — תנועת הצופים' });
+  UI.bindHeader(document.body);
+  UI.mockBadge('דמו פרזנטציה • localStorage + WebAudio');
+
+  // Render forest cards
+  function renderForests() {
+    const forests = ScoutDB.get('forests', []);
+    const activeSOS = SOS.current();
+    const sosForest = activeSOS && !activeSOS.acked ? activeSOS.forestId : null;
+
+    document.getElementById('forest-cards').innerHTML = forests.map(f => {
+      const isAlert = sosForest === f.id;
+      const status = isAlert ? 'danger' : f.status;
+      const statusChip = {
+        ok:     '<span class="chip chip--ok"><span class="dot dot--ok"></span> תקין</span>',
+        warn:   '<span class="chip chip--warn"><span class="dot dot--warn"></span> אירועים בטיפול</span>',
+        danger: '<span class="chip chip--danger"><span class="dot dot--danger"></span> SOS פעיל</span>',
+      }[status];
+      return `
+        <div class="forest-card ${isAlert ? 'is-alert' : ''}" data-forest="${f.id}" tabindex="0">
+          <div class="forest-card-head">
+            <h3>${util.escapeHtml(f.name)}</h3>
+            ${statusChip}
+          </div>
+          <div class="forest-card-stats">
+            <div><span class="num">${f.hanichim}</span><span class="lbl">חניכים</span></div>
+            <div><span class="num">${f.staff}</span><span class="lbl">סגל</span></div>
+            <div><span class="num">${(Scout.ScoutDB.get('tribes', []).filter(t => t.forestId === f.id).length)}</span><span class="lbl">שבטים</span></div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    // Sync pin styles
+    document.querySelectorAll('.forest-pin').forEach(p => {
+      const fid = p.dataset.forest;
+      const f = forests.find(x => x.id === fid);
+      const isAlert = sosForest === fid;
+      p.classList.toggle('warn', f && f.status === 'warn' && !isAlert);
+      p.classList.toggle('danger', isAlert);
+    });
+  }
+
+  // Personas to expose at click
+  const PERSONAS = [
+    { name: 'תורן עידו',       role: 'hq-op',        page: 'hq-operator.html', desc: 'מודול 3' },
+    { name: 'מאבטח אופיר',     role: 'guard',        page: 'gate-guard.html',  desc: 'מודול 1' },
+    { name: 'מרכז שבט נחל',    role: 'tribe',        page: 'tribe.html',       desc: 'מודול 8' },
+    { name: 'ד״ר נועה לוי',    role: 'clinic-chief', page: 'clinic.html',      desc: 'מודול 10' },
+    { name: 'קב״ט ניר אלון',   role: 'kabat',        page: 'kabat.html',       desc: 'מודול 6' },
+    { name: 'אורי — מנהל ארצי', role: 'national',     page: 'index.html',       desc: 'נשאר במגדל' },
+  ];
+
+  function openPersonaModal(forest) {
+    ScoutDB.set('currentForest', forest.id);
+    const body = `
+      <p>בחר תפקיד כדי להיכנס למערכת השו"ב של <strong>${util.escapeHtml(forest.name)}</strong>:</p>
+      <div class="persona-grid">
+        ${PERSONAS.map(p => `
+          <button data-role="${p.role}" data-page="${p.page}" data-name="${util.escapeHtml(p.name)}">
+            <div class="role-name">${UI.ROLE_LABELS[p.role] || p.role}</div>
+            <div class="role-mod">${util.escapeHtml(p.name)} • ${util.escapeHtml(p.desc)}</div>
+          </button>
+        `).join('')}
+      </div>
+    `;
+    const host = document.createElement('div');
+    host.className = 'modal-host';
+    host.innerHTML = `<div class="modal"><h3>${util.escapeHtml(forest.name)}</h3>${body}<div style="display:flex; justify-content:flex-end; margin-top:14px;"><button class="btn btn--ghost" data-close>ביטול</button></div></div>`;
+    document.body.appendChild(host);
+    host.addEventListener('click', e => {
+      if (e.target.matches('[data-close]') || e.target === host) { host.remove(); return; }
+      const btn = e.target.closest('button[data-role]');
+      if (!btn) return;
+      const persona = { name: btn.dataset.name, role: btn.dataset.role };
+      UI.setPersona(persona);
+      ScoutDB.appendAudit({ action: 'PERSONA-SWITCH', channel: 'auth', details: `${persona.name} → ${forest.name}`, actor: persona.name + ' / ' + (UI.ROLE_LABELS[persona.role] || persona.role) });
+      location.href = btn.dataset.page;
+    });
+  }
+
+  document.addEventListener('click', e => {
+    const card = e.target.closest('.forest-card');
+    if (card) {
+      const f = ScoutDB.get('forests', []).find(x => x.id === card.dataset.forest);
+      if (f) openPersonaModal(f);
+      return;
+    }
+    const pin = e.target.closest('.forest-pin');
+    if (pin) {
+      const f = ScoutDB.get('forests', []).find(x => x.id === pin.dataset.forest);
+      if (f) openPersonaModal(f);
+    }
+  });
+
+  // Audit preview
+  function renderAudit() {
+    const log = ScoutDB.get('audit', []).slice(-12).reverse();
+    document.getElementById('audit-preview').innerHTML = log.length
+      ? log.map(e => `
+        <div class="audit-row">
+          <span class="ts">${util.fmtTime(e.ts)}</span>
+          <span class="actor">${util.escapeHtml(e.actor)}</span>
+          <span class="action">${util.escapeHtml(e.action)} — ${util.escapeHtml(e.details || '')}</span>
+        </div>`).join('')
+      : '<div style="padding: 18px; text-align:center; color: var(--text-low);">עדיין אין רשומות לוג. הפעל פעולה לחזות בה כאן.</div>';
+  }
+
+  Bus.on('audit:append', renderAudit);
+  Bus.on('sos:trigger', ev => {
+    renderForests();
+    const banner = document.getElementById('global-sos');
+    banner.hidden = false;
+    banner.querySelector('[data-sos-text]').textContent = `אירוע SOS פעיל ביער ${(ScoutDB.get('forests', []).find(f => f.id === ev.forestId) || {}).name || ev.forestId} — ${ev.label}`;
+    banner.onclick = () => location.href = 'hq-operator.html?forest=' + ev.forestId;
+  });
+  Bus.on('sos:ack', () => { document.getElementById('global-sos').hidden = true; renderForests(); });
+  Bus.on('sos:clear', () => { document.getElementById('global-sos').hidden = true; renderForests(); });
+
+  // Reseed button
+  document.getElementById('btn-clear-data').addEventListener('click', () => {
+    if (confirm('לאפס את כל נתוני הדמו? פעולה זו תנקה את לוג הביקורת והמטופלים.')) {
+      ScoutDB.listKeys().forEach(k => ScoutDB.remove(k));
+      location.reload();
+    }
+  });
+  document.getElementById('btn-trigger-sos-demo').addEventListener('click', () => {
+    SOS.trigger({ source: 'demo', label: 'הדגמת SOS ידנית', forestId: 'ben-shemen', who: 'מנהל ארצי' });
+    Toast.show('SOS דמו הופעל ב-בן שמן', { kind: 'danger' });
+  });
+
+  // Initial render + show active SOS if present
+  renderForests();
+  renderAudit();
+  const cur = SOS.current();
+  if (cur && !cur.acked) {
+    const banner = document.getElementById('global-sos');
+    banner.hidden = false;
+    banner.querySelector('[data-sos-text]').textContent = `אירוע SOS פעיל ביער ${(ScoutDB.get('forests', []).find(f => f.id === cur.forestId) || {}).name || cur.forestId} — ${cur.label}`;
+    banner.onclick = () => location.href = 'hq-operator.html?forest=' + cur.forestId;
+  }
+})();
+</script>
+</body>
+</html>

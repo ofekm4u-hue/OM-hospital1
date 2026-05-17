@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>שו"ב | דשבורד קב"ט</title>
+<link rel="stylesheet" href="shared/tokens.css">
+<style>
+  .page { padding: 16px; max-width: 1400px; margin: 0 auto; }
+
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+  @media (max-width: 1100px) { .layout { grid-template-columns: 1fr; } }
+
+  .panel-pad { padding: 18px; }
+
+  .perm-row {
+    display: grid;
+    grid-template-columns: 1fr repeat(5, auto);
+    gap: 6px;
+    align-items: center;
+    padding: 8px 12px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-soft);
+    border-radius: var(--r-sm);
+    margin-bottom: 4px;
+    font-size: 13px;
+  }
+  .perm-row .name {
+    font-weight: 600;
+  }
+  .perm-row .role-tag {
+    color: var(--text-mid);
+    font-size: 11px;
+    margin-right: 6px;
+  }
+  .tog {
+    width: 38px; height: 22px;
+    background: var(--bg-deep);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    position: relative;
+    cursor: pointer;
+    transition: background var(--t-fast), border-color var(--t-fast);
+  }
+  .tog::after {
+    content: '';
+    position: absolute;
+    top: 2px; right: 2px;
+    width: 16px; height: 16px;
+    background: var(--text-mid);
+    border-radius: 50%;
+    transition: all var(--t-fast);
+  }
+  .tog.on { background: var(--ok-soft); border-color: var(--ok); }
+  .tog.on::after { background: var(--ok); right: auto; left: 2px; }
+  .perm-row .tog-cell {
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+  }
+  .perm-row .tog-cell .tog-l {
+    font-size: 9px; color: var(--text-low); text-transform: uppercase; letter-spacing: .1em;
+  }
+
+  .audit-table {
+    max-height: 380px;
+    overflow-y: auto;
+  }
+  .audit-table tbody td { font-size: 12px; }
+
+  .slider-row {
+    display: flex; align-items: center; gap: 12px;
+    margin: 10px 0;
+  }
+  .slider-row input[type="range"] { flex: 1; }
+
+  .pending-card {
+    background: rgba(255,181,71,0.08);
+    border: 1px solid rgba(255,181,71,0.32);
+    border-radius: var(--r-md);
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 10px;
+    align-items: center;
+  }
+  .filter-row {
+    display: flex; gap: 8px; align-items: center;
+    margin-bottom: 10px;
+  }
+  .filter-row .input { padding: 6px 10px; font-size: 12px; }
+</style>
+</head>
+<body class="tactical-grid">
+  <div id="header"></div>
+
+  <div class="page">
+    <div class="layout">
+      <!-- Pending approvals -->
+      <div class="panel panel-pad">
+        <div class="section-title">⚠ אישורים חריגים ממתינים</div>
+        <div id="pending-host"></div>
+      </div>
+
+      <!-- Global overrides -->
+      <div class="panel panel-pad">
+        <div class="section-title">🛡 עקיפת מערכת גלובלית</div>
+
+        <div style="background: var(--bg-elev); border-radius: var(--r-md); padding: 12px; margin-bottom: 10px;">
+          <div style="font-family: var(--font-ui); font-weight: 700; margin-bottom: 6px;">תדירות בדיקת ערנות (DMS)</div>
+          <div class="slider-row">
+            <span class="chip">5 דק'</span>
+            <input type="range" min="5" max="60" step="5" id="dms-slider">
+            <span class="chip">60 דק'</span>
+            <span class="chip chip--info" id="dms-value">— דק'</span>
+          </div>
+          <div style="font-size: 11px; color: var(--text-mid);">משפיע על מאבטחי סיור וש"ג בשעות הלילה (22:00–06:00).</div>
+        </div>
+
+        <div style="background: var(--bg-elev); border-radius: var(--r-md); padding: 12px; margin-bottom: 10px;">
+          <div style="font-family: var(--font-ui); font-weight: 700; margin-bottom: 6px;">פעולות סמכות-על</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <button class="btn" id="btn-clear-blacklist">📝 ניקוי רשימה שחורה</button>
+            <button class="btn btn--ok" id="btn-ack-sos">✅ אישור אירוע SOS פעיל</button>
+            <button class="btn" id="btn-add-blacklist">➕ הוסף לרשימה שחורה</button>
+            <button class="btn btn--danger" id="btn-clear-sos">⛔ סגור אירוע SOS</button>
+          </div>
+        </div>
+
+        <div style="background: var(--bg-elev); border-radius: var(--r-md); padding: 12px;">
+          <div style="font-family: var(--font-ui); font-weight: 700; margin-bottom: 6px;">סטטוס מערכת</div>
+          <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+            <span class="chip" id="status-sos">SOS: —</span>
+            <span class="chip" id="status-pending">חריגים: —</span>
+            <span class="chip" id="status-bl">חסומים: —</span>
+            <span class="chip chip--info">דמו פרזנטציה</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- User permissions -->
+    <div class="panel panel-pad" style="margin-bottom: 14px;">
+      <div class="section-title">👥 מטריצת הרשאות משתמשים</div>
+      <div class="perm-row" style="background: var(--bg-panel); border-color: var(--border); font-weight: 700; font-size: 11px;">
+        <div>משתמש</div>
+        <div class="tog-cell"><div class="tog-l">SOS Override</div></div>
+        <div class="tog-cell"><div class="tog-l">Blacklist</div></div>
+        <div class="tog-cell"><div class="tog-l">DMS Config</div></div>
+        <div class="tog-cell"><div class="tog-l">Audit View</div></div>
+        <div class="tog-cell"><div class="tog-l">Broadcast</div></div>
+      </div>
+      <div id="perms-host"></div>
+    </div>
+
+    <!-- Master audit trail -->
+    <div class="panel panel-pad">
+      <div class="section-title">📜 לוג פעולות מאסטר (Append-Only)</div>
+      <div class="filter-row">
+        <input class="input" placeholder="חפש לפי משתמש או פעולה..." id="audit-filter" style="max-width: 280px;">
+        <select class="select" id="audit-channel" style="max-width: 200px;">
+          <option value="">כל הערוצים</option>
+          <option value="gate">שער</option>
+          <option value="sos">SOS</option>
+          <option value="medical">מרפאה</option>
+          <option value="tribe">שבט</option>
+          <option value="comms">תקשורת</option>
+          <option value="dms">ערנות</option>
+          <option value="auth">הזדהות</option>
+        </select>
+        <span style="flex:1"></span>
+        <span class="chip" id="audit-count">— רשומות</span>
+      </div>
+      <div class="audit-table">
+        <table class="table" id="audit-table">
+          <thead>
+            <tr>
+              <th>זמן</th>
+              <th>משתמש</th>
+              <th>ערוץ</th>
+              <th>פעולה</th>
+              <th>פרטים</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+<script src="shared/engine.js"></script>
+<script>
+(function () {
+  'use strict';
+  const { ScoutDB, Bus, UI, SOS, Toast, util } = Scout;
+
+  if (!ScoutDB.get('currentPersona', null)) UI.setPersona({ name: 'קב״ט ניר אלון', role: 'kabat' });
+  document.getElementById('header').innerHTML = UI.header({ title: 'דשבורד קב"ט — Super Admin' });
+  UI.bindHeader(document.body);
+  UI.mockBadge('דמו פרזנטציה');
+
+  const PERM_KEYS = ['sosOverride', 'blacklistEdit', 'dmsConfig', 'auditView', 'broadcast'];
+
+  function renderPerms() {
+    const staff = ScoutDB.get('staff', []);
+    const perms = ScoutDB.get('permissions', {});
+    const host = document.getElementById('perms-host');
+    host.innerHTML = staff.map(s => {
+      const p = perms[s.id] || {};
+      return `
+        <div class="perm-row" data-user="${s.id}">
+          <div>
+            <span class="name">${util.escapeHtml(s.name)}</span>
+            <span class="role-tag">${UI.ROLE_LABELS[s.role] || s.role}</span>
+          </div>
+          ${PERM_KEYS.map(k => `
+            <div class="tog-cell">
+              <div class="tog ${p[k] ? 'on' : ''}" data-perm="${k}" data-user="${s.id}"></div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }).join('');
+  }
+  document.addEventListener('click', e => {
+    const t = e.target.closest('.tog[data-perm]');
+    if (!t) return;
+    const u = t.dataset.user, k = t.dataset.perm;
+    ScoutDB.patch('permissions', perms => {
+      perms = perms || {};
+      perms[u] = perms[u] || {};
+      perms[u][k] = !perms[u][k];
+      return perms;
+    });
+    t.classList.toggle('on');
+    Scout.Audio.play('blip');
+    ScoutDB.appendAudit({ action: 'PERM-CHANGE', channel: 'auth', details: `${u} :: ${k}` });
+  });
+
+  // DMS slider
+  const slider = document.getElementById('dms-slider');
+  const sliderVal = document.getElementById('dms-value');
+  function syncSlider() {
+    const v = ScoutDB.get('dmsInterval', 15);
+    slider.value = v;
+    sliderVal.textContent = v + ' דק\'';
+  }
+  slider.addEventListener('input', () => {
+    const v = +slider.value;
+    ScoutDB.set('dmsInterval', v);
+    sliderVal.textContent = v + ' דק\'';
+  });
+  slider.addEventListener('change', () => {
+    ScoutDB.appendAudit({ action: 'DMS-CONFIG', channel: 'dms', details: `Interval = ${slider.value}min` });
+    Toast.show('זמני DMS עודכנו', { kind: 'ok' });
+  });
+  syncSlider();
+
+  // Blacklist
+  document.getElementById('btn-clear-blacklist').addEventListener('click', () => {
+    if (!confirm('לאפס רשימה שחורה?')) return;
+    ScoutDB.set('blacklist', []);
+    ScoutDB.appendAudit({ action: 'BLACKLIST-CLEAR', channel: 'gate', details: 'איפוס מלא' });
+    renderStatus();
+    Toast.show('רשימה שחורה נוקתה.', { kind: 'warn' });
+  });
+  document.getElementById('btn-add-blacklist').addEventListener('click', () => {
+    const id = prompt('הוסף ת.ז. או מספר רכב לרשימה שחורה:');
+    if (!id) return;
+    const reason = prompt('סיבה:', 'הוגדר ע"י קב"ט');
+    ScoutDB.patch('blacklist', l => (l || []).concat([{ kind: id.length === 9 ? 'id' : 'plate', value: id, reason: reason || '—' }]));
+    ScoutDB.appendAudit({ action: 'BLACKLIST-ADD', channel: 'gate', details: id + ' — ' + (reason || '') });
+    renderStatus();
+    Toast.show('הוסף לרשימה שחורה. מסונכרן לכל הש"ג.', { kind: 'warn' });
+  });
+
+  // SOS override
+  document.getElementById('btn-ack-sos').addEventListener('click', () => {
+    const cur = SOS.current();
+    if (!cur || cur.acked) { Toast.show('אין אירוע SOS פעיל'); return; }
+    SOS.ack();
+    Toast.show('אירוע SOS אושר ע"י קב"ט', { kind: 'ok' });
+  });
+  document.getElementById('btn-clear-sos').addEventListener('click', () => {
+    SOS.clear();
+    Toast.show('אירוע SOS נסגר', { kind: 'ok' });
+    renderStatus();
+  });
+
+  // Pending exceptional gate approvals
+  function renderPending() {
+    const all = ScoutDB.get('gateExceptions', []) || [];
+    const pending = all.filter(x => !x.resolved);
+    const host = document.getElementById('pending-host');
+    host.innerHTML = pending.length
+      ? pending.map(x => `
+        <div class="pending-card">
+          <div>
+            <div style="font-weight:700;">${util.escapeHtml(x.plate || x.idNum)}</div>
+            <div style="color: var(--text-mid); font-size: 12px;">${util.escapeHtml(x.reason || '')} · ${util.fmtTime(x.ts)}</div>
+          </div>
+          <button class="btn btn--ok btn--sm" data-approve="${x.id}">אשר</button>
+          <button class="btn btn--danger btn--sm" data-deny="${x.id}">דחה</button>
+        </div>
+      `).join('')
+      : '<div style="color: var(--text-low); padding: 14px; text-align:center;">אין בקשות ממתינות. כשהש"ג ילחץ "בקש אישור חריג", הבקשה תופיע כאן בזמן אמת.</div>';
+  }
+  document.addEventListener('click', e => {
+    const ap = e.target.dataset.approve, dn = e.target.dataset.deny;
+    if (ap || dn) {
+      const id = ap || dn;
+      const decision = ap ? 'approved' : 'denied';
+      ScoutDB.patch('gateExceptions', list => list.map(x => x.id === id ? Object.assign({}, x, { resolved: true, decision, decidedAt: util.nowMs() }) : x));
+      Bus.emit('bus:gate-exception:resolved', { id, decision });
+      ScoutDB.appendAudit({ action: ap ? 'GATE-APPROVE' : 'GATE-DENY', channel: 'gate', details: 'בקשה ' + id });
+      Toast.show(ap ? 'אושר. נשלח לשער.' : 'נדחה. נשלח לשער.', { kind: ap ? 'ok' : 'danger' });
+      renderPending(); renderStatus();
+    }
+  });
+
+  // Status chips
+  function renderStatus() {
+    const sos = SOS.current();
+    const pending = (ScoutDB.get('gateExceptions', []) || []).filter(x => !x.resolved).length;
+    const bl = (ScoutDB.get('blacklist', []) || []).length;
+    document.getElementById('status-sos').textContent = sos && !sos.acked ? 'SOS: פעיל' : 'SOS: שקט';
+    document.getElementById('status-sos').className = 'chip ' + (sos && !sos.acked ? 'chip--danger' : 'chip--ok');
+    document.getElementById('status-pending').textContent = `חריגים: ${pending}`;
+    document.getElementById('status-pending').className = 'chip ' + (pending > 0 ? 'chip--warn' : '');
+    document.getElementById('status-bl').textContent = `חסומים: ${bl}`;
+  }
+
+  // Audit table
+  function renderAudit() {
+    const filter = document.getElementById('audit-filter').value.toLowerCase();
+    const channel = document.getElementById('audit-channel').value;
+    const log = ScoutDB.get('audit', []).slice().reverse().filter(e =>
+      (!channel || e.channel === channel) &&
+      (!filter || (e.actor || '').toLowerCase().includes(filter) || (e.action || '').toLowerCase().includes(filter) || (e.details || '').toLowerCase().includes(filter))
+    );
+    document.getElementById('audit-count').textContent = log.length + ' רשומות';
+    document.querySelector('#audit-table tbody').innerHTML = log.length
+      ? log.map(e => `
+        <tr>
+          <td style="font-family: var(--font-mono); color: var(--text-low); white-space: nowrap;">${util.fmtTime(e.ts)}</td>
+          <td>${util.escapeHtml(e.actor)}</td>
+          <td><span class="chip" style="font-size: 10px;">${util.escapeHtml(e.channel)}</span></td>
+          <td style="font-family: var(--font-mono); color: var(--accent);">${util.escapeHtml(e.action)}</td>
+          <td style="color: var(--text-mid);">${util.escapeHtml(e.details || '')}</td>
+        </tr>
+      `).join('')
+      : '<tr><td colspan="5" style="text-align: center; padding: 16px; color: var(--text-low);">אין רשומות התואמות את הפילטר.</td></tr>';
+  }
+  document.getElementById('audit-filter').addEventListener('input', renderAudit);
+  document.getElementById('audit-channel').addEventListener('change', renderAudit);
+
+  // Reactive
+  Bus.on('audit:append', renderAudit);
+  Bus.on('bus:gate-exception', () => { renderPending(); renderStatus(); });
+  Bus.on('bus:gate-exception:resolved', () => { renderPending(); renderStatus(); });
+  Bus.on('sos:trigger', renderStatus);
+  Bus.on('sos:ack', renderStatus);
+  Bus.on('sos:clear', renderStatus);
+  Bus.on('sos:escalated', ev => {
+    // Show escalated SOS lockdown specifically here
+    Scout.Audio.play('tactical-siren');
+    UI.showSOSLockdown(Object.assign({}, ev, { label: '🚨 הוסלם לקב״ט: ' + ev.label }));
+  });
+
+  UI.bindGlobalSOS({ lock: false });
+
+  // Initial
+  renderPerms();
+  renderPending();
+  renderStatus();
+  renderAudit();
+})();
+</script>
+</body>
+</html>
