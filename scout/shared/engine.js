@@ -912,10 +912,162 @@
     return { login, logout, isLoggedIn, requireLogin, routeForRole, listDemoUsers };
   })();
 
+  // ---------- Drone (Module 18 — Restricted) ----------
+
+  const Drone = (function () {
+    function state() {
+      return ScoutDB.get('drone', {
+        active: false, streamUrl: null, mission: null,
+        startedAt: null, flightLog: [],
+      });
+    }
+    function takeoff(url, mission) {
+      const cur = state();
+      const ev = { ts: nowMs(), event: 'TAKEOFF', mission: mission || 'general' };
+      const next = {
+        active: true, streamUrl: url || null,
+        mission: mission || 'general', startedAt: nowMs(),
+        flightLog: (cur.flightLog || []).concat([ev]),
+      };
+      ScoutDB.set('drone', next);
+      ScoutDB.appendAudit({ action: 'DRONE-TAKEOFF', channel: 'drone', details: 'משימה: ' + (mission || 'general') });
+      Bus.emit('drone:update', next);
+      return next;
+    }
+    function land() {
+      const cur = state();
+      if (!cur.active) return cur;
+      const dur = nowMs() - (cur.startedAt || nowMs());
+      const ev = { ts: nowMs(), event: 'LANDING', durationMs: dur, mission: cur.mission };
+      const next = {
+        active: false, streamUrl: null, mission: null, startedAt: null,
+        flightLog: (cur.flightLog || []).concat([ev]),
+      };
+      ScoutDB.set('drone', next);
+      ScoutDB.appendAudit({ action: 'DRONE-LANDING', channel: 'drone', details: 'משך טיסה: ' + Math.round(dur / 1000) + ' שניות' });
+      Bus.emit('drone:update', next);
+      return next;
+    }
+    function switchMission(mission) {
+      const cur = state();
+      if (!cur.active) return cur;
+      cur.mission = mission;
+      cur.flightLog = (cur.flightLog || []).concat([{ ts: nowMs(), event: 'MISSION-CHANGE', mission }]);
+      ScoutDB.set('drone', cur);
+      ScoutDB.appendAudit({ action: 'DRONE-MISSION', channel: 'drone', details: 'משימה הוחלפה ל-' + mission });
+      Bus.emit('drone:update', cur);
+      return cur;
+    }
+    return { state, takeoff, land, switchMission };
+  })();
+
+  // ---------- Operational Chat ----------
+
+  const Chat = (function () {
+    const CHANNELS = [
+      { id: 'emergency',  name: 'ערוץ חירום מרכזי', locked: true,  roles: ['kabat','hq-shift','hq-op','national'] },
+      { id: 'security',   name: 'צ׳אט אבטחה',       locked: false, roles: ['kabat','achmash','guard','patrol','national'] },
+      { id: 'management', name: 'הנהלה ותפעול',     locked: false, roles: ['camp-director','hq-shift','hq-op','tribe','national','kabat'] },
+    ];
+
+    function ensureSeed() {
+      if (ScoutDB.get('chatSeeded', false)) return;
+      const t = nowMs();
+      const seed = {
+        emergency: [
+          { from: 'מערכת', role: 'system', text: '🔒 ערוץ נעול — רק חמ"ל/קב"ט יכולים להפיץ הנחיות.', ts: t - 1000 * 60 * 90 },
+          { from: 'קב״ט ניר אלון', role: 'kabat', text: 'סבב פתיחה הסתיים. כל הצוותים בעמדה. ערנות מלאה.', ts: t - 1000 * 60 * 70 },
+        ],
+        security: [
+          { from: 'אחמ״ש יוסי גולן', role: 'achmash', text: 'סיור 1 התחיל מסלול דרום.', ts: t - 1000 * 60 * 22 },
+          { from: 'מאבטח אופיר',     role: 'guard',   text: 'שער ראשי תקין. 0 חריגים בשעה האחרונה.', ts: t - 1000 * 60 * 18 },
+          { from: 'סייר 3 — תומר',   role: 'patrol',  text: 'גדר היקפית — סבב הושלם. הכל תקין.', ts: t - 1000 * 60 * 8 },
+        ],
+        management: [
+          { from: 'מנהל מחנה גלית', role: 'camp-director', text: 'תזכורת — סבב אכילה ב-19:00. אקונומיה מוכן?', ts: t - 1000 * 60 * 35 },
+          { from: 'אקונומיה',        role: 'staff',         text: 'כן. סבב חלוקה מתחיל ב-18:30.', ts: t - 1000 * 60 * 28 },
+        ],
+      };
+      ScoutDB.set('chats', seed);
+      ScoutDB.set('chatSeeded', true);
+    }
+    ensureSeed();
+
+    function channels() { return CHANNELS; }
+    function visibleChannels(role) {
+      return CHANNELS.filter(c => c.roles.includes(role));
+    }
+    function messages(channelId) {
+      return ScoutDB.get('chats', {})[channelId] || [];
+    }
+    function send(channelId, text) {
+      const all = ScoutDB.get('chats', {});
+      all[channelId] = all[channelId] || [];
+      const p = UI.currentPersona();
+      const msg = { from: p.name, role: p.role, text: String(text || '').slice(0, 500), ts: nowMs() };
+      all[channelId].push(msg);
+      // soft cap per channel
+      if (all[channelId].length > 200) all[channelId] = all[channelId].slice(-200);
+      ScoutDB.set('chats', all);
+      Bus.emit('chat:new', { channelId, msg });
+      ScoutDB.appendAudit({ action: 'CHAT-MSG', channel: 'comms', details: `${channelId}: ${msg.text.slice(0, 60)}` });
+      return msg;
+    }
+    function broadcast(text) {
+      Bus.emit('bus:broadcast', { text, from: UI.currentPersona().name, ts: nowMs() });
+      ScoutDB.appendAudit({ action: 'BROADCAST', channel: 'comms', details: text });
+    }
+    return { channels, visibleChannels, messages, send, broadcast };
+  })();
+
+  // ---------- Personnel device telemetry (mock) ----------
+
+  const Personnel = (function () {
+    function devices() {
+      // Generate deterministic mock telemetry per staff member
+      const staff = ScoutDB.get('staff', []);
+      const cur = ScoutDB.get('personnelTelemetry', null);
+      if (cur && cur.ts && (nowMs() - cur.ts) < 60_000) return cur.list;
+      const list = staff.map((s, i) => {
+        const battery = clamp(20 + ((i * 23 + Math.floor(nowMs() / 90_000)) % 80), 5, 100);
+        const lastSeenAgoSec = ((i * 17) % 240); // 0..240s
+        return {
+          id: s.id, name: s.name, role: s.role, active: s.active,
+          battery,
+          lastSeenTs: nowMs() - lastSeenAgoSec * 1000,
+          location: ['שער ראשי','גדר היקפית','שבט נחל','שבט אפיק','חמ"ל','מחסן','מרפאה','שטח רחב'][i % 8],
+        };
+      });
+      ScoutDB.set('personnelTelemetry', { ts: nowMs(), list });
+      return list;
+    }
+    function setRole(staffId, newRole) {
+      ScoutDB.patch('staff', l => l.map(s => s.id === staffId ? Object.assign({}, s, { role: newRole }) : s));
+      ScoutDB.set('personnelTelemetry', null);
+      ScoutDB.appendAudit({ action: 'ROLE-CHANGE', channel: 'auth', details: `${staffId} → ${newRole}` });
+      Bus.emit('personnel:update', { staffId, newRole });
+    }
+    function setActive(staffId, active) {
+      ScoutDB.patch('staff', l => l.map(s => s.id === staffId ? Object.assign({}, s, { active }) : s));
+      ScoutDB.set('personnelTelemetry', null);
+      ScoutDB.appendAudit({ action: active ? 'USER-UNBLOCK' : 'USER-BLOCK', channel: 'auth', details: staffId });
+      Bus.emit('personnel:update', { staffId, active });
+    }
+    function addEmergencyUser(name, role) {
+      const id = 'st-' + uuid().slice(0, 5);
+      ScoutDB.patch('staff', l => l.concat([{ id, name, role, active: true, emergency: true }]));
+      ScoutDB.set('personnelTelemetry', null);
+      ScoutDB.appendAudit({ action: 'USER-EMERGENCY-ADD', channel: 'auth', details: name + ' / ' + role });
+      Bus.emit('personnel:update', { staffId: id, added: true });
+      return id;
+    }
+    return { devices, setRole, setActive, addEmergencyUser };
+  })();
+
   // ---------- Export ----------
 
   global.Scout = {
-    ScoutDB, Bus, Audio, DMS, SOS, Geo, Toast, Modal, UI, Auth,
+    ScoutDB, Bus, Audio, DMS, SOS, Geo, Toast, Modal, UI, Auth, Drone, Chat, Personnel,
     util: { uuid, nowMs, fmtTime, fmtDate, pick, clamp, escapeHtml, getParam },
     FORESTS,
   };

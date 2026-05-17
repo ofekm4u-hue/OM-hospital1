@@ -3,21 +3,284 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>שו"ב | דשבורד קב"ט</title>
+<title>שו"ב | דשבורד קב"ט — Command Center</title>
 <link rel="stylesheet" href="shared/tokens.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
 <style>
-  .page { padding: 16px; max-width: 1400px; margin: 0 auto; }
+  /* ===== Layout ===== */
+  .page { padding: 14px; max-width: 1500px; margin: 0 auto; }
 
-  .layout {
+  /* ===== KPI bar ===== */
+  .kpi-bar {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 14px;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
     margin-bottom: 14px;
   }
-  @media (max-width: 1100px) { .layout { grid-template-columns: 1fr; } }
+  .kpi {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: border-color var(--t-fast);
+  }
+  .kpi:hover { border-color: var(--border-hi); }
+  .kpi-ico {
+    width: 36px; height: 36px;
+    border-radius: var(--r-sm);
+    background: var(--bg-elev);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .kpi-val { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; }
+  .kpi-lbl { font-size: 11px; color: var(--text-low); text-transform: uppercase; letter-spacing: .1em; margin-top: 3px; }
+  .kpi--danger { border-color: var(--danger); animation: blink-danger 1.5s infinite; }
+  .kpi--warn   { border-color: rgba(255,181,71,0.4); }
+  .kpi--ok     { border-color: rgba(45,216,129,0.3); }
+  @media (max-width: 1100px) { .kpi-bar { grid-template-columns: repeat(2, 1fr); } }
 
-  .panel-pad { padding: 18px; }
+  /* ===== Tab nav ===== */
+  .tab-nav {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 14px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    padding: 6px;
+    overflow-x: auto;
+  }
+  .tab-btn {
+    flex: 1;
+    min-width: 100px;
+    padding: 10px 14px;
+    background: transparent;
+    border: 0;
+    color: var(--text-mid);
+    font-family: var(--font-ui);
+    font-weight: 600;
+    font-size: 13px;
+    border-radius: var(--r-sm);
+    cursor: pointer;
+    transition: all var(--t-fast);
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .tab-btn:hover { background: var(--bg-elev); color: var(--text-hi); }
+  .tab-btn.is-active {
+    background: var(--accent);
+    color: #06121A;
+    box-shadow: 0 4px 14px var(--accent-glow);
+  }
+  .tab-btn.is-classified {
+    background: rgba(255,71,87,0.08);
+    color: var(--danger);
+  }
+  .tab-btn.is-classified.is-active {
+    background: var(--danger);
+    color: #2d0306;
+  }
+  .tab-btn .badge {
+    background: rgba(0,0,0,0.3);
+    color: inherit;
+    border-radius: var(--r-pill);
+    padding: 1px 7px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .tab-btn.is-active .badge { background: rgba(0,0,0,0.2); }
 
+  .tab-pane { display: none; }
+  .tab-pane.is-active { display: block; animation: fade-in 240ms var(--ease); }
+
+  /* ===== Common panel styles ===== */
+  .pad { padding: 16px; }
+  .grid-2 { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 14px; }
+  .grid-7-3 { display: grid; grid-template-columns: minmax(0,7fr) minmax(280px,3fr); gap: 14px; }
+  @media (max-width: 1000px) {
+    .grid-2, .grid-7-3 { grid-template-columns: 1fr; }
+  }
+
+  /* ===== Map tab ===== */
+  .map-card {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    height: 580px;
+  }
+  .map-bar {
+    padding: 10px 14px;
+    background: linear-gradient(180deg, #131A26, var(--bg-panel));
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+    flex-wrap: wrap;
+  }
+  #kabat-map { flex: 1; background: #0a0e14; }
+  .leaflet-container { background: #0a0e14; }
+  .leaflet-control-attribution { background: rgba(10,14,20,0.75) !important; color: var(--text-low) !important; }
+  .leaflet-control-attribution a { color: var(--accent) !important; }
+  .leaflet-tile { filter: brightness(0.85) saturate(0.85) hue-rotate(-10deg); }
+  .leaflet-marker-icon { transition: transform 1.8s linear; }
+  .marker-pin {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 0 12px rgba(0,0,0,0.6);
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-weight: 700; font-size: 13px;
+    font-family: var(--font-ui);
+  }
+  .marker-pin.patrol { background: var(--info); }
+  .marker-pin.medic { background: var(--ok); }
+  .marker-pin.logistics { background: var(--warn); }
+  .marker-pin.commander { background: var(--accent); color: #06121A; }
+  .marker-pin.gate { background: var(--border-hi); }
+  .marker-pin.dms-fail { background: var(--danger); animation: pulse-danger 1.1s infinite; }
+  .marker-hazard {
+    background: var(--danger);
+    width: 18px; height: 18px;
+    transform: rotate(45deg);
+    border: 2px solid white;
+  }
+  .marker-sanitation {
+    background: var(--warn);
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    border: 2px solid white;
+  }
+
+  .layer-toggle {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: var(--r-pill);
+    font-size: 12px;
+    color: var(--text-mid);
+    cursor: pointer;
+    transition: all var(--t-fast);
+  }
+  .layer-toggle.is-on { background: rgba(77,208,225,0.12); border-color: var(--accent); color: var(--accent); }
+  .layer-toggle input { display: none; }
+
+  .dms-monitor {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    padding: 14px;
+    max-height: 580px;
+    overflow-y: auto;
+  }
+  .dms-guard {
+    padding: 10px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-soft);
+    border-radius: var(--r-sm);
+    margin-bottom: 6px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 6px;
+    font-size: 13px;
+  }
+  .dms-guard.is-fail {
+    border-color: var(--danger);
+    background: rgba(255,71,87,0.06);
+    animation: blink-danger 1.6s infinite;
+  }
+  .dms-guard .name { font-weight: 700; }
+  .dms-guard .meta { color: var(--text-mid); font-size: 11px; }
+
+  /* ===== Gates tab ===== */
+  .sub-tab-row { display: flex; gap: 4px; margin-bottom: 12px; flex-wrap: wrap; }
+  .sub-tab {
+    padding: 6px 14px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: var(--r-pill);
+    color: var(--text-mid);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    cursor: pointer;
+    font-weight: 600;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .sub-tab.is-active {
+    background: var(--accent);
+    color: #06121A;
+    border-color: var(--accent);
+  }
+  .sub-tab .ct {
+    background: rgba(0,0,0,0.2);
+    padding: 1px 7px;
+    border-radius: var(--r-pill);
+    font-size: 11px;
+  }
+  .sub-pane { display: none; }
+  .sub-pane.is-active { display: block; }
+
+  /* ===== Users tab ===== */
+  .device-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto auto auto auto;
+    gap: 10px;
+    align-items: center;
+    padding: 10px 14px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-soft);
+    border-radius: var(--r-sm);
+    margin-bottom: 6px;
+    font-size: 13px;
+  }
+  .device-row .name { font-weight: 700; }
+  .device-row .meta { color: var(--text-mid); font-size: 11px; margin-top: 2px; }
+  .battery {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+  }
+  .battery-bar {
+    width: 40px;
+    height: 8px;
+    background: var(--bg-deep);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+  }
+  .battery-bar::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0; bottom: 0;
+    background: var(--ok);
+    transition: width var(--t-base);
+  }
+  .battery-bar.low::after { background: var(--warn); }
+  .battery-bar.critical::after { background: var(--danger); }
+  .role-select {
+    background: var(--bg-deep);
+    color: var(--text-hi);
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    padding: 4px 8px;
+    font-size: 12px;
+    font-family: var(--font-ui);
+    cursor: pointer;
+  }
+  @media (max-width: 900px) {
+    .device-row { grid-template-columns: 1fr; }
+  }
+
+  /* Permissions matrix (reused) */
   .perm-row {
     display: grid;
     grid-template-columns: 1fr repeat(5, auto);
@@ -30,14 +293,7 @@
     margin-bottom: 4px;
     font-size: 13px;
   }
-  .perm-row .name {
-    font-weight: 600;
-  }
-  .perm-row .role-tag {
-    color: var(--text-mid);
-    font-size: 11px;
-    margin-right: 6px;
-  }
+  .perm-row .role-tag { color: var(--text-mid); font-size: 11px; margin-right: 6px; }
   .tog {
     width: 38px; height: 22px;
     background: var(--bg-deep);
@@ -45,7 +301,7 @@
     border-radius: 14px;
     position: relative;
     cursor: pointer;
-    transition: background var(--t-fast), border-color var(--t-fast);
+    transition: all var(--t-fast);
   }
   .tog::after {
     content: '';
@@ -58,283 +314,1129 @@
   }
   .tog.on { background: var(--ok-soft); border-color: var(--ok); }
   .tog.on::after { background: var(--ok); right: auto; left: 2px; }
-  .perm-row .tog-cell {
-    display: flex; flex-direction: column; align-items: center; gap: 2px;
-  }
-  .perm-row .tog-cell .tog-l {
-    font-size: 9px; color: var(--text-low); text-transform: uppercase; letter-spacing: .1em;
-  }
+  .tog-cell { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .tog-l { font-size: 9px; color: var(--text-low); text-transform: uppercase; letter-spacing: .1em; }
 
-  .audit-table {
-    max-height: 380px;
+  /* ===== Overrides tab ===== */
+  .ov-card {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    padding: 18px;
+    margin-bottom: 12px;
+  }
+  .ov-card .ov-title {
+    font-family: var(--font-ui);
+    font-weight: 700;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .slider-row { display: flex; align-items: center; gap: 12px; margin: 10px 0; }
+  .slider-row input[type="range"] { flex: 1; accent-color: var(--accent); }
+
+  /* ===== Audit (terminal style) ===== */
+  .terminal {
+    background: #06090E;
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    overflow: hidden;
+  }
+  .terminal-bar {
+    padding: 8px 14px;
+    background: var(--bg-elev);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+    flex-wrap: wrap;
+  }
+  .terminal-body {
+    max-height: 580px;
+    overflow-y: auto;
+    padding: 14px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    line-height: 1.7;
+  }
+  .terminal-row {
+    display: grid;
+    grid-template-columns: 84px 130px 60px 120px 1fr;
+    gap: 10px;
+    padding: 3px 0;
+    border-bottom: 1px dotted rgba(255,255,255,0.04);
+  }
+  .terminal-row .ts { color: #66c2d6; }
+  .terminal-row .actor { color: var(--text-mid); }
+  .terminal-row .ch { color: var(--text-low); text-transform: uppercase; font-size: 10px; padding: 1px 6px; background: rgba(255,255,255,0.04); border-radius: 4px; text-align: center; }
+  .terminal-row .act { color: var(--accent); font-weight: 700; }
+  .terminal-row .det { color: var(--text-hi); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .terminal-row.is-sos .act { color: var(--danger); }
+  .terminal-row.is-broadcast .act { color: var(--warn); }
+  .filter-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .filter-row .input, .filter-row .select { padding: 5px 10px; font-size: 12px; height: 30px; }
+
+  /* ===== Drone tab ===== */
+  .drone-wrap { display: grid; grid-template-columns: minmax(0,2fr) minmax(280px,1fr); gap: 14px; }
+  @media (max-width: 1000px) { .drone-wrap { grid-template-columns: 1fr; } }
+
+  .drone-stage {
+    background: #000;
+    border: 1px solid var(--danger);
+    border-radius: var(--r-md);
+    aspect-ratio: 16 / 9;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 0 40px rgba(255,71,87,0.16);
+  }
+  .drone-stage.is-pip {
+    position: fixed;
+    bottom: 24px;
+    left: 24px;
+    width: 360px;
+    aspect-ratio: 16 / 9;
+    z-index: 220;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.7), 0 0 0 2px var(--danger);
+  }
+  .drone-canvas {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse at 30% 40%, rgba(77,208,225,0.12), transparent 55%),
+      radial-gradient(ellipse at 75% 70%, rgba(91,141,239,0.10), transparent 50%),
+      repeating-linear-gradient(0deg, rgba(255,255,255,0.012) 0 2px, transparent 2px 4px),
+      #050810;
+  }
+  .drone-canvas.is-night { filter: contrast(1.6) brightness(1.4) hue-rotate(70deg); }
+  .drone-grid {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(77,208,225,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(77,208,225,0.05) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+  .drone-reticle {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 140px; height: 140px;
+    transform: translate(-50%, -50%);
+    border: 1px solid rgba(255,71,87,0.45);
+    border-radius: 50%;
+  }
+  .drone-reticle::before, .drone-reticle::after {
+    content: ''; position: absolute; background: rgba(255,71,87,0.45);
+  }
+  .drone-reticle::before { top: 50%; left: -20px; right: -20px; height: 1px; }
+  .drone-reticle::after  { left: 50%; top: -20px; bottom: -20px; width: 1px; }
+  .drone-overlay {
+    position: absolute; inset: 0;
+    pointer-events: none;
+    color: #4DD0E1;
+    font-family: var(--font-mono);
+    font-size: 11px;
+  }
+  .drone-overlay .lt { position: absolute; top: 10px; left: 12px; color: var(--danger); font-weight: 700; }
+  .drone-overlay .rt { position: absolute; top: 10px; right: 12px; }
+  .drone-overlay .lb { position: absolute; bottom: 10px; left: 12px; }
+  .drone-overlay .rb { position: absolute; bottom: 10px; right: 12px; }
+  .drone-overlay .live-dot {
+    display: inline-block; width: 8px; height: 8px; background: var(--danger);
+    border-radius: 50%; margin-left: 6px;
+    animation: pulse-danger 1s infinite;
+  }
+  .drone-empty {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    color: var(--text-mid); font-family: var(--font-mono); gap: 8px;
+  }
+  .drone-empty .big { font-size: 38px; opacity: .35; }
+  .drone-controls {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    padding: 16px;
+  }
+  .stream-input {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .mission-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .mission-btn {
+    padding: 12px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    color: var(--text-hi);
+    cursor: pointer;
+    text-align: right;
+    font-family: var(--font-ui);
+    transition: all var(--t-fast);
+  }
+  .mission-btn:hover { border-color: var(--danger); color: var(--danger); }
+  .mission-btn.is-active { border-color: var(--danger); background: rgba(255,71,87,0.08); color: var(--danger); }
+  .mission-btn .mi { font-size: 22px; display: block; }
+  .mission-btn .ml { font-size: 12px; font-weight: 700; margin-top: 4px; }
+  .flight-log {
+    background: #06090E;
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    padding: 12px;
+    margin-top: 12px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    max-height: 200px;
     overflow-y: auto;
   }
-  .audit-table tbody td { font-size: 12px; }
+  .flight-row { padding: 3px 0; color: var(--text-mid); }
+  .flight-row .ts { color: #66c2d6; margin-left: 8px; }
+  .flight-row .ev-takeoff { color: var(--ok); }
+  .flight-row .ev-landing { color: var(--warn); }
+  .flight-row .ev-mission-change { color: var(--accent); }
 
-  .slider-row {
-    display: flex; align-items: center; gap: 12px;
-    margin: 10px 0;
-  }
-  .slider-row input[type="range"] { flex: 1; }
-
-  .pending-card {
-    background: rgba(255,181,71,0.08);
-    border: 1px solid rgba(255,181,71,0.32);
+  /* ===== Chat tab ===== */
+  .chat-wrap {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    gap: 0;
+    height: 580px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
     border-radius: var(--r-md);
-    padding: 12px 14px;
-    margin-bottom: 8px;
+    overflow: hidden;
+  }
+  @media (max-width: 800px) {
+    .chat-wrap { grid-template-columns: 1fr; height: auto; }
+    .chat-channels { max-height: 200px; }
+  }
+  .chat-channels {
+    background: var(--bg-elev);
+    border-left: 1px solid var(--border);
+    overflow-y: auto;
+  }
+  .channel {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border-soft);
+    cursor: pointer;
+    transition: background var(--t-fast);
+  }
+  .channel:hover { background: var(--bg-elev-2); }
+  .channel.is-active { background: var(--bg-deep); border-right: 3px solid var(--accent); }
+  .channel .ch-name { font-weight: 700; font-family: var(--font-ui); }
+  .channel .ch-meta { color: var(--text-mid); font-size: 11px; margin-top: 2px; }
+  .channel.locked .ch-name::before { content: '🔒 '; }
+
+  .chat-thread {
+    display: grid;
+    grid-template-rows: 1fr auto;
+    overflow: hidden;
+  }
+  .chat-messages {
+    overflow-y: auto;
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background:
+      radial-gradient(ellipse at top, rgba(77,208,225,0.02), transparent 60%);
+  }
+  .bubble {
+    max-width: 75%;
+    padding: 8px 12px;
+    border-radius: 12px;
+    font-size: 14px;
+    position: relative;
+    animation: fade-in 200ms var(--ease);
+  }
+  .bubble .meta {
+    display: block;
+    font-size: 11px;
+    color: var(--text-mid);
+    margin-bottom: 4px;
+    font-family: var(--font-ui);
+  }
+  .bubble .meta .role { color: var(--accent); font-weight: 700; margin-right: 4px; }
+  .bubble .ts {
+    display: inline-block;
+    font-size: 10px;
+    color: var(--text-low);
+    margin-top: 2px;
+    margin-right: 4px;
+  }
+  .bubble--me {
+    align-self: flex-start;
+    background: rgba(77,208,225,0.10);
+    border: 1px solid rgba(77,208,225,0.25);
+    border-top-right-radius: 4px;
+  }
+  .bubble--other {
+    align-self: flex-end;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-top-left-radius: 4px;
+  }
+  .bubble--system {
+    align-self: center;
+    background: rgba(91,141,239,0.06);
+    border: 1px dashed rgba(91,141,239,0.32);
+    color: var(--info);
+    font-size: 12px;
+    max-width: 90%;
+    text-align: center;
+  }
+  .check {
+    display: inline-block;
+    color: var(--info);
+    font-size: 11px;
+    margin-right: 4px;
+  }
+  .chat-compose {
+    border-top: 1px solid var(--border);
+    background: var(--bg-elev);
+    padding: 10px 12px;
     display: grid;
     grid-template-columns: 1fr auto auto;
-    gap: 10px;
-    align-items: center;
+    gap: 8px;
   }
-  .filter-row {
-    display: flex; gap: 8px; align-items: center;
-    margin-bottom: 10px;
+  .chat-compose .input { padding: 10px 14px; }
+  .chat-compose .locked-note {
+    grid-column: 1 / -1;
+    color: var(--text-low);
+    font-size: 12px;
+    text-align: center;
+    padding: 8px;
   }
-  .filter-row .input { padding: 6px 10px; font-size: 12px; }
+
+  /* Floating "pip-restore" button (visible when drone is pip) */
+  .pip-restore {
+    position: fixed;
+    bottom: 24px;
+    left: 400px;
+    z-index: 221;
+    display: none;
+  }
+  .pip-restore.is-visible { display: inline-flex; }
 </style>
 </head>
 <body class="tactical-grid">
   <div id="header"></div>
 
   <div class="page">
-    <div class="layout">
-      <!-- Pending approvals -->
-      <div class="panel panel-pad">
-        <div class="section-title">⚠ אישורים חריגים ממתינים</div>
-        <div id="pending-host"></div>
-      </div>
+    <!-- ===== KPI bar ===== -->
+    <div class="kpi-bar" id="kpi-bar"></div>
 
-      <!-- Global overrides -->
-      <div class="panel panel-pad">
-        <div class="section-title">🛡 עקיפת מערכת גלובלית</div>
+    <!-- ===== Tab nav ===== -->
+    <nav class="tab-nav" id="tab-nav">
+      <button class="tab-btn is-active" data-tab="map">🗺 מפת שו"ב</button>
+      <button class="tab-btn" data-tab="gates">🚪 שערים ורשימות <span class="badge" id="b-gates">0</span></button>
+      <button class="tab-btn" data-tab="users">👥 משתמשים והרשאות</button>
+      <button class="tab-btn" data-tab="overrides">🛡 עקיפות גלובליות</button>
+      <button class="tab-btn" data-tab="audit">📜 לוג מערכת</button>
+      <button class="tab-btn is-classified" data-tab="drone">🛩 רחפנים <span class="badge">סודי</span></button>
+      <button class="tab-btn" data-tab="chat">💬 צ׳אט מבצעי <span class="badge" id="b-chat">0</span></button>
+    </nav>
 
-        <div style="background: var(--bg-elev); border-radius: var(--r-md); padding: 12px; margin-bottom: 10px;">
-          <div style="font-family: var(--font-ui); font-weight: 700; margin-bottom: 6px;">תדירות בדיקת ערנות (DMS)</div>
-          <div class="slider-row">
-            <span class="chip">5 דק'</span>
-            <input type="range" min="5" max="60" step="5" id="dms-slider">
-            <span class="chip">60 דק'</span>
-            <span class="chip chip--info" id="dms-value">— דק'</span>
+    <!-- ============================================================ -->
+    <!-- Tab: Live Map -->
+    <!-- ============================================================ -->
+    <section class="tab-pane is-active" data-pane="map">
+      <div class="grid-7-3">
+        <div class="map-card">
+          <div class="map-bar">
+            <h2 style="font-family: var(--font-ui); font-size: 14px;">📍 מפת שליטה חיה</h2>
+            <span class="chip"><span class="dot dot--info"></span> 3 סיורים</span>
+            <span class="chip"><span class="dot dot--ok"></span> 2 חובשים</span>
+            <span class="chip"><span class="dot dot--warn"></span> 1 לוגיסטיקה</span>
+            <span style="flex:1"></span>
+            <label class="layer-toggle is-on"><input type="checkbox" data-layer="forces" checked> 🛡 כוחות</label>
+            <label class="layer-toggle"><input type="checkbox" data-layer="hazards"> ⚠ מפגעים</label>
+            <label class="layer-toggle"><input type="checkbox" data-layer="sanitation"> 💧 תברואה</label>
+            <label class="layer-toggle"><input type="checkbox" data-layer="evac"> 🚨 צירי פינוי</label>
           </div>
-          <div style="font-size: 11px; color: var(--text-mid);">משפיע על מאבטחי סיור וש"ג בשעות הלילה (22:00–06:00).</div>
+          <div id="kabat-map"></div>
         </div>
 
-        <div style="background: var(--bg-elev); border-radius: var(--r-md); padding: 12px; margin-bottom: 10px;">
-          <div style="font-family: var(--font-ui); font-weight: 700; margin-bottom: 6px;">פעולות סמכות-על</div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-            <button class="btn" id="btn-clear-blacklist">📝 ניקוי רשימה שחורה</button>
-            <button class="btn btn--ok" id="btn-ack-sos">✅ אישור אירוע SOS פעיל</button>
-            <button class="btn" id="btn-add-blacklist">➕ הוסף לרשימה שחורה</button>
-            <button class="btn btn--danger" id="btn-clear-sos">⛔ סגור אירוע SOS</button>
-          </div>
-        </div>
-
-        <div style="background: var(--bg-elev); border-radius: var(--r-md); padding: 12px;">
-          <div style="font-family: var(--font-ui); font-weight: 700; margin-bottom: 6px;">סטטוס מערכת</div>
-          <div style="display: flex; flex-wrap: wrap; gap: 6px;">
-            <span class="chip" id="status-sos">SOS: —</span>
-            <span class="chip" id="status-pending">חריגים: —</span>
-            <span class="chip" id="status-bl">חסומים: —</span>
-            <span class="chip chip--info">דמו פרזנטציה</span>
+        <div class="dms-monitor">
+          <div class="section-title">⏱ מוניטור ערנות (Dead-Man)</div>
+          <div id="dms-list"></div>
+          <div style="margin-top: 14px; padding: 10px; background: var(--bg-elev); border-radius: var(--r-sm); font-size: 12px; color: var(--text-mid);">
+            <div style="font-weight: 700; margin-bottom: 4px; color: var(--text-hi); font-family: var(--font-ui);">תדירות נוכחית: <span id="dms-rate">—</span> דק'</div>
+            ניתן לעדכן בלשונית "עקיפות גלובליות"
           </div>
         </div>
       </div>
-    </div>
+    </section>
 
-    <!-- User permissions -->
-    <div class="panel panel-pad" style="margin-bottom: 14px;">
-      <div class="section-title">👥 מטריצת הרשאות משתמשים</div>
-      <div class="perm-row" style="background: var(--bg-panel); border-color: var(--border); font-weight: 700; font-size: 11px;">
-        <div>משתמש</div>
-        <div class="tog-cell"><div class="tog-l">SOS Override</div></div>
-        <div class="tog-cell"><div class="tog-l">Blacklist</div></div>
-        <div class="tog-cell"><div class="tog-l">DMS Config</div></div>
-        <div class="tog-cell"><div class="tog-l">Audit View</div></div>
-        <div class="tog-cell"><div class="tog-l">Broadcast</div></div>
+    <!-- ============================================================ -->
+    <!-- Tab: Gates & Lists -->
+    <!-- ============================================================ -->
+    <section class="tab-pane" data-pane="gates">
+      <div class="sub-tab-row" id="gates-sub-tabs">
+        <button class="sub-tab is-active" data-sub="exceptions">⚠ ממתינים לאישור <span class="ct" id="ct-exc">0</span></button>
+        <button class="sub-tab" data-sub="suppliers">🚚 ספקים <span class="ct" id="ct-sup">0</span></button>
+        <button class="sub-tab" data-sub="buses">🚌 אוטובוסים <span class="ct" id="ct-bus">0</span></button>
+        <button class="sub-tab" data-sub="staff">👤 סגל ואורחים <span class="ct" id="ct-staff">0</span></button>
+        <button class="sub-tab" data-sub="blacklist">⛔ רשימה שחורה <span class="ct" id="ct-bl">0</span></button>
       </div>
-      <div id="perms-host"></div>
-    </div>
 
-    <!-- Master audit trail -->
-    <div class="panel panel-pad">
-      <div class="section-title">📜 לוג פעולות מאסטר (Append-Only)</div>
-      <div class="filter-row">
-        <input class="input" placeholder="חפש לפי משתמש או פעולה..." id="audit-filter" style="max-width: 280px;">
-        <select class="select" id="audit-channel" style="max-width: 200px;">
-          <option value="">כל הערוצים</option>
-          <option value="gate">שער</option>
-          <option value="sos">SOS</option>
-          <option value="medical">מרפאה</option>
-          <option value="tribe">שבט</option>
-          <option value="comms">תקשורת</option>
-          <option value="dms">ערנות</option>
-          <option value="auth">הזדהות</option>
-        </select>
-        <span style="flex:1"></span>
-        <span class="chip" id="audit-count">— רשומות</span>
+      <div class="sub-pane is-active" data-sub-pane="exceptions">
+        <div class="panel pad" id="gp-exceptions"></div>
       </div>
-      <div class="audit-table">
-        <table class="table" id="audit-table">
-          <thead>
-            <tr>
-              <th>זמן</th>
-              <th>משתמש</th>
-              <th>ערוץ</th>
-              <th>פעולה</th>
-              <th>פרטים</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
+
+      <div class="sub-pane" data-sub-pane="suppliers">
+        <div class="panel pad" id="gp-suppliers"></div>
       </div>
-    </div>
+
+      <div class="sub-pane" data-sub-pane="buses">
+        <div class="panel pad" id="gp-buses"></div>
+      </div>
+
+      <div class="sub-pane" data-sub-pane="staff">
+        <div class="panel pad" id="gp-staff"></div>
+      </div>
+
+      <div class="sub-pane" data-sub-pane="blacklist">
+        <div class="panel pad">
+          <div style="display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap;">
+            <h2 style="font-family: var(--font-ui); font-size: 16px;">⛔ ניהול רשימה שחורה</h2>
+            <span style="flex:1"></span>
+            <button class="btn btn--sm" id="btn-bl-add">➕ הוסף לרשימה</button>
+            <button class="btn btn--sm btn--ghost" id="btn-bl-clear">🗑 איפוס הרשימה</button>
+          </div>
+          <div id="gp-blacklist"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- Tab: Users & Permissions -->
+    <!-- ============================================================ -->
+    <section class="tab-pane" data-pane="users">
+      <div class="grid-2">
+        <div class="panel pad">
+          <div style="display:flex; align-items:center; gap:10px; margin-bottom: 12px;">
+            <h2 style="font-family: var(--font-ui); font-size: 16px;">📱 התקנים פעילים בשטח</h2>
+            <span style="flex:1"></span>
+            <button class="btn btn--sm" id="btn-add-user">➕ הנפק משתמש חירום</button>
+          </div>
+          <div id="devices-list"></div>
+        </div>
+
+        <div class="panel pad">
+          <h2 style="font-family: var(--font-ui); font-size: 16px; margin-bottom: 12px;">🔐 מטריצת הרשאות</h2>
+          <div class="perm-row" style="background: var(--bg-panel); border-color: var(--border); font-weight: 700; font-size: 11px;">
+            <div>משתמש</div>
+            <div class="tog-cell"><div class="tog-l">SOS Override</div></div>
+            <div class="tog-cell"><div class="tog-l">Blacklist</div></div>
+            <div class="tog-cell"><div class="tog-l">DMS Config</div></div>
+            <div class="tog-cell"><div class="tog-l">Audit View</div></div>
+            <div class="tog-cell"><div class="tog-l">Broadcast</div></div>
+          </div>
+          <div id="perms-host" style="max-height: 460px; overflow-y: auto;"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- Tab: Global Overrides -->
+    <!-- ============================================================ -->
+    <section class="tab-pane" data-pane="overrides">
+      <div class="grid-2">
+        <div>
+          <div class="ov-card">
+            <div class="ov-title">⏱ בקרת טיימר ערנות (Dead-Man Switch)</div>
+            <p style="color: var(--text-mid); font-size: 13px; margin-bottom: 12px;">
+              קובע כל כמה דקות יקפוץ פופ-אפ ערנות למאבטחים בלילה (22:00–06:00).
+            </p>
+            <div class="slider-row">
+              <span class="chip">5 דק'</span>
+              <input type="range" min="5" max="60" step="5" id="dms-slider">
+              <span class="chip">60 דק'</span>
+              <span class="chip chip--info" id="dms-value">— דק'</span>
+            </div>
+          </div>
+
+          <div class="ov-card">
+            <div class="ov-title">🚨 השתקה ונטרול SOS</div>
+            <p style="color: var(--text-mid); font-size: 13px; margin-bottom: 12px;">
+              סמכות בלעדית לאפס או לסגור אירוע SOS פעיל לאחר טיפול בשטח.
+            </p>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+              <button class="btn btn--ok" id="btn-ack-sos">✅ אישור טיפול</button>
+              <button class="btn btn--danger" id="btn-clear-sos">⛔ סגור אירוע</button>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="ov-card">
+            <div class="ov-title">📊 סטטוס מערכת חי</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+              <div style="padding: 14px; background: var(--bg-elev); border-radius: var(--r-sm); text-align: center;">
+                <div style="font-size: 24px; font-weight: 800;" id="st-sos-n">—</div>
+                <div style="font-size: 11px; color: var(--text-low); margin-top: 4px;">אירועי SOS היום</div>
+              </div>
+              <div style="padding: 14px; background: var(--bg-elev); border-radius: var(--r-sm); text-align: center;">
+                <div style="font-size: 24px; font-weight: 800;" id="st-perm-n">—</div>
+                <div style="font-size: 11px; color: var(--text-low); margin-top: 4px;">שינויי הרשאה היום</div>
+              </div>
+              <div style="padding: 14px; background: var(--bg-elev); border-radius: var(--r-sm); text-align: center;">
+                <div style="font-size: 24px; font-weight: 800;" id="st-bl-n">—</div>
+                <div style="font-size: 11px; color: var(--text-low); margin-top: 4px;">פגיעות Blacklist</div>
+              </div>
+              <div style="padding: 14px; background: var(--bg-elev); border-radius: var(--r-sm); text-align: center;">
+                <div style="font-size: 24px; font-weight: 800;" id="st-dms-n">—</div>
+                <div style="font-size: 11px; color: var(--text-low); margin-top: 4px;">כשלי DMS</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="ov-card">
+            <div class="ov-title">⚡ פעולות חירום מהירות</div>
+            <div style="display: grid; gap: 8px;">
+              <button class="btn btn--danger" id="btn-emergency-broadcast">📢 כריזה לכל המאבטחים</button>
+              <button class="btn" id="btn-test-sos">🧪 הפעלת SOS דמו לבדיקה</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- Tab: Audit -->
+    <!-- ============================================================ -->
+    <section class="tab-pane" data-pane="audit">
+      <div class="terminal">
+        <div class="terminal-bar">
+          <span style="font-family: var(--font-mono); color: var(--ok);">●●●</span>
+          <span style="font-family: var(--font-ui); font-weight: 700;">MASTER AUDIT TRAIL · APPEND-ONLY · HMAC-CHAINED</span>
+          <span style="flex:1"></span>
+          <div class="filter-row">
+            <input class="input" placeholder="חיפוש..." id="audit-filter">
+            <select class="select" id="audit-channel">
+              <option value="">כל הערוצים</option>
+              <option value="gate">שער</option>
+              <option value="sos">SOS</option>
+              <option value="medical">מרפאה</option>
+              <option value="tribe">שבט</option>
+              <option value="comms">תקשורת</option>
+              <option value="dms">ערנות</option>
+              <option value="auth">הזדהות</option>
+              <option value="drone">רחפנים</option>
+            </select>
+            <span class="chip" id="audit-count">— רשומות</span>
+          </div>
+        </div>
+        <div class="terminal-body" id="audit-body"></div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- Tab: Drone -->
+    <!-- ============================================================ -->
+    <section class="tab-pane" data-pane="drone">
+      <div style="background: rgba(255,71,87,0.08); border: 1px solid var(--danger); border-radius: var(--r-md); padding: 10px 14px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+        <span style="color: var(--danger); font-weight: 700; font-family: var(--font-ui);">🔒 מסווג CLASSIFIED</span>
+        <span style="color: var(--text-mid); font-size: 12px;">מודול ממודר ברמת הקוד — נגיש רק לקב"ט ולמנהל ארצי</span>
+      </div>
+
+      <div class="drone-wrap">
+        <div>
+          <div class="drone-stage" id="drone-stage">
+            <div class="drone-canvas" id="drone-canvas"></div>
+            <div class="drone-grid"></div>
+            <div class="drone-reticle"></div>
+            <div class="drone-overlay" id="drone-overlay" hidden>
+              <div class="lt">▶ LIVE FEED<span class="live-dot"></span></div>
+              <div class="rt" id="drone-mission-lbl">משימה: —</div>
+              <div class="lb" id="drone-coords">📍 31.957N, 34.951E · ALT 120m</div>
+              <div class="rb" id="drone-flight-time">⏱ 00:00:00</div>
+            </div>
+            <div class="drone-empty" id="drone-empty">
+              <div class="big">🛩</div>
+              <div>אין תצפית פעילה</div>
+              <div style="font-size: 11px; color: var(--text-low);">הזן קישור הזרמה והפעל תצפית</div>
+            </div>
+          </div>
+          <button class="btn pip-restore" id="btn-pip-restore">↩ החזר תצפית למסך הראשי</button>
+        </div>
+
+        <div class="drone-controls">
+          <div class="section-title" style="margin-bottom: 8px;">🛰 חיבור הזרמה</div>
+          <div class="stream-input">
+            <input class="input" id="stream-url" type="text" placeholder="הדבק קישור מאובטח (RTSP / HLS / WebRTC)" autocomplete="off">
+            <button class="btn btn--ok btn--sm" id="btn-stream-on">חבר</button>
+          </div>
+
+          <div class="section-title" style="margin-top: 16px; margin-bottom: 8px;">🎯 משימה</div>
+          <div class="mission-grid">
+            <button class="mission-btn" data-mission="fire">
+              <span class="mi">🔥</span>
+              <span class="ml">חשד לשרפה / עשן</span>
+            </button>
+            <button class="mission-btn" data-mission="perimeter">
+              <span class="mi">⭕</span>
+              <span class="ml">סריקת פרימטר</span>
+            </button>
+            <button class="mission-btn" data-mission="missing">
+              <span class="mi">🧒</span>
+              <span class="ml">חיפוש נעדר/חניך</span>
+            </button>
+            <button class="mission-btn" data-mission="security">
+              <span class="mi">🛡</span>
+              <span class="ml">אירוע פח״ע / פלילי</span>
+            </button>
+          </div>
+
+          <div class="section-title" style="margin-top: 16px; margin-bottom: 8px;">⚙ אפשרויות תצוגה</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+            <button class="btn btn--sm" id="btn-night-mode">🌙 מצב לילה</button>
+            <button class="btn btn--sm" id="btn-pip">📐 PIP</button>
+            <button class="btn btn--sm" id="btn-fullscreen">⛶ מסך מלא</button>
+            <button class="btn btn--sm btn--danger" id="btn-stream-off">⏹ ניתוק</button>
+          </div>
+
+          <div class="section-title" style="margin-top: 16px; margin-bottom: 8px;">📋 לוג טיסה</div>
+          <div class="flight-log" id="flight-log"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================ -->
+    <!-- Tab: Chat -->
+    <!-- ============================================================ -->
+    <section class="tab-pane" data-pane="chat">
+      <div class="chat-wrap">
+        <aside class="chat-channels" id="chat-channels"></aside>
+        <div class="chat-thread">
+          <div class="chat-messages" id="chat-messages"></div>
+          <form class="chat-compose" id="chat-compose">
+            <input class="input" name="msg" placeholder="הקלד הודעה..." autocomplete="off">
+            <button type="submit" class="btn btn--primary btn--sm">שלח ➤</button>
+            <button type="button" class="btn btn--danger btn--sm" id="btn-broadcast">📢 כריזה</button>
+          </form>
+        </div>
+      </div>
+    </section>
   </div>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <script src="shared/engine.js"></script>
 <script>
 (function () {
   'use strict';
-  const { ScoutDB, Bus, UI, SOS, Toast, util, Auth } = Scout;
+  const { ScoutDB, Bus, UI, SOS, Geo, Toast, util, Auth, Drone, Chat, Personnel, FORESTS } = Scout;
 
   if (!Auth.requireLogin()) return;
-  document.getElementById('header').innerHTML = UI.header({ title: 'דשבורד קב"ט — Super Admin' });
+
+  document.getElementById('header').innerHTML = UI.header({ title: 'דשבורד קב"ט — Command Center' });
   UI.bindHeader(document.body);
   UI.mockBadge('דמו פרזנטציה');
 
+  const forestId = util.getParam('forest') || ScoutDB.get('currentForest', 'ben-shemen');
+  ScoutDB.set('currentForest', forestId);
+
+  // ===== KPI bar =====
+  function renderKpis() {
+    const sos = SOS.current();
+    const pending = (ScoutDB.get('gateExceptions', []) || []).filter(x => !x.resolved).length;
+    const devices = Personnel.devices();
+    const onlineCount = devices.filter(d => d.active && (util.nowMs() - d.lastSeenTs) < 120_000).length;
+    const blCount = (ScoutDB.get('blacklist', []) || []).length;
+    const audit = ScoutDB.get('audit', []);
+    const today = new Date(); today.setHours(0,0,0,0);
+    const todayCount = audit.filter(a => a.ts >= today.getTime()).length;
+
+    document.getElementById('kpi-bar').innerHTML = `
+      <div class="kpi ${sos && !sos.acked ? 'kpi--danger' : 'kpi--ok'}">
+        <div class="kpi-ico">${sos && !sos.acked ? '🚨' : '✅'}</div>
+        <div>
+          <div class="kpi-val">${sos && !sos.acked ? 'פעיל' : 'שקט'}</div>
+          <div class="kpi-lbl">סטטוס SOS</div>
+        </div>
+      </div>
+      <div class="kpi ${pending > 0 ? 'kpi--warn' : ''}">
+        <div class="kpi-ico">⚠</div>
+        <div>
+          <div class="kpi-val">${pending}</div>
+          <div class="kpi-lbl">חריגים בשער</div>
+        </div>
+      </div>
+      <div class="kpi kpi--ok">
+        <div class="kpi-ico">📱</div>
+        <div>
+          <div class="kpi-val">${onlineCount}<span style="font-size:14px;color:var(--text-mid);">/${devices.length}</span></div>
+          <div class="kpi-lbl">משתמשים מקוונים</div>
+        </div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-ico">⛔</div>
+        <div>
+          <div class="kpi-val">${blCount}</div>
+          <div class="kpi-lbl">ברשימה שחורה</div>
+        </div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-ico">📜</div>
+        <div>
+          <div class="kpi-val">${todayCount}</div>
+          <div class="kpi-lbl">פעולות היום</div>
+        </div>
+      </div>
+    `;
+    document.getElementById('b-gates').textContent = pending;
+  }
+
+  // ===== Tabs =====
+  let mapInited = false;
+  document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('is-active'));
+      btn.classList.add('is-active');
+      document.querySelectorAll('.tab-pane').forEach(p => p.classList.toggle('is-active', p.dataset.pane === btn.dataset.tab));
+      if (btn.dataset.tab === 'map' && !mapInited) { initMap(); mapInited = true; }
+      if (btn.dataset.tab === 'chat') {
+        // Mark messages as read for current channel
+        renderMessages();
+      }
+    });
+  });
+
+  // ============================================================
+  // ===== MAP TAB =====
+  // ============================================================
+  let map = null;
+  const layers = { forces: null, hazards: null, sanitation: null, evac: null };
+  const markers = {};
+
+  function initMap() {
+    const forest = (ScoutDB.get('forests', []) || FORESTS).find(f => f.id === forestId) || FORESTS[0];
+    Geo.seed(forestId);
+    Geo.start(forestId);
+
+    map = L.map('kabat-map', { zoomControl: true }).setView([forest.lat, forest.lng], 15);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OSM &middot; CARTO',
+    }).addTo(map);
+
+    const r = 0.012;
+    L.polygon([
+      [forest.lat + r, forest.lng - r * 0.5],
+      [forest.lat + r * 0.5, forest.lng + r],
+      [forest.lat - r * 0.7, forest.lng + r * 0.8],
+      [forest.lat - r, forest.lng - r * 0.3],
+      [forest.lat - r * 0.3, forest.lng - r],
+    ], { color: '#4DD0E1', weight: 1.5, fillColor: '#4DD0E1', fillOpacity: 0.05, dashArray: '6,6' }).addTo(map);
+
+    // Forces layer
+    layers.forces = L.layerGroup().addTo(map);
+
+    // Hazards layer (mock points)
+    layers.hazards = L.layerGroup();
+    [
+      { lat: forest.lat + 0.004, lng: forest.lng - 0.001, label: '🚫 כבל חשמל חשוף' },
+      { lat: forest.lat - 0.002, lng: forest.lng + 0.006, label: '🚫 מגדל פסול לשימוש' },
+    ].forEach(h => {
+      L.marker([h.lat, h.lng], { icon: L.divIcon({ className: '', html: '<div class="marker-hazard"></div>', iconSize: [18, 18], iconAnchor: [9, 9] }) })
+        .bindPopup(`<strong style="color:#FF4757;">${h.label}</strong>`)
+        .addTo(layers.hazards);
+    });
+
+    // Sanitation layer
+    layers.sanitation = L.layerGroup();
+    [
+      { lat: forest.lat + 0.001, lng: forest.lng - 0.005, label: '💧 שירותים — צריך שאיבה' },
+      { lat: forest.lat - 0.005, lng: forest.lng + 0.001, label: '🗑 מכולת אשפה מלאה' },
+    ].forEach(s => {
+      L.marker([s.lat, s.lng], { icon: L.divIcon({ className: '', html: '<div class="marker-sanitation"></div>', iconSize: [14, 14], iconAnchor: [7, 7] }) })
+        .bindPopup(`<strong style="color:#FFB547;">${s.label}</strong>`)
+        .addTo(layers.sanitation);
+    });
+
+    // Evac routes layer
+    layers.evac = L.layerGroup();
+    L.polyline([
+      [forest.lat + r, forest.lng - r * 0.5],
+      [forest.lat, forest.lng],
+      [forest.lat - r * 0.7, forest.lng + r * 0.8],
+    ], { color: '#FFB547', weight: 4, opacity: 0.7, dashArray: '10,8' })
+      .bindPopup('🚨 ציר פינוי לרכבי חירום')
+      .addTo(layers.evac);
+
+    refreshMarkers();
+    Bus.on('geo:tick', refreshMarkers);
+
+    // Layer toggle wiring
+    document.querySelectorAll('[data-layer]').forEach(cb => {
+      cb.addEventListener('change', () => {
+        const layerName = cb.dataset.layer;
+        const parent = cb.closest('.layer-toggle');
+        parent.classList.toggle('is-on', cb.checked);
+        if (cb.checked) layers[layerName].addTo(map);
+        else map.removeLayer(layers[layerName]);
+      });
+    });
+  }
+
+  function refreshMarkers() {
+    if (!layers.forces) return;
+    const snap = Geo.snapshot();
+    const dms = dmsState();
+    snap.forEach(ent => {
+      const failed = dms.find(d => d.id === ent.id && d.status === 'fail');
+      const cls = failed ? 'dms-fail' : ent.role;
+      if (!markers[ent.id]) {
+        markers[ent.id] = L.marker([ent.lat, ent.lng], {
+          icon: L.divIcon({ className: '', html: `<div class="marker-pin ${cls}">${markerLabel(ent.role)}</div>`, iconSize: [28, 28], iconAnchor: [14, 14] }),
+        }).bindPopup(`<strong>${ent.label}</strong><br><span style="font-size:11px;color:#888;">${ent.role}</span>`)
+          .addTo(layers.forces);
+      } else {
+        markers[ent.id].setLatLng([ent.lat, ent.lng]);
+        markers[ent.id].setIcon(L.divIcon({ className: '', html: `<div class="marker-pin ${cls}">${markerLabel(ent.role)}</div>`, iconSize: [28, 28], iconAnchor: [14, 14] }));
+      }
+    });
+  }
+  function markerLabel(role) {
+    return { patrol: 'P', medic: '+', logistics: 'L', commander: '★', gate: '⛩' }[role] || '?';
+  }
+
+  // ===== DMS monitor =====
+  function dmsState() {
+    // Mock 3 night guards with their alertness — deterministic
+    const tick = Math.floor(util.nowMs() / 30_000);
+    const guards = ['g1', 'g2', 'g3'].map((id, i) => {
+      const sinceAck = ((tick + i * 7) % 11);
+      const status = sinceAck > 8 ? 'fail' : (sinceAck > 5 ? 'warn' : 'ok');
+      const name = ['סייר 1','סייר 2','סייר 3'][i];
+      return { id, name, status, sinceAckMin: sinceAck };
+    });
+    return guards;
+  }
+  function renderDms() {
+    const guards = dmsState();
+    const interval = ScoutDB.get('dmsInterval', 15);
+    document.getElementById('dms-rate').textContent = interval;
+    document.getElementById('dms-list').innerHTML = guards.map(g => `
+      <div class="dms-guard ${g.status === 'fail' ? 'is-fail' : ''}">
+        <div>
+          <div class="name">${g.name}</div>
+          <div class="meta">ערנות אחרונה: לפני ${g.sinceAckMin} דק'</div>
+        </div>
+        <span class="chip chip--${g.status === 'ok' ? 'ok' : g.status === 'warn' ? 'warn' : 'danger'}">${
+          g.status === 'ok' ? 'תקין' : g.status === 'warn' ? 'מתעכב' : 'כשל'
+        }</span>
+      </div>
+    `).join('');
+  }
+
+  // ============================================================
+  // ===== GATES TAB =====
+  // ============================================================
+  document.querySelectorAll('#gates-sub-tabs .sub-tab').forEach(t => {
+    t.addEventListener('click', () => {
+      document.querySelectorAll('#gates-sub-tabs .sub-tab').forEach(x => x.classList.remove('is-active'));
+      t.classList.add('is-active');
+      document.querySelectorAll('[data-sub-pane]').forEach(p => p.classList.toggle('is-active', p.dataset.subPane === t.dataset.sub));
+    });
+  });
+
+  function renderGates() {
+    // Counts
+    const exc = (ScoutDB.get('gateExceptions', []) || []);
+    const pending = exc.filter(x => !x.resolved);
+    document.getElementById('ct-exc').textContent = pending.length;
+    document.getElementById('ct-sup').textContent = (ScoutDB.get('vehicles', []) || []).length;
+    document.getElementById('ct-bus').textContent = (ScoutDB.get('buses', []) || []).length;
+    document.getElementById('ct-staff').textContent = (ScoutDB.get('staff', []) || []).length;
+    document.getElementById('ct-bl').textContent = (ScoutDB.get('blacklist', []) || []).length;
+
+    // Exceptions
+    document.getElementById('gp-exceptions').innerHTML = pending.length === 0
+      ? '<div style="color: var(--text-low); padding: 18px; text-align:center;">אין בקשות ממתינות. כשהש"ג ילחץ "בקש אישור חריג", הבקשה תופיע כאן בזמן אמת.</div>'
+      : pending.map(x => `
+        <div style="padding: 12px 14px; background: rgba(255,181,71,0.07); border: 1px solid rgba(255,181,71,0.32); border-radius: var(--r-md); margin-bottom: 8px; display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center;">
+          <div>
+            <div style="font-weight:700;">${util.escapeHtml(x.plate || x.idNum || '?')}</div>
+            <div style="color: var(--text-mid); font-size: 12px;">${util.escapeHtml(x.reason || '')} · ${util.fmtTime(x.ts)}</div>
+          </div>
+          <button class="btn btn--ok btn--sm" data-gate-approve="${x.id}">אשר</button>
+          <button class="btn btn--danger btn--sm" data-gate-deny="${x.id}">דחה</button>
+        </div>
+      `).join('');
+
+    // Suppliers
+    document.getElementById('gp-suppliers').innerHTML = `
+      <table class="table">
+        <thead><tr><th>מספר רכב</th><th>נהג</th><th>ספק</th><th>סטטוס</th><th></th></tr></thead>
+        <tbody>${(ScoutDB.get('vehicles', []) || []).map(v => `
+          <tr>
+            <td style="font-family: var(--font-mono); color: var(--accent); font-weight:700;">${util.escapeHtml(v.plate)}</td>
+            <td>${util.escapeHtml(v.driver)}</td>
+            <td>${util.escapeHtml(v.vendor)}</td>
+            <td>${v.arrived ? '<span class="chip chip--info">בתוך המחנה</span>' : '<span class="chip chip--ok">מאושר לכניסה</span>'}</td>
+            <td><button class="btn btn--sm btn--danger" data-veh-remove="${v.id}">הסר</button></td>
+          </tr>
+        `).join('')}</tbody>
+      </table>
+    `;
+
+    // Buses
+    const tribes = ScoutDB.get('tribes', []);
+    const busLabels = { planned: 'מתוכנן', waiting: 'בחניון המתנה', cleared: 'מאושר לכניסה', inside: 'בתוך המחנה', left: 'עזב' };
+    document.getElementById('gp-buses').innerHTML = `
+      <table class="table">
+        <thead><tr><th>מס׳ רישוי</th><th>שבט / גדוד</th><th>נהג</th><th>חניכים</th><th>סטטוס</th><th></th></tr></thead>
+        <tbody>${(ScoutDB.get('buses', []) || []).map(b => {
+          const t = tribes.find(tr => tr.id === b.tribeId);
+          return `
+          <tr>
+            <td style="font-family: var(--font-mono); color: var(--accent);">${util.escapeHtml(b.plate)}</td>
+            <td>שבט ${util.escapeHtml(t ? t.name : '—')} · ${util.escapeHtml(b.battalion)}</td>
+            <td>${util.escapeHtml(b.driver)}</td>
+            <td>${b.hanichim}</td>
+            <td><span class="chip">${busLabels[b.status] || b.status}</span></td>
+            <td>
+              ${b.status === 'waiting' ? `<button class="btn btn--ok btn--sm" data-bus-clear="${b.id}">אשר כניסה</button>` :
+                b.status === 'planned' ? `<button class="btn btn--sm" data-bus-arrive="${b.id}">סמן הגעה</button>` : '—'}
+            </td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>
+    `;
+
+    // Staff
+    document.getElementById('gp-staff').innerHTML = `
+      <table class="table">
+        <thead><tr><th>שם</th><th>תפקיד</th><th>סטטוס</th></tr></thead>
+        <tbody>${(ScoutDB.get('staff', []) || []).map(s => `
+          <tr>
+            <td><strong>${util.escapeHtml(s.name)}</strong></td>
+            <td>${UI.ROLE_LABELS[s.role] || s.role}</td>
+            <td><span class="chip ${s.active ? 'chip--ok' : 'chip--danger'}">${s.active ? 'פעיל' : 'חסום'}</span>
+              ${s.emergency ? ' <span class="chip chip--warn">חירום</span>' : ''}</td>
+          </tr>
+        `).join('')}</tbody>
+      </table>
+    `;
+
+    // Blacklist
+    const bl = (ScoutDB.get('blacklist', []) || []);
+    document.getElementById('gp-blacklist').innerHTML = bl.length === 0
+      ? '<div style="color: var(--text-low); padding: 18px; text-align:center;">הרשימה ריקה. הוסף ת.ז. או מס׳ רכב לחסימה.</div>'
+      : `<table class="table">
+          <thead><tr><th>סוג</th><th>ערך</th><th>סיבה</th><th></th></tr></thead>
+          <tbody>${bl.map((b, i) => `
+            <tr>
+              <td><span class="chip chip--danger">${b.kind === 'id' ? 'ת.ז.' : 'רכב'}</span></td>
+              <td style="font-family: var(--font-mono); color: var(--danger);">${util.escapeHtml(b.value)}</td>
+              <td style="color: var(--text-mid);">${util.escapeHtml(b.reason || '—')}</td>
+              <td><button class="btn btn--sm btn--ghost" data-bl-remove="${i}">הסר</button></td>
+            </tr>
+          `).join('')}</tbody>
+        </table>`;
+  }
+
+  document.addEventListener('click', e => {
+    const t = e.target;
+    if (t.dataset.gateApprove || t.dataset.gateDeny) {
+      const id = t.dataset.gateApprove || t.dataset.gateDeny;
+      const decision = t.dataset.gateApprove ? 'approved' : 'denied';
+      ScoutDB.patch('gateExceptions', l => l.map(x => x.id === id ? Object.assign({}, x, { resolved: true, decision, decidedAt: util.nowMs() }) : x));
+      Bus.emit('bus:gate-exception:resolved', { id, decision });
+      ScoutDB.appendAudit({ action: t.dataset.gateApprove ? 'GATE-APPROVE' : 'GATE-DENY', channel: 'gate', details: 'בקשה ' + id });
+      Toast.show(t.dataset.gateApprove ? 'אושר. נשלח לשער.' : 'נדחה. נשלח לשער.', { kind: t.dataset.gateApprove ? 'ok' : 'danger' });
+      renderGates(); renderKpis();
+    }
+    if (t.dataset.vehRemove) {
+      ScoutDB.patch('vehicles', l => l.filter(v => v.id !== t.dataset.vehRemove));
+      ScoutDB.appendAudit({ action: 'VEH-REMOVE', channel: 'gate', details: t.dataset.vehRemove });
+      Toast.show('הרכב הוסר מהרשימה.', { kind: 'warn' });
+      renderGates();
+    }
+    if (t.dataset.busClear) {
+      ScoutDB.patch('buses', l => l.map(b => b.id === t.dataset.busClear ? Object.assign({}, b, { status: 'cleared' }) : b));
+      ScoutDB.appendAudit({ action: 'BUS-CLEAR', channel: 'gate', details: t.dataset.busClear });
+      Toast.show('אוטובוס אושר לכניסה.', { kind: 'ok' });
+      renderGates();
+    }
+    if (t.dataset.busArrive) {
+      ScoutDB.patch('buses', l => l.map(b => b.id === t.dataset.busArrive ? Object.assign({}, b, { status: 'waiting' }) : b));
+      renderGates();
+    }
+    if (t.dataset.blRemove !== undefined) {
+      const idx = +t.dataset.blRemove;
+      ScoutDB.patch('blacklist', l => l.filter((_, i) => i !== idx));
+      ScoutDB.appendAudit({ action: 'BLACKLIST-REMOVE', channel: 'gate', details: 'הסרה מרשימה' });
+      Toast.show('הוסר מהרשימה השחורה.', { kind: 'warn' });
+      renderGates(); renderKpis();
+    }
+  });
+
+  document.getElementById('btn-bl-add').addEventListener('click', () => {
+    const v = prompt('הוסף ת.ז. או מספר רכב לרשימה שחורה:');
+    if (!v || !v.trim()) return;
+    const reason = prompt('סיבה:', 'הוגדר ע"י קב"ט');
+    ScoutDB.patch('blacklist', l => (l || []).concat([{ kind: v.length === 9 ? 'id' : 'plate', value: v.trim(), reason: reason || '—' }]));
+    ScoutDB.appendAudit({ action: 'BLACKLIST-ADD', channel: 'gate', details: v + ' — ' + (reason || '') });
+    Toast.show('הוסף לרשימה שחורה. מסונכרן לכל הש"ג.', { kind: 'warn' });
+    renderGates(); renderKpis();
+  });
+  document.getElementById('btn-bl-clear').addEventListener('click', () => {
+    if (!confirm('לאפס את כל הרשימה השחורה?')) return;
+    ScoutDB.set('blacklist', []);
+    ScoutDB.appendAudit({ action: 'BLACKLIST-CLEAR', channel: 'gate', details: 'איפוס מלא' });
+    Toast.show('רשימה שחורה נוקתה.', { kind: 'warn' });
+    renderGates(); renderKpis();
+  });
+
+  // ============================================================
+  // ===== USERS TAB =====
+  // ============================================================
   const PERM_KEYS = ['sosOverride', 'blacklistEdit', 'dmsConfig', 'auditView', 'broadcast'];
 
-  function renderPerms() {
-    const staff = ScoutDB.get('staff', []);
-    const perms = ScoutDB.get('permissions', {});
-    const host = document.getElementById('perms-host');
-    host.innerHTML = staff.map(s => {
-      const p = perms[s.id] || {};
+  function renderDevices() {
+    const devices = Personnel.devices();
+    document.getElementById('devices-list').innerHTML = devices.map(d => {
+      const batt = d.battery;
+      const battCls = batt < 20 ? 'critical' : (batt < 40 ? 'low' : '');
+      const lastSeenSec = Math.round((util.nowMs() - d.lastSeenTs) / 1000);
+      const lastSeenStr = lastSeenSec < 60 ? `${lastSeenSec}s` : `${Math.round(lastSeenSec/60)}m`;
+      const lsOk = lastSeenSec < 120 && d.active;
       return `
-        <div class="perm-row" data-user="${s.id}">
+        <div class="device-row">
           <div>
-            <span class="name">${util.escapeHtml(s.name)}</span>
-            <span class="role-tag">${UI.ROLE_LABELS[s.role] || s.role}</span>
+            <div class="name">${util.escapeHtml(d.name)}</div>
+            <div class="meta">📍 ${util.escapeHtml(d.location)} · <span class="dot dot--${lsOk ? 'ok' : 'danger'}"></span> ${lastSeenStr} ago</div>
           </div>
-          ${PERM_KEYS.map(k => `
-            <div class="tog-cell">
-              <div class="tog ${p[k] ? 'on' : ''}" data-perm="${k}" data-user="${s.id}"></div>
-            </div>
-          `).join('')}
+          <select class="role-select" data-set-role="${d.id}">
+            ${Object.entries(UI.ROLE_LABELS).map(([k, l]) => `<option value="${k}" ${k === d.role ? 'selected' : ''}>${l}</option>`).join('')}
+          </select>
+          <div class="battery">
+            <div class="battery-bar ${battCls}" style="--w:${batt}%"><style>.battery-bar[style*="--w:${batt}%"]::after{width:${batt}%}</style></div>
+            ${batt}%
+          </div>
+          <span class="chip ${d.active ? 'chip--ok' : 'chip--danger'}">${d.active ? 'פעיל' : 'חסום'}</span>
+          ${d.active
+            ? `<button class="btn btn--sm btn--danger" data-block-user="${d.id}">חסום</button>`
+            : `<button class="btn btn--sm btn--ok" data-unblock-user="${d.id}">החזר</button>`}
+          ${d.emergency ? '<span class="chip chip--warn">חירום</span>' : '<span></span>'}
         </div>
       `;
     }).join('');
   }
+
+  function renderPerms() {
+    const staff = ScoutDB.get('staff', []);
+    const perms = ScoutDB.get('permissions', {});
+    document.getElementById('perms-host').innerHTML = staff.map(s => {
+      const p = perms[s.id] || {};
+      return `
+        <div class="perm-row" data-user="${s.id}">
+          <div>
+            <strong>${util.escapeHtml(s.name)}</strong>
+            <div class="role-tag">${UI.ROLE_LABELS[s.role] || s.role}</div>
+          </div>
+          ${PERM_KEYS.map(k => `<div class="tog-cell"><div class="tog ${p[k] ? 'on' : ''}" data-perm="${k}" data-user="${s.id}"></div></div>`).join('')}
+        </div>
+      `;
+    }).join('');
+  }
+
   document.addEventListener('click', e => {
     const t = e.target.closest('.tog[data-perm]');
-    if (!t) return;
-    const u = t.dataset.user, k = t.dataset.perm;
-    ScoutDB.patch('permissions', perms => {
-      perms = perms || {};
-      perms[u] = perms[u] || {};
-      perms[u][k] = !perms[u][k];
-      return perms;
-    });
-    t.classList.toggle('on');
-    Scout.Audio.play('blip');
-    ScoutDB.appendAudit({ action: 'PERM-CHANGE', channel: 'auth', details: `${u} :: ${k}` });
+    if (t) {
+      const u = t.dataset.user, k = t.dataset.perm;
+      ScoutDB.patch('permissions', perms => {
+        perms = perms || {};
+        perms[u] = perms[u] || {};
+        perms[u][k] = !perms[u][k];
+        return perms;
+      });
+      t.classList.toggle('on');
+      Scout.Audio.play('blip');
+      ScoutDB.appendAudit({ action: 'PERM-CHANGE', channel: 'auth', details: `${u} :: ${k}` });
+    }
   });
 
-  // DMS slider
+  document.addEventListener('change', e => {
+    if (e.target.dataset.setRole) {
+      Personnel.setRole(e.target.dataset.setRole, e.target.value);
+      Toast.show('תפקיד עודכן.', { kind: 'ok' });
+      renderDevices();
+    }
+  });
+
+  document.addEventListener('click', e => {
+    if (e.target.dataset.blockUser) {
+      Personnel.setActive(e.target.dataset.blockUser, false);
+      Toast.show('המשתמש נחסם. הגישה שלו למערכת נשללה.', { kind: 'danger' });
+      renderDevices();
+    }
+    if (e.target.dataset.unblockUser) {
+      Personnel.setActive(e.target.dataset.unblockUser, true);
+      Toast.show('המשתמש שוחזר.', { kind: 'ok' });
+      renderDevices();
+    }
+  });
+
+  document.getElementById('btn-add-user').addEventListener('click', () => {
+    const name = prompt('שם משתמש החירום:');
+    if (!name) return;
+    const role = prompt('תפקיד (guard / medic / first-aid / patrol):', 'guard') || 'guard';
+    Personnel.addEmergencyUser(name, role);
+    Toast.show('הונפק משתמש חירום זמני.', { kind: 'ok' });
+    renderDevices();
+  });
+
+  // ============================================================
+  // ===== OVERRIDES TAB =====
+  // ============================================================
   const slider = document.getElementById('dms-slider');
   const sliderVal = document.getElementById('dms-value');
   function syncSlider() {
     const v = ScoutDB.get('dmsInterval', 15);
     slider.value = v;
-    sliderVal.textContent = v + ' דק\'';
+    sliderVal.textContent = v + " דק'";
   }
-  slider.addEventListener('input', () => {
-    const v = +slider.value;
-    ScoutDB.set('dmsInterval', v);
-    sliderVal.textContent = v + ' דק\'';
-  });
-  slider.addEventListener('change', () => {
-    ScoutDB.appendAudit({ action: 'DMS-CONFIG', channel: 'dms', details: `Interval = ${slider.value}min` });
-    Toast.show('זמני DMS עודכנו', { kind: 'ok' });
-  });
+  slider.addEventListener('input', () => { sliderVal.textContent = slider.value + " דק'"; ScoutDB.set('dmsInterval', +slider.value); });
+  slider.addEventListener('change', () => { ScoutDB.appendAudit({ action: 'DMS-CONFIG', channel: 'dms', details: `Interval = ${slider.value}min` }); Toast.show('זמני DMS עודכנו', { kind: 'ok' }); renderDms(); });
   syncSlider();
 
-  // Blacklist
-  document.getElementById('btn-clear-blacklist').addEventListener('click', () => {
-    if (!confirm('לאפס רשימה שחורה?')) return;
-    ScoutDB.set('blacklist', []);
-    ScoutDB.appendAudit({ action: 'BLACKLIST-CLEAR', channel: 'gate', details: 'איפוס מלא' });
-    renderStatus();
-    Toast.show('רשימה שחורה נוקתה.', { kind: 'warn' });
-  });
-  document.getElementById('btn-add-blacklist').addEventListener('click', () => {
-    const id = prompt('הוסף ת.ז. או מספר רכב לרשימה שחורה:');
-    if (!id) return;
-    const reason = prompt('סיבה:', 'הוגדר ע"י קב"ט');
-    ScoutDB.patch('blacklist', l => (l || []).concat([{ kind: id.length === 9 ? 'id' : 'plate', value: id, reason: reason || '—' }]));
-    ScoutDB.appendAudit({ action: 'BLACKLIST-ADD', channel: 'gate', details: id + ' — ' + (reason || '') });
-    renderStatus();
-    Toast.show('הוסף לרשימה שחורה. מסונכרן לכל הש"ג.', { kind: 'warn' });
-  });
-
-  // SOS override
   document.getElementById('btn-ack-sos').addEventListener('click', () => {
     const cur = SOS.current();
     if (!cur || cur.acked) { Toast.show('אין אירוע SOS פעיל'); return; }
-    SOS.ack();
-    Toast.show('אירוע SOS אושר ע"י קב"ט', { kind: 'ok' });
+    SOS.ack(); Toast.show('האירוע אושר.', { kind: 'ok' }); renderKpis(); renderOverridesStats();
   });
   document.getElementById('btn-clear-sos').addEventListener('click', () => {
-    SOS.clear();
-    Toast.show('אירוע SOS נסגר', { kind: 'ok' });
-    renderStatus();
+    SOS.clear(); Toast.show('האירוע נסגר.', { kind: 'ok' }); renderKpis(); renderOverridesStats();
+  });
+  document.getElementById('btn-emergency-broadcast').addEventListener('click', () => {
+    Chat.broadcast('⚠ קב"ט: דרישת ערנות מיידית — בדוק עמדה');
+    Scout.Audio.play('voice-prompt', { text: 'דרישת ערנות מיידית מהקב"ט' });
+    Toast.show('כריזה נשלחה לכל המאבטחים.', { kind: 'warn' });
+  });
+  document.getElementById('btn-test-sos').addEventListener('click', () => {
+    SOS.trigger({ source: 'kabat-test', label: 'בדיקה ידנית של קב"ט', forestId });
+    Toast.show('SOS דמו הופעל.', { kind: 'danger' });
   });
 
-  // Pending exceptional gate approvals
-  function renderPending() {
-    const all = ScoutDB.get('gateExceptions', []) || [];
-    const pending = all.filter(x => !x.resolved);
-    const host = document.getElementById('pending-host');
-    host.innerHTML = pending.length
-      ? pending.map(x => `
-        <div class="pending-card">
-          <div>
-            <div style="font-weight:700;">${util.escapeHtml(x.plate || x.idNum)}</div>
-            <div style="color: var(--text-mid); font-size: 12px;">${util.escapeHtml(x.reason || '')} · ${util.fmtTime(x.ts)}</div>
-          </div>
-          <button class="btn btn--ok btn--sm" data-approve="${x.id}">אשר</button>
-          <button class="btn btn--danger btn--sm" data-deny="${x.id}">דחה</button>
-        </div>
-      `).join('')
-      : '<div style="color: var(--text-low); padding: 14px; text-align:center;">אין בקשות ממתינות. כשהש"ג ילחץ "בקש אישור חריג", הבקשה תופיע כאן בזמן אמת.</div>';
-  }
-  document.addEventListener('click', e => {
-    const ap = e.target.dataset.approve, dn = e.target.dataset.deny;
-    if (ap || dn) {
-      const id = ap || dn;
-      const decision = ap ? 'approved' : 'denied';
-      ScoutDB.patch('gateExceptions', list => list.map(x => x.id === id ? Object.assign({}, x, { resolved: true, decision, decidedAt: util.nowMs() }) : x));
-      Bus.emit('bus:gate-exception:resolved', { id, decision });
-      ScoutDB.appendAudit({ action: ap ? 'GATE-APPROVE' : 'GATE-DENY', channel: 'gate', details: 'בקשה ' + id });
-      Toast.show(ap ? 'אושר. נשלח לשער.' : 'נדחה. נשלח לשער.', { kind: ap ? 'ok' : 'danger' });
-      renderPending(); renderStatus();
-    }
-  });
-
-  // Status chips
-  function renderStatus() {
-    const sos = SOS.current();
-    const pending = (ScoutDB.get('gateExceptions', []) || []).filter(x => !x.resolved).length;
-    const bl = (ScoutDB.get('blacklist', []) || []).length;
-    document.getElementById('status-sos').textContent = sos && !sos.acked ? 'SOS: פעיל' : 'SOS: שקט';
-    document.getElementById('status-sos').className = 'chip ' + (sos && !sos.acked ? 'chip--danger' : 'chip--ok');
-    document.getElementById('status-pending').textContent = `חריגים: ${pending}`;
-    document.getElementById('status-pending').className = 'chip ' + (pending > 0 ? 'chip--warn' : '');
-    document.getElementById('status-bl').textContent = `חסומים: ${bl}`;
+  function renderOverridesStats() {
+    const audit = ScoutDB.get('audit', []);
+    const today = new Date(); today.setHours(0,0,0,0);
+    const todays = audit.filter(a => a.ts >= today.getTime());
+    document.getElementById('st-sos-n').textContent = todays.filter(a => a.action.startsWith('SOS-')).length;
+    document.getElementById('st-perm-n').textContent = todays.filter(a => a.action === 'PERM-CHANGE' || a.action === 'ROLE-CHANGE').length;
+    document.getElementById('st-bl-n').textContent = todays.filter(a => a.action === 'BLACKLIST-HIT').length;
+    document.getElementById('st-dms-n').textContent = todays.filter(a => a.action === 'DMS-FAIL').length;
   }
 
-  // Audit table
+  // ============================================================
+  // ===== AUDIT TAB =====
+  // ============================================================
   function renderAudit() {
     const filter = document.getElementById('audit-filter').value.toLowerCase();
     const channel = document.getElementById('audit-channel').value;
@@ -343,41 +1445,242 @@
       (!filter || (e.actor || '').toLowerCase().includes(filter) || (e.action || '').toLowerCase().includes(filter) || (e.details || '').toLowerCase().includes(filter))
     );
     document.getElementById('audit-count').textContent = log.length + ' רשומות';
-    document.querySelector('#audit-table tbody').innerHTML = log.length
-      ? log.map(e => `
-        <tr>
-          <td style="font-family: var(--font-mono); color: var(--text-low); white-space: nowrap;">${util.fmtTime(e.ts)}</td>
-          <td>${util.escapeHtml(e.actor)}</td>
-          <td><span class="chip" style="font-size: 10px;">${util.escapeHtml(e.channel)}</span></td>
-          <td style="font-family: var(--font-mono); color: var(--accent);">${util.escapeHtml(e.action)}</td>
-          <td style="color: var(--text-mid);">${util.escapeHtml(e.details || '')}</td>
-        </tr>
-      `).join('')
-      : '<tr><td colspan="5" style="text-align: center; padding: 16px; color: var(--text-low);">אין רשומות התואמות את הפילטר.</td></tr>';
+    document.getElementById('audit-body').innerHTML = log.length ? log.map(e => {
+      const cls = e.action.startsWith('SOS-') ? 'is-sos' : e.action === 'BROADCAST' ? 'is-broadcast' : '';
+      return `
+        <div class="terminal-row ${cls}">
+          <span class="ts">${util.fmtTime(e.ts)}</span>
+          <span class="actor">${util.escapeHtml(e.actor)}</span>
+          <span class="ch">${util.escapeHtml(e.channel)}</span>
+          <span class="act">${util.escapeHtml(e.action)}</span>
+          <span class="det" title="${util.escapeHtml(e.details || '')}">${util.escapeHtml(e.details || '')}</span>
+        </div>
+      `;
+    }).join('') : '<div style="color: var(--text-low); padding: 18px; text-align:center; font-family: var(--font-mono);">[no records]</div>';
   }
   document.getElementById('audit-filter').addEventListener('input', renderAudit);
   document.getElementById('audit-channel').addEventListener('change', renderAudit);
 
-  // Reactive
-  Bus.on('audit:append', renderAudit);
-  Bus.on('bus:gate-exception', () => { renderPending(); renderStatus(); });
-  Bus.on('bus:gate-exception:resolved', () => { renderPending(); renderStatus(); });
-  Bus.on('sos:trigger', renderStatus);
-  Bus.on('sos:ack', renderStatus);
-  Bus.on('sos:clear', renderStatus);
+  // ============================================================
+  // ===== DRONE TAB =====
+  // ============================================================
+  let droneTimer = null;
+  let currentMission = null;
+
+  const MISSION_LABELS = {
+    fire: '🔥 חשד לשרפה',
+    perimeter: '⭕ סריקת פרימטר',
+    missing: '🧒 חיפוש נעדר',
+    security: '🛡 אירוע פח״ע / פלילי',
+    general: 'תצפית כללית',
+  };
+
+  function renderDrone() {
+    const s = Drone.state();
+    const empty = document.getElementById('drone-empty');
+    const overlay = document.getElementById('drone-overlay');
+    const canvas = document.getElementById('drone-canvas');
+
+    if (s.active) {
+      empty.hidden = true;
+      overlay.hidden = false;
+      document.getElementById('drone-mission-lbl').textContent = 'משימה: ' + (MISSION_LABELS[s.mission] || s.mission || '—');
+      if (droneTimer) clearInterval(droneTimer);
+      droneTimer = setInterval(() => {
+        const elapsed = util.nowMs() - s.startedAt;
+        const h = Math.floor(elapsed / 3600000);
+        const m = Math.floor((elapsed % 3600000) / 60000);
+        const sec = Math.floor((elapsed % 60000) / 1000);
+        const t = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+        const ft = document.getElementById('drone-flight-time');
+        if (ft) ft.textContent = '⏱ ' + t;
+      }, 1000);
+    } else {
+      empty.hidden = false;
+      overlay.hidden = true;
+      if (droneTimer) { clearInterval(droneTimer); droneTimer = null; }
+    }
+
+    // Mission buttons
+    document.querySelectorAll('.mission-btn').forEach(b => {
+      b.classList.toggle('is-active', b.dataset.mission === s.mission);
+    });
+
+    // Flight log
+    const log = (s.flightLog || []).slice().reverse();
+    document.getElementById('flight-log').innerHTML = log.length ? log.map(ev => {
+      const cls = 'ev-' + ev.event.toLowerCase().replace(/-/g, '-');
+      let txt = ev.event;
+      if (ev.event === 'TAKEOFF') txt = `🛫 המראה — ${MISSION_LABELS[ev.mission] || ev.mission}`;
+      if (ev.event === 'LANDING') txt = `🛬 נחיתה (משך טיסה: ${Math.round((ev.durationMs || 0)/1000)}s)`;
+      if (ev.event === 'MISSION-CHANGE') txt = `🎯 שינוי משימה ל-${MISSION_LABELS[ev.mission] || ev.mission}`;
+      return `<div class="flight-row"><span class="ts">${util.fmtTime(ev.ts)}</span><span class="${cls}">${txt}</span></div>`;
+    }).join('') : '<div style="color: var(--text-low); text-align: center; padding: 8px;">לא בוצעו טיסות עדיין</div>';
+  }
+
+  document.getElementById('btn-stream-on').addEventListener('click', () => {
+    const url = document.getElementById('stream-url').value.trim();
+    if (!url) {
+      // Allow empty URL for demo — proceed with mock
+      Drone.takeoff(null, currentMission || 'general');
+    } else {
+      Drone.takeoff(url, currentMission || 'general');
+    }
+    Toast.show('🛩 רחפן באוויר. תצפית פעילה.', { kind: 'ok' });
+    Scout.Audio.play('blip');
+    renderDrone();
+  });
+  document.getElementById('btn-stream-off').addEventListener('click', () => {
+    Drone.land();
+    Toast.show('הרחפן נחת. תצפית הסתיימה.', { kind: 'warn' });
+    document.getElementById('stream-url').value = '';
+    renderDrone();
+  });
+  document.querySelectorAll('.mission-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      currentMission = b.dataset.mission;
+      const s = Drone.state();
+      if (s.active) Drone.switchMission(currentMission);
+      document.querySelectorAll('.mission-btn').forEach(x => x.classList.remove('is-active'));
+      b.classList.add('is-active');
+      renderDrone();
+    });
+  });
+
+  document.getElementById('btn-night-mode').addEventListener('click', () => {
+    document.getElementById('drone-canvas').classList.toggle('is-night');
+    Toast.show('מצב לילה הוחלף.');
+  });
+  document.getElementById('btn-pip').addEventListener('click', () => {
+    const st = document.getElementById('drone-stage');
+    st.classList.add('is-pip');
+    document.getElementById('btn-pip-restore').classList.add('is-visible');
+    Toast.show('תצוגה הועברה ל-PIP. גלוי על כל הלשוניות.', { kind: 'ok' });
+  });
+  document.getElementById('btn-pip-restore').addEventListener('click', () => {
+    document.getElementById('drone-stage').classList.remove('is-pip');
+    document.getElementById('btn-pip-restore').classList.remove('is-visible');
+  });
+  document.getElementById('btn-fullscreen').addEventListener('click', () => {
+    const st = document.getElementById('drone-stage');
+    if (document.fullscreenElement) document.exitFullscreen();
+    else if (st.requestFullscreen) st.requestFullscreen();
+  });
+
+  // ============================================================
+  // ===== CHAT TAB =====
+  // ============================================================
+  let activeChannel = 'security';
+  function renderChannels() {
+    const role = UI.currentPersona().role;
+    const chans = Chat.visibleChannels(role);
+    document.getElementById('chat-channels').innerHTML = chans.map(c => {
+      const msgs = Chat.messages(c.id);
+      const last = msgs[msgs.length - 1];
+      return `
+        <div class="channel ${c.locked ? 'locked' : ''} ${c.id === activeChannel ? 'is-active' : ''}" data-channel="${c.id}">
+          <div class="ch-name">${util.escapeHtml(c.name)}</div>
+          <div class="ch-meta">${last ? util.escapeHtml(last.text.slice(0, 36)) + (last.text.length > 36 ? '...' : '') : 'אין הודעות'}</div>
+        </div>
+      `;
+    }).join('');
+  }
+  function renderMessages() {
+    const role = UI.currentPersona().role;
+    const chan = Chat.channels().find(c => c.id === activeChannel);
+    if (!chan) return;
+    const me = UI.currentPersona().name;
+    const msgs = Chat.messages(activeChannel);
+    document.getElementById('chat-messages').innerHTML = msgs.map(m => {
+      const cls = m.role === 'system' ? 'bubble--system' : (m.from === me ? 'bubble--me' : 'bubble--other');
+      return `
+        <div class="bubble ${cls}">
+          ${m.role !== 'system' ? `<span class="meta"><span class="role">${util.escapeHtml(UI.ROLE_LABELS[m.role] || m.role)}</span>${util.escapeHtml(m.from)}</span>` : ''}
+          ${util.escapeHtml(m.text)}
+          ${m.role !== 'system' ? `<span class="ts">${util.fmtTime(m.ts)}<span class="check">✓✓</span></span>` : ''}
+        </div>
+      `;
+    }).join('');
+    // Scroll to bottom
+    const c = document.getElementById('chat-messages'); c.scrollTop = c.scrollHeight;
+
+    // Compose state — locked channels disable input for non-authorized
+    const form = document.getElementById('chat-compose');
+    const isAllowed = !chan.locked || ['kabat','hq-shift','hq-op','national'].includes(role);
+    form.querySelector('[name="msg"]').disabled = !isAllowed;
+    form.querySelector('button[type="submit"]').disabled = !isAllowed;
+    if (!isAllowed) {
+      form.querySelector('[name="msg"]').placeholder = '🔒 ערוץ נעול לכתיבה — רק חמ"ל/קב"ט';
+    } else {
+      form.querySelector('[name="msg"]').placeholder = 'הקלד הודעה...';
+    }
+  }
+  document.getElementById('chat-channels').addEventListener('click', e => {
+    const c = e.target.closest('[data-channel]');
+    if (!c) return;
+    activeChannel = c.dataset.channel;
+    renderChannels();
+    renderMessages();
+  });
+  document.getElementById('chat-compose').addEventListener('submit', e => {
+    e.preventDefault();
+    const input = e.target.msg;
+    const text = input.value.trim();
+    if (!text) return;
+    Chat.send(activeChannel, text);
+    input.value = '';
+    renderMessages();
+    renderChannels();
+    updateChatBadge();
+  });
+  document.getElementById('btn-broadcast').addEventListener('click', () => {
+    const text = prompt('טקסט כריזה לכל המכשירים:', 'התרעה: סבב ערנות בעוד 5 דקות');
+    if (!text) return;
+    Chat.broadcast(text);
+    Scout.Audio.play('voice-prompt', { text });
+    Toast.show('הכריזה נשלחה לכל הצוותים.', { kind: 'warn' });
+  });
+
+  function updateChatBadge() {
+    const role = UI.currentPersona().role;
+    const total = Chat.visibleChannels(role).reduce((s, c) => s + Chat.messages(c.id).length, 0);
+    document.getElementById('b-chat').textContent = total;
+  }
+
+  // ============================================================
+  // ===== Bus wiring =====
+  // ============================================================
+  Bus.on('audit:append', () => { renderAudit(); renderKpis(); renderOverridesStats(); });
+  Bus.on('bus:gate-exception', () => { renderGates(); renderKpis(); });
+  Bus.on('bus:gate-exception:resolved', () => { renderGates(); renderKpis(); });
+  Bus.on('sos:trigger', () => { renderKpis(); renderOverridesStats(); });
+  Bus.on('sos:ack', () => { renderKpis(); renderOverridesStats(); });
+  Bus.on('sos:clear', () => { renderKpis(); renderOverridesStats(); });
   Bus.on('sos:escalated', ev => {
-    // Show escalated SOS lockdown specifically here
     Scout.Audio.play('tactical-siren');
     UI.showSOSLockdown(Object.assign({}, ev, { label: '🚨 הוסלם לקב״ט: ' + ev.label }));
   });
+  Bus.on('drone:update', renderDrone);
+  Bus.on('chat:new', () => { renderChannels(); renderMessages(); updateChatBadge(); });
+  Bus.on('personnel:update', renderDevices);
 
   UI.bindGlobalSOS({ lock: false });
 
-  // Initial
+  // Periodic refresh for DMS monitor (visual feel of liveness)
+  setInterval(() => { renderDms(); renderKpis(); }, 30_000);
+
+  // ===== Initial render =====
+  renderKpis();
+  renderGates();
+  renderDevices();
   renderPerms();
-  renderPending();
-  renderStatus();
+  renderOverridesStats();
   renderAudit();
+  renderDrone();
+  renderChannels();
+  renderMessages();
+  renderDms();
+  updateChatBadge();
 })();
 </script>
 </body>
