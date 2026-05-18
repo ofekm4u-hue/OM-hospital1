@@ -866,7 +866,7 @@
       clearSOSUI();
       const b = document.createElement('div');
       b.dataset.sos = 'banner';
-      b.style.cssText = `position:fixed; top: calc(var(--header-h)); left: 0; right: 0; background: var(--danger); color: #fff; padding: 10px 18px; font-weight: 700; font-family: var(--font-ui); display:flex; align-items:center; gap:14px; z-index: 220; animation: blink-danger 0.9s infinite;`;
+      b.style.cssText = `position:fixed; top: calc(var(--header-h)); left: 0; right: 0; background: var(--danger); color: #fff; padding: 10px 18px; font-weight: 700; font-family: var(--font-ui); display:flex; align-items:center; gap:14px; z-index: 1300; animation: blink-danger 0.9s infinite;`;
       b.innerHTML = `
         <span style="font-size:18px;">⚠</span>
         <span>אירוע SOS פעיל — ${escapeHtml(ev.label)} | מאת ${escapeHtml(ev.who)}</span>
@@ -888,7 +888,7 @@
         border: 2px solid var(--danger);
         border-radius: var(--r-lg);
         padding: 16px 18px;
-        z-index: 240;
+        z-index: 1400;
         box-shadow: 0 16px 60px rgba(255,71,87,0.35), 0 0 0 4px rgba(255,71,87,0.12);
         animation: blink-danger 1.6s infinite;
         pointer-events: auto;
@@ -1740,11 +1740,157 @@
     ScoutDB.set('adultsSeeded', true);
   })();
 
+  // ---------- Incidents (master incident table + debrief protocol) ----------
+
+  const Incidents = (function () {
+    const TYPE_LABELS = {
+      'medical':        '🚑 רפואי',
+      'hazard':         '⚠ מפגע',
+      'security':       '🛡 אבטחה',
+      'sos':            '🚨 SOS',
+      'gate-exception': '⛩ חריג שער',
+      'parent-pickup':  '👨‍👧 איסוף הורה',
+      'patrol-report':  '🚶 דיווח סיור',
+      'other':          '📋 אחר',
+    };
+    const PRIORITY_LABELS = {
+      high:   '🟥 גבוהה (קריטי)',
+      medium: '🟨 בינונית',
+      low:    '🟦 נמוכה',
+    };
+    const STATUS_LABELS = {
+      pending:     '❌ לא בוצע',
+      'in-progress': '⏳ בטיפול',
+      resolved:    '✅ בוצע וסגור',
+    };
+
+    function list(filter) {
+      let arr = ScoutDB.get('incidents', []) || [];
+      if (filter && filter.status)   arr = arr.filter(i => i.status === filter.status);
+      if (filter && filter.priority) arr = arr.filter(i => i.priority === filter.priority);
+      if (filter && filter.type)     arr = arr.filter(i => i.type === filter.type);
+      return arr.slice().sort((a, b) => (b.ts || 0) - (a.ts || 0));
+    }
+    function get(id) { return (ScoutDB.get('incidents', []) || []).find(i => i.id === id); }
+
+    function create(payload) {
+      payload = payload || {};
+      const persona = UI.currentPersona();
+      const inc = {
+        id: 'inc-' + uuid().slice(0, 8),
+        type: payload.type || 'other',
+        title: payload.title || 'אירוע חריג',
+        details: payload.details || '',
+        reporter: payload.reporter || persona.name,
+        reporterRole: payload.reporterRole || persona.role,
+        ts: nowMs(),
+        gps: payload.gps || null,
+        priority: payload.priority || 'medium',
+        status: 'pending',
+        notes: [],
+        debrief: null,
+        acknowledgedBy: null,
+        acknowledgedAt: null,
+        locked: false,
+      };
+      ScoutDB.patch('incidents', l => (l || []).concat([inc]));
+      ScoutDB.appendAudit({
+        action: 'INCIDENT-CREATE', channel: 'sos',
+        details: `${inc.id} · ${TYPE_LABELS[inc.type] || inc.type}: ${inc.title} — דווח ע״י ${inc.reporter}`,
+      });
+      Bus.emit('incident:new', inc);
+      return inc;
+    }
+
+    function acknowledge(id) {
+      const cur = get(id);
+      if (!cur || cur.acknowledgedBy) return;
+      ScoutDB.patch('incidents', l => (l || []).map(i =>
+        i.id === id ? Object.assign({}, i, { acknowledgedBy: UI.currentPersona().name, acknowledgedAt: nowMs() }) : i));
+      Bus.emit('incident:updated', { id, acknowledgedBy: UI.currentPersona().name });
+    }
+
+    function setPriority(id, level) {
+      const cur = get(id);
+      if (!cur || cur.locked) return { ok: false, error: 'אירוע נעול' };
+      ScoutDB.patch('incidents', l => (l || []).map(i => i.id === id ? Object.assign({}, i, { priority: level }) : i));
+      ScoutDB.appendAudit({ action: 'INCIDENT-PRIORITY', channel: 'sos', details: `${id} → ${PRIORITY_LABELS[level] || level}` });
+      Bus.emit('incident:updated', { id, priority: level });
+      return { ok: true };
+    }
+
+    function setStatus(id, status) {
+      const cur = get(id);
+      if (!cur || cur.locked) return { ok: false, error: 'אירוע נעול' };
+      if (status === 'resolved') {
+        return { ok: false, error: 'יש לסגור אירוע דרך מודאל התחקיר (close)' };
+      }
+      ScoutDB.patch('incidents', l => (l || []).map(i => i.id === id ? Object.assign({}, i, { status }) : i));
+      ScoutDB.appendAudit({ action: 'INCIDENT-STATUS', channel: 'sos', details: `${id} → ${STATUS_LABELS[status] || status}` });
+      Bus.emit('incident:updated', { id, status });
+      return { ok: true };
+    }
+
+    function addNote(id, text) {
+      const cur = get(id);
+      if (!cur || cur.locked) return { ok: false, error: 'אירוע נעול' };
+      const note = { ts: nowMs(), by: UI.currentPersona().name, text: String(text || '').trim() };
+      if (!note.text) return { ok: false, error: 'אין תוכן' };
+      ScoutDB.patch('incidents', l => (l || []).map(i =>
+        i.id === id ? Object.assign({}, i, { notes: (i.notes || []).concat([note]) }) : i));
+      ScoutDB.appendAudit({ action: 'INCIDENT-NOTE', channel: 'sos', details: `${id}: ${note.text.slice(0, 80)}` });
+      Bus.emit('incident:updated', { id, note });
+      return { ok: true };
+    }
+
+    function close(id, debriefText) {
+      const cur = get(id);
+      if (!cur) return { ok: false, error: 'לא נמצא' };
+      if (cur.locked) return { ok: false, error: 'אירוע כבר נעול' };
+      const text = String(debriefText || '').trim();
+      if (text.length < 10) return { ok: false, error: 'תחקיר מינימלי 10 תווים' };
+      ScoutDB.patch('incidents', l => (l || []).map(i => i.id === id
+        ? Object.assign({}, i, {
+            status: 'resolved',
+            debrief: text,
+            locked: true,
+            resolvedAt: nowMs(),
+            resolvedBy: UI.currentPersona().name,
+          })
+        : i));
+      ScoutDB.appendAudit({
+        action: 'INCIDENT-CLOSE', channel: 'sos',
+        details: `${id} ננעל ע״י ${UI.currentPersona().name}. תחקיר: ${text.slice(0, 200)}`,
+      });
+      Bus.emit('incident:closed', { id, debrief: text });
+      return { ok: true };
+    }
+
+    return { list, get, create, acknowledge, setPriority, setStatus, addNote, close, TYPE_LABELS, PRIORITY_LABELS, STATUS_LABELS };
+  })();
+
+  // Hook: SOS triggers ALSO create an incident
+  (function hookSOSToIncidents() {
+    Bus.on('sos:trigger', ev => {
+      // Avoid duplicate incidents for the same SOS event
+      const existing = Incidents.list().find(i => i.type === 'sos' && i.title.includes(ev.id));
+      if (existing) return;
+      Incidents.create({
+        type: 'sos',
+        title: ev.label + ' [' + ev.id.slice(0, 8) + ']',
+        details: 'אירוע SOS שודר מהשטח. מטופל במסלול מהיר ע״י קב״ט.',
+        reporter: ev.who,
+        gps: ev.gps,
+        priority: ev.urgency === 'critical' ? 'high' : (ev.urgency === 'complex' ? 'high' : 'medium'),
+      });
+    });
+  })();
+
   // ---------- Export ----------
 
   global.Scout = {
     ScoutDB, Bus, Audio, DMS, SOS, Geo, Toast, Modal, UI, Auth, Drone, Chat, Personnel,
-    Gate, Checkout, ParentPickup,
+    Gate, Checkout, ParentPickup, Incidents,
     util: { uuid, nowMs, fmtTime, fmtDate, pick, clamp, escapeHtml, getParam },
     FORESTS,
   };

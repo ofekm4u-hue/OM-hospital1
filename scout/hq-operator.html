@@ -574,6 +574,31 @@
   Bus.on('checkout:approved', () => { renderHanichimRegistry(); renderRegistryStats(); });
   Bus.on('checkout:released', () => { renderHanichimRegistry(); renderRegistryStats(); });
   Bus.on('audit:append', renderEvents);
+
+  // Inbound incident alert — top-floating, non-blocking (read-only for HQ)
+  Bus.on('incident:new', inc => {
+    Scout.Audio.play('pulse-alert');
+    document.querySelectorAll('.incident-alert-banner').forEach(b => b.remove());
+    const banner = document.createElement('div');
+    banner.className = 'incident-alert-banner' + (inc.priority === 'high' ? ' is-critical' : '');
+    banner.innerHTML = `
+      <div class="ia-head">
+        <span>⚠ אזעקה נכנסה: ${util.escapeHtml(inc.title)}</span>
+        <span style="flex:1;"></span>
+        <span class="chip" style="font-size: 10px; background: ${inc.priority === 'high' ? 'var(--danger)' : 'var(--warn)'}; color: #fff; border-color: transparent;">${Scout.Incidents.PRIORITY_LABELS[inc.priority]}</span>
+      </div>
+      <div class="ia-meta">${util.escapeHtml(Scout.Incidents.TYPE_LABELS[inc.type] || inc.type)} · ${util.escapeHtml(inc.reporter)} · ${util.fmtTime(inc.ts)}${inc.gps ? ' · 📍 ' + inc.gps.lat.toFixed(4) + ',' + inc.gps.lng.toFixed(4) : ''}</div>
+      <div class="ia-actions">
+        <button class="btn btn--sm" data-action="ignore">התעלם / סגור</button>
+        <span style="display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--text-mid);">🔒 ניהול אצל קב"ט</span>
+      </div>
+    `;
+    document.body.appendChild(banner);
+    banner.addEventListener('click', e => {
+      if (e.target.closest('[data-action="ignore"]')) banner.remove();
+    });
+    setTimeout(() => { if (banner.parentNode) { banner.style.opacity = '0'; banner.style.transition = 'opacity 400ms'; setTimeout(() => banner.remove(), 450); } }, 20000);
+  });
   Bus.on('personnel:update', () => { renderRegistryStats(); renderAdultsRegistry(); });
 
   // HQ sees SOS as a passive observer — banner only, NOT a lockdown.

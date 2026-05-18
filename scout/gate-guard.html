@@ -207,7 +207,7 @@
     position: fixed;
     inset: 0;
     background: rgba(120, 0, 8, 0.88);
-    z-index: 350;
+    z-index: 1600;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1227,13 +1227,22 @@
     }));
     const reportBtn = document.getElementById('btn-report-hazard');
     if (reportBtn) reportBtn.addEventListener('click', () => {
-      const desc = prompt('תיאור המפגע (יישלח לחמ"ל עם המיקום הנוכחי):');
+      const desc = prompt('תיאור המפגע (יישלח לקב"ט וחמ"ל עם המיקום הנוכחי):');
       if (!desc || !desc.trim()) return;
+      const pos = Scout.Geo.snapshot()[0];
+      const gps = pos ? { lat: pos.lat, lng: pos.lng } : null;
       ScoutDB.patch('hazards', l => (l || []).concat([{ id: util.uuid().slice(0,6), desc, ts: util.nowMs(), reportedBy: UI.currentPersona().name }]));
+      // Create an incident in the master table — routed to Incident Management
+      Scout.Incidents.create({
+        type: 'hazard',
+        title: 'דיווח מפגע מסיור: ' + desc.slice(0, 60),
+        details: desc,
+        priority: 'medium',
+        gps,
+      });
       Bus.emit('bus:hazard', { desc, ts: util.nowMs() });
-      ScoutDB.appendAudit({ action: 'HAZARD-REPORT', channel: 'gate', details: desc });
       Scout.Audio.play('pulse-alert');
-      Toast.show('המפגע דווח לחמ"ל.', { kind: 'warn' });
+      Toast.show('המפגע דווח לקב"ט/חמ"ל. נוצר אירוע ב-"ניהול אירועים".', { kind: 'warn' });
     });
   }
 
