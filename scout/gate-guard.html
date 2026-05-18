@@ -133,6 +133,250 @@
   .bus-status.cleared { background: var(--bus-cleared); color: #052817; }
   .bus-status.inside  { background: var(--bus-inside); }
   .bus-status.left    { background: var(--bus-left); }
+
+  /* ===== Mobile-first universal SOS button ===== */
+  .sos-fab {
+    position: fixed;
+    bottom: 22px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 84px;
+    height: 84px;
+    border-radius: 50%;
+    background: var(--danger);
+    border: 3px solid #fff;
+    box-shadow: 0 0 0 4px rgba(255,71,87,0.25), 0 16px 40px rgba(255,71,87,0.5);
+    color: #fff;
+    font-family: var(--font-ui);
+    font-weight: 800;
+    font-size: 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    cursor: pointer;
+    z-index: 100;
+    user-select: none;
+    -webkit-touch-callout: none;
+    transition: transform 120ms ease, background 120ms;
+    animation: sos-idle-pulse 2.4s infinite;
+  }
+  @keyframes sos-idle-pulse {
+    0%, 100% { box-shadow: 0 0 0 4px rgba(255,71,87,0.25), 0 16px 40px rgba(255,71,87,0.5); }
+    50%      { box-shadow: 0 0 0 8px rgba(255,71,87,0.35), 0 20px 50px rgba(255,71,87,0.7); }
+  }
+  .sos-fab.arming {
+    background: #ff1a2e;
+    transform: translateX(-50%) scale(1.08);
+    animation: none;
+  }
+  .sos-fab.fired {
+    background: #ffd400;
+    color: #2d0306;
+    animation: none;
+  }
+  .sos-fab .sos-icon { font-size: 26px; line-height: 1; }
+  .sos-fab .sos-hint {
+    font-size: 9px;
+    font-weight: 600;
+    opacity: 0.85;
+    letter-spacing: 0.04em;
+    text-align: center;
+    line-height: 1;
+  }
+  .sos-ring {
+    position: absolute;
+    inset: -10px;
+    pointer-events: none;
+  }
+  .sos-ring circle {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 6;
+    transform: rotate(-90deg);
+    transform-origin: 50% 50%;
+    stroke-linecap: round;
+    stroke-dasharray: 0 295;
+    transition: stroke-dasharray 80ms linear;
+  }
+  .sos-fab.arming .sos-ring circle { stroke: #fff; }
+
+  /* SOS fired state (after long-press) */
+  .sos-fired-screen {
+    position: fixed;
+    inset: 0;
+    background: rgba(120, 0, 8, 0.88);
+    z-index: 350;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    animation: blink-danger 0.7s infinite;
+  }
+  .sos-fired-screen h2 {
+    color: #fff;
+    font-size: 28px;
+    margin-bottom: 8px;
+    text-align: center;
+  }
+  .sos-fired-screen p {
+    color: rgba(255,255,255,0.85);
+    margin: 0 0 18px;
+    text-align: center;
+    max-width: 320px;
+  }
+  .sos-fired-screen .actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    width: min(360px, 90vw);
+  }
+
+  /* ===== Chat FAB + Slide-up sheet ===== */
+  .chat-fab {
+    position: fixed;
+    bottom: 32px;
+    right: 18px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid #fff;
+    color: #06121A;
+    font-size: 22px;
+    box-shadow: 0 10px 28px rgba(77,208,225,0.45);
+    cursor: pointer;
+    z-index: 99;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .chat-fab .unread {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: var(--warn);
+    color: #1a0e00;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 999px;
+    border: 2px solid var(--bg-deep);
+    min-width: 18px;
+    text-align: center;
+  }
+  .chat-fab[hidden] { display: none; }
+
+  .chat-sheet {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    height: 75vh;
+    max-height: 720px;
+    background: var(--bg-panel);
+    border-top: 2px solid var(--accent);
+    border-radius: 18px 18px 0 0;
+    box-shadow: 0 -16px 60px rgba(0,0,0,0.5);
+    z-index: 101;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    transform: translateY(100%);
+    transition: transform 280ms cubic-bezier(.2,.7,.2,1);
+  }
+  .chat-sheet.is-open { transform: translateY(0); }
+  .chat-sheet-head {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .chat-sheet-head .grab {
+    width: 40px;
+    height: 4px;
+    background: var(--border-hi);
+    border-radius: 2px;
+    margin: 0 auto;
+    position: absolute;
+    top: 6px;
+    left: 0; right: 0;
+  }
+  .chat-sheet .channel-row {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-soft);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .chat-sheet .channel-row:hover { background: var(--bg-elev); }
+  .chat-sheet .channel-row.is-active {
+    background: var(--bg-elev);
+    border-right: 3px solid var(--accent);
+  }
+  .chat-sheet .channel-name { font-weight: 700; font-family: var(--font-ui); }
+  .chat-sheet .channel-meta { color: var(--text-mid); font-size: 11px; }
+  .chat-sheet-msgs {
+    overflow-y: auto;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .chat-sheet .bubble {
+    max-width: 78%;
+    padding: 8px 12px;
+    border-radius: 12px;
+    font-size: 14px;
+  }
+  .chat-sheet .bubble--me     { align-self: flex-start; background: rgba(77,208,225,0.10); border: 1px solid rgba(77,208,225,0.3); border-top-right-radius: 4px; }
+  .chat-sheet .bubble--other  { align-self: flex-end; background: var(--bg-elev); border: 1px solid var(--border); border-top-left-radius: 4px; }
+  .chat-sheet .bubble--system { align-self: center; background: rgba(91,141,239,0.08); border: 1px dashed rgba(91,141,239,0.3); color: var(--info); font-size: 12px; text-align: center; }
+  .chat-sheet .bubble .meta { display: block; font-size: 10px; color: var(--text-mid); margin-bottom: 3px; }
+  .chat-sheet .bubble .meta .role { color: var(--accent); font-weight: 700; margin-right: 4px; }
+  .chat-sheet .bubble .ts { font-size: 9px; color: var(--text-low); margin-top: 2px; display: block; }
+  .chat-sheet-compose {
+    border-top: 1px solid var(--border);
+    background: var(--bg-elev);
+    padding: 10px 12px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+  }
+  .chat-sheet-compose input { padding: 10px 14px; }
+
+  /* Reserve space at bottom so content isn't hidden behind SOS button */
+  .gate-content, .patrol-view { padding-bottom: 130px !important; }
+
+  /* ===== Live search bar (gate-guard) =====*/
+  .gate-search {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    padding: 8px 12px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .gate-search input {
+    flex: 1;
+    background: var(--bg-deep);
+    color: var(--text-hi);
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    padding: 8px 12px;
+    font: inherit;
+  }
+  .gate-search .lbl {
+    color: var(--text-mid);
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 700;
+  }
 </style>
 </head>
 <body class="tactical-grid">
@@ -173,6 +417,13 @@
     </nav>
 
     <main class="gate-content">
+      <!-- Live search bar (gate-mode only) -->
+      <div class="gate-search" id="gate-search" hidden>
+        <span class="lbl">🔍</span>
+        <input id="gate-search-input" type="search" placeholder="חפש שם, מספר רכב, או שם חברה..." autocomplete="off">
+        <span class="chip" id="gate-search-hint" hidden>0 תוצאות</span>
+      </div>
+
       <!-- Scan banner -->
       <div class="scan-banner" id="scan-banner" hidden></div>
 
@@ -183,6 +434,41 @@
       <section data-pane="guests" hidden></section>
       <section data-pane="exceptions" hidden></section>
     </main>
+  </div>
+
+  <!-- ===== Universal SOS button (always visible) ===== -->
+  <button class="sos-fab" id="universal-sos" type="button" aria-label="לחצן מצוקה — לחץ והחזק 3 שניות">
+    <svg class="sos-ring" viewBox="0 0 100 100" width="104" height="104">
+      <circle cx="50" cy="50" r="47" />
+    </svg>
+    <span class="sos-icon">🚨</span>
+    <span class="sos-label">SOS</span>
+    <span class="sos-hint">החזק 3 שניות</span>
+  </button>
+
+  <!-- ===== Chat FAB ===== -->
+  <button class="chat-fab" id="chat-fab" type="button" aria-label="פתח צ׳אט">
+    💬
+    <span class="unread" id="chat-fab-unread" hidden>0</span>
+  </button>
+
+  <!-- ===== Chat slide-up sheet ===== -->
+  <div class="chat-sheet" id="chat-sheet" role="dialog" aria-modal="true">
+    <div class="chat-sheet-head">
+      <div class="grab"></div>
+      <h3 style="font-size: 16px; margin: 0;" id="chat-sheet-title">צ׳אט מבצעי</h3>
+      <span class="chip chip--info" id="chat-sheet-meta" style="font-size: 11px;">—</span>
+      <span style="flex:1;"></span>
+      <button class="btn btn--sm btn--ghost" id="chat-sheet-back" hidden>← ערוצים</button>
+      <button class="btn btn--sm btn--ghost" id="chat-sheet-close">✕</button>
+    </div>
+    <div class="chat-sheet-msgs" id="chat-sheet-body">
+      <!-- Channels list OR messages -->
+    </div>
+    <form class="chat-sheet-compose" id="chat-sheet-compose" hidden>
+      <input class="input" name="msg" placeholder="הקלד הודעה..." autocomplete="off">
+      <button type="submit" class="btn btn--primary btn--sm">שלח ➤</button>
+    </form>
   </div>
 
 <script src="shared/engine.js"></script>
@@ -714,9 +1000,9 @@
           </div>
         </div>
 
-        <div style="margin-top: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-          <button class="btn btn--lg" id="btn-report-hazard">📸 דיווח מפגע מהיר</button>
-          <button class="btn btn--danger btn--lg" id="btn-patrol-sos">🚨 הפעלת SOS חירום</button>
+        <div style="margin-top: 14px;">
+          <button class="btn btn--lg btn--block" id="btn-report-hazard">📸 דיווח מפגע מהיר</button>
+          <div style="text-align: center; margin-top: 10px; font-size: 11px; color: var(--text-low);">⬇ לחצן SOS אדום בתחתית — החזק 3 שניות להפעלה</div>
         </div>
       </div>
     `;
@@ -745,11 +1031,6 @@
       Scout.Audio.play('pulse-alert');
       Toast.show('המפגע דווח לחמ"ל.', { kind: 'warn' });
     });
-    const sosBtn = document.getElementById('btn-patrol-sos');
-    if (sosBtn) sosBtn.addEventListener('click', () => {
-      if (!confirm('להפעיל אירוע SOS? פעולה זו תתריע לחמ"ל ולקב"ט.')) return;
-      SOS.trigger({ source: 'patrol-manual', label: 'מאבטח בסיור — אירוע SOS', who: UI.currentPersona().name });
-    });
   }
 
   // ===== Initial render — depends on mission =====
@@ -758,12 +1039,289 @@
     document.querySelector('.gate-content').innerHTML = renderPatrolView();
     bindPatrolView();
   } else {
+    document.getElementById('gate-search').hidden = false;
     renderSuppliers();
     renderBuses();
     renderStaff();
     renderGuests();
     renderExceptions();
   }
+
+  // ============================================================
+  // ===== Universal SOS button — 3-second long-press =====
+  // ============================================================
+  (function setupUniversalSOS() {
+    const btn = document.getElementById('universal-sos');
+    const ring = btn.querySelector('.sos-ring circle');
+    const CIRC = 2 * Math.PI * 47; // ~295
+    let timer = null;
+    let startTs = 0;
+
+    function reset() {
+      btn.classList.remove('arming');
+      ring.style.strokeDasharray = `0 ${CIRC}`;
+      if (timer) { clearInterval(timer); timer = null; }
+    }
+    function arm(e) {
+      if (e.cancelable) e.preventDefault();
+      if (btn.classList.contains('fired')) return;
+      startTs = Date.now();
+      btn.classList.add('arming');
+      // play a quick blip so user knows it's arming
+      try { Scout.Audio.play('blip'); } catch (err) {}
+      timer = setInterval(() => {
+        const elapsed = Date.now() - startTs;
+        const pct = Math.min(1, elapsed / 3000);
+        ring.style.strokeDasharray = `${(pct * CIRC).toFixed(1)} ${CIRC}`;
+        if (pct >= 1) {
+          clearInterval(timer); timer = null;
+          fire();
+        }
+      }, 50);
+    }
+    function disarm() {
+      if (timer) {
+        // Cancelled early
+        const elapsed = Date.now() - startTs;
+        if (elapsed < 600) {
+          Toast.show('⚠ ה-SOS דורש לחיצה ארוכה של 3 שניות.', { kind: 'warn' });
+        }
+      }
+      reset();
+    }
+    function fire() {
+      btn.classList.remove('arming');
+      btn.classList.add('fired');
+      btn.querySelector('.sos-hint').textContent = 'נשלח לחמ"ל';
+      const pos = ScoutDB.get('myLocation', null) || (Scout.Geo.snapshot()[0] && { lat: Scout.Geo.snapshot()[0].lat, lng: Scout.Geo.snapshot()[0].lng }) || null;
+      const ev = SOS.trigger({
+        source: currentMission === 'patrol' ? 'patrol-sos' : 'guard-sos',
+        label: `מאבטח ${UI.currentPersona().name} — לחצן מצוקה`,
+        gps: pos,
+      });
+      try { Scout.Audio.play('tactical-siren', { durationMs: 3500 }); } catch (e) {}
+      showFiredScreen(ev);
+    }
+
+    btn.addEventListener('pointerdown', arm);
+    btn.addEventListener('pointerup', disarm);
+    btn.addEventListener('pointerleave', disarm);
+    btn.addEventListener('pointercancel', disarm);
+    // Touchend in case pointer not supported
+    btn.addEventListener('touchend', disarm);
+  })();
+
+  function showFiredScreen(ev) {
+    // Take-over screen confirming SOS sent; allows urgent updates
+    const host = document.createElement('div');
+    host.className = 'sos-fired-screen';
+    host.innerHTML = `
+      <div style="font-size: 56px; margin-bottom: 12px;">🚨</div>
+      <h2>SOS שודר לחמ"ל</h2>
+      <p>אנא המתן להגעת תגבורת. הקב"ט קיבל את מיקום ה-GPS שלך וצליל סירנה.</p>
+      <div class="actions">
+        <button class="btn btn--lg" data-fired-action="voice">🎙 הודעה קולית דחופה</button>
+        <button class="btn btn--lg" data-fired-action="update">📝 עדכון מצב</button>
+        <button class="btn btn--ok btn--lg" data-fired-action="ack">✓ חמ"ל בקשר</button>
+        <button class="btn btn--danger btn--lg" data-fired-action="cancel">✕ ביטול שווא</button>
+      </div>
+    `;
+    document.body.appendChild(host);
+    host.addEventListener('click', e => {
+      const btn = e.target.closest('[data-fired-action]'); if (!btn) return;
+      const a = btn.dataset.firedAction;
+      if (a === 'voice') {
+        try { Scout.Audio.play('voice-prompt', { text: 'מאבטח שולח עדכון קולי דחוף' }); } catch (e) {}
+        Toast.show('הודעה קולית נשלחה (דמו).', { kind: 'ok' });
+      }
+      if (a === 'update') {
+        const txt = prompt('עדכון מצב מהשטח:');
+        if (txt && txt.trim()) { SOS.addFieldUpdate(txt.trim()); Toast.show('העדכון נשלח לחמ"ל.', { kind: 'ok' }); }
+      }
+      if (a === 'ack') {
+        host.remove();
+        document.getElementById('universal-sos').classList.remove('fired');
+        document.getElementById('universal-sos').querySelector('.sos-hint').textContent = 'החזק 3 שניות';
+      }
+      if (a === 'cancel') {
+        if (!confirm('לבטל את ה-SOS כשגיאה / לחיצה שגויה? פעולה זו תושת בלוג.')) return;
+        ScoutDB.appendAudit({ action: 'SOS-FALSE-ALARM', channel: 'sos', details: 'בוטל ע״י השולח כשווא' });
+        SOS.clear('בוטל ע״י השולח כלחיצה שגויה / שווא');
+        host.remove();
+        document.getElementById('universal-sos').classList.remove('fired');
+        document.getElementById('universal-sos').querySelector('.sos-hint').textContent = 'החזק 3 שניות';
+        Toast.show('האירוע בוטל.', { kind: 'warn' });
+      }
+    });
+  }
+
+  // ============================================================
+  // ===== Live search filter for gate-mode tabs =====
+  // ============================================================
+  (function setupGateSearch() {
+    const input = document.getElementById('gate-search-input');
+    const hint = document.getElementById('gate-search-hint');
+    if (!input) return;
+    function apply() {
+      const term = input.value.trim().toLowerCase();
+      const activePane = document.querySelector('[data-pane]:not([hidden])');
+      if (!activePane) return;
+      let visible = 0, total = 0;
+      activePane.querySelectorAll('.vehicle-card, .bus-row, tbody tr').forEach(row => {
+        total++;
+        if (!term) { row.style.display = ''; visible++; return; }
+        const txt = row.textContent.toLowerCase();
+        if (txt.includes(term)) { row.style.display = ''; visible++; }
+        else row.style.display = 'none';
+      });
+      if (term) { hint.hidden = false; hint.textContent = `${visible} / ${total} תוצאות`; }
+      else { hint.hidden = true; }
+    }
+    input.addEventListener('input', apply);
+    document.querySelectorAll('.gate-tab[data-tab]').forEach(t => t.addEventListener('click', () => setTimeout(apply, 0)));
+    // Reapply after re-renders (any data change triggers a re-render)
+    ['bus:vehicle-added','bus:bus-added','bus:guest-issued','bus:gate-exception','bus:gate-exception:resolved','auth:onboarded','auth:user-invited','personnel:update']
+      .forEach(ch => Bus.on(ch, () => setTimeout(apply, 50)));
+  })();
+
+  // ============================================================
+  // ===== Chat hub (slide-up sheet from FAB) =====
+  // ============================================================
+  const Chat = Scout.Chat;
+  const chatFab    = document.getElementById('chat-fab');
+  const chatSheet  = document.getElementById('chat-sheet');
+  const chatBody   = document.getElementById('chat-sheet-body');
+  const chatTitle  = document.getElementById('chat-sheet-title');
+  const chatMeta   = document.getElementById('chat-sheet-meta');
+  const chatCompose= document.getElementById('chat-sheet-compose');
+  const chatBack   = document.getElementById('chat-sheet-back');
+  const chatClose  = document.getElementById('chat-sheet-close');
+  const chatUnread = document.getElementById('chat-fab-unread');
+  let chatView = 'list';        // 'list' or 'thread'
+  let activeChatId = null;
+  let lastSeenIdx  = ScoutDB.get('chatLastSeen', {}) || {};
+
+  function openChatSheet() {
+    chatSheet.classList.add('is-open');
+    chatFab.hidden = true;
+    showList();
+  }
+  function closeChatSheet() {
+    chatSheet.classList.remove('is-open');
+    chatFab.hidden = false;
+    updateUnread();
+  }
+  function showList() {
+    chatView = 'list';
+    activeChatId = null;
+    chatTitle.textContent = 'צ׳אט מבצעי';
+    chatBack.hidden = true;
+    chatCompose.hidden = true;
+    chatMeta.textContent = persona.staffId ? 'מחובר כ-' + persona.name : 'דמו';
+    const role = UI.currentPersona().role;
+    const channels = Chat.visibleChannels(role, persona.staffId);
+    if (channels.length === 0) {
+      chatBody.innerHTML = '<div style="color: var(--text-mid); text-align:center; padding: 30px;">אין ערוצים זמינים עבור התפקיד שלך כעת.</div>';
+      return;
+    }
+    chatBody.innerHTML = channels.map(c => {
+      const msgs = Chat.messages(c.id);
+      const last = msgs[msgs.length - 1];
+      const lastIdx = msgs.length - 1;
+      const seenIdx = lastSeenIdx[c.id] === undefined ? -1 : lastSeenIdx[c.id];
+      const unread = Math.max(0, lastIdx - seenIdx);
+      let icon = c.locked ? '🔒' : (c.custom ? '👥' : (c.isDM ? '🗨' : '💬'));
+      return `
+        <div class="channel-row" data-channel="${c.id}">
+          <div style="font-size: 20px;">${icon}</div>
+          <div style="flex:1; overflow:hidden;">
+            <div class="channel-name">${util.escapeHtml(c.name)}</div>
+            <div class="channel-meta">${last ? util.escapeHtml(last.text.slice(0, 50)) + (last.text.length > 50 ? '...' : '') : 'אין הודעות עדיין'}</div>
+          </div>
+          ${unread > 0 ? `<span class="chip chip--warn" style="font-size: 10px;">${unread}</span>` : ''}
+        </div>
+      `;
+    }).join('');
+  }
+  function showThread(channelId) {
+    chatView = 'thread';
+    activeChatId = channelId;
+    const channels = Chat.visibleChannels(UI.currentPersona().role, persona.staffId);
+    const chan = channels.find(c => c.id === channelId);
+    if (!chan) { showList(); return; }
+    chatTitle.textContent = chan.name;
+    chatBack.hidden = false;
+    chatMeta.textContent = chan.locked ? '🔒 ערוץ נעול' : (chan.isDM ? 'שיחה פרטית' : 'ערוץ קבוצתי');
+    const msgs = Chat.messages(channelId);
+    const me = UI.currentPersona().name;
+    chatBody.innerHTML = msgs.map(m => {
+      const cls = m.role === 'system' ? 'bubble--system' : (m.from === me ? 'bubble--me' : 'bubble--other');
+      return `<div class="bubble ${cls}">
+        ${m.role !== 'system' ? `<span class="meta"><span class="role">${util.escapeHtml(UI.ROLE_LABELS[m.role] || m.role)}</span>${util.escapeHtml(m.from)}</span>` : ''}
+        ${util.escapeHtml(m.text)}
+        ${m.role !== 'system' ? `<span class="ts">${util.fmtTime(m.ts)} ✓✓</span>` : ''}
+      </div>`;
+    }).join('') || '<div style="color: var(--text-mid); text-align:center; padding: 30px;">אין הודעות. שלח את הראשונה ↓</div>';
+    chatBody.scrollTop = chatBody.scrollHeight;
+    // Compose only if guard can write here
+    const role = UI.currentPersona().role;
+    const canWrite = !chan.locked || ['kabat','hq-shift','hq-op','national'].includes(role);
+    chatCompose.hidden = false;
+    chatCompose.querySelector('[name="msg"]').disabled = !canWrite;
+    chatCompose.querySelector('button[type="submit"]').disabled = !canWrite;
+    chatCompose.querySelector('[name="msg"]').placeholder = canWrite ? 'הקלד הודעה...' : '🔒 ערוץ נעול לכתיבה';
+    // Mark as read
+    lastSeenIdx[channelId] = Chat.messages(channelId).length - 1;
+    ScoutDB.set('chatLastSeen', lastSeenIdx);
+    updateUnread();
+  }
+  function updateUnread() {
+    const role = UI.currentPersona().role;
+    const channels = Chat.visibleChannels(role, persona.staffId);
+    let total = 0;
+    channels.forEach(c => {
+      const lastIdx = Chat.messages(c.id).length - 1;
+      const seen = lastSeenIdx[c.id] === undefined ? -1 : lastSeenIdx[c.id];
+      total += Math.max(0, lastIdx - seen);
+    });
+    if (total > 0) { chatUnread.hidden = false; chatUnread.textContent = total > 99 ? '99+' : total; }
+    else { chatUnread.hidden = true; }
+  }
+
+  chatFab.addEventListener('click', openChatSheet);
+  chatClose.addEventListener('click', closeChatSheet);
+  chatBack.addEventListener('click', showList);
+  chatBody.addEventListener('click', e => {
+    const row = e.target.closest('[data-channel]');
+    if (!row) return;
+    showThread(row.dataset.channel);
+  });
+  chatCompose.addEventListener('submit', e => {
+    e.preventDefault();
+    const input = e.target.msg;
+    const text = input.value.trim();
+    if (!text || !activeChatId) return;
+    Chat.send(activeChatId, text);
+    input.value = '';
+    showThread(activeChatId);
+  });
+  // Live update from Bus
+  Bus.on('chat:new', () => {
+    if (chatSheet.classList.contains('is-open')) {
+      if (chatView === 'thread' && activeChatId) showThread(activeChatId);
+      else showList();
+    }
+    updateUnread();
+  });
+  Bus.on('chat:groups-updated', () => {
+    if (chatSheet.classList.contains('is-open') && chatView === 'list') showList();
+    updateUnread();
+  });
+  Bus.on('bus:broadcast', payload => {
+    Toast.show('📢 ' + payload.text, { kind: 'warn', duration: 5000 });
+    try { Scout.Audio.play('voice-prompt', { text: payload.text }); } catch (e) {}
+  });
+  updateUnread();
 })();
 </script>
 </body>
