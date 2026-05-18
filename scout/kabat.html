@@ -1448,7 +1448,7 @@
         <h2>🚚 רכבי ספקים מאושרים</h2>
         <span class="chip">${(ScoutDB.get('vehicles', []) || []).length} רכבים</span>
         <span style="flex:1"></span>
-        <button class="btn btn--sm btn--primary" data-action="add-supplier">+ הוסף ספק מאושר</button>
+        ${Scout.Gate.canAdd(UI.currentPersona().role, 'supplier') ? '<button class="btn btn--sm btn--primary" data-action="add-supplier">+ הוסף ספק מאושר</button>' : '<span class="chip chip--demo" title="הרשאה זו דרושה לאחראי חמ&quot;ל / חמ&quot;ל / קב&quot;ט / מנהל מחנה / מנהל ארצי / אקונומיה / תברואן">🔒 ללא הרשאה לתפקיד זה</span>'}
       </div>
       <table class="table">
         <thead><tr><th>מספר רכב</th><th>נהג</th><th>ספק / מחלקה</th><th>טלפון</th><th>סטטוס</th><th></th></tr></thead>
@@ -1473,7 +1473,7 @@
         <h2>🚌 לוח אוטובוסים והיסעים</h2>
         <span class="chip">${(ScoutDB.get('buses', []) || []).length} אוטובוסים</span>
         <span style="flex:1"></span>
-        <button class="btn btn--sm btn--primary" data-action="add-bus">+ הקם אוטובוס מאושר</button>
+        ${Scout.Gate.canAdd(UI.currentPersona().role, 'bus') ? '<button class="btn btn--sm btn--primary" data-action="add-bus">+ הקם אוטובוס מאושר</button>' : '<span class="chip chip--demo" title="הרשאה זו דרושה לאחראי חמ&quot;ל ומנהל מחנה בלבד">🔒 רק אחראי חמ"ל ומנהל מחנה</span>'}
       </div>
       <table class="table">
         <thead><tr><th>מס׳ רישוי</th><th>שבט / גדוד</th><th>נהג / מלווה</th><th>חניכים</th><th>סטטוס</th><th></th></tr></thead>
@@ -1532,7 +1532,7 @@
         <h2>🎫 אורחים מאושרים כניסה</h2>
         <span class="chip">${guests.length} אורחים</span>
         <span style="flex:1"></span>
-        <button class="btn btn--sm btn--primary" data-action="add-guest">+ הוסף אורח מאושר בתיאום</button>
+        ${Scout.Gate.canAdd(UI.currentPersona().role, 'guest') ? '<button class="btn btn--sm btn--primary" data-action="add-guest">+ הוסף אורח מאושר בתיאום</button>' : '<span class="chip chip--demo">🔒 ללא הרשאה</span>'}
       </div>
       <table class="table">
         <thead><tr><th>שם</th><th>שיוך / סיבת הגעה</th><th>טלפון</th><th>רכב</th><th>סטטוס</th></tr></thead>

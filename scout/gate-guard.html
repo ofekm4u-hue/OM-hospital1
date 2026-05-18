@@ -404,6 +404,11 @@
         <div class="tab-meta">מבקרים בתיאום קב"ט</div>
         <span class="tab-count" data-count="guests">—</span>
       </button>
+      <button class="gate-tab" data-tab="checkouts">
+        <div class="tab-title">🚪 יציאת חניכים</div>
+        <div class="tab-meta">סמכות חמ"ל בלבד</div>
+        <span class="tab-count" data-count="checkouts">—</span>
+      </button>
       <button class="gate-tab" data-tab="exceptions">
         <div class="tab-title">⚠ אישורים חריגים</div>
         <div class="tab-meta">ממתינים לקב"ט</div>
@@ -432,6 +437,7 @@
       <section data-pane="buses" hidden></section>
       <section data-pane="staff" hidden></section>
       <section data-pane="guests" hidden></section>
+      <section data-pane="checkouts" hidden></section>
       <section data-pane="exceptions" hidden></section>
     </main>
   </div>
@@ -755,6 +761,204 @@
   });
 
   // ----- Exceptions -----
+  // ----- Hanich Checkouts (HQ-approved exits) -----
+  function renderCheckouts() {
+    const tribes = ScoutDB.get('tribes', []);
+    const approved = (ScoutDB.get('hanichim', []) || []).filter(h => h.checkoutApproved && h.status !== 'released');
+    const verifications = (ScoutDB.get('checkoutVerifications', []) || []);
+    const html = `
+      <div class="gate-toolbar">
+        <h2 style="font-family: var(--font-ui);">🚪 יציאת חניכים</h2>
+        <span class="chip">${approved.length} מאושרים</span>
+        <span style="flex:1;"></span>
+        <button class="btn btn--sm btn--primary" id="btn-parent-pickup">👨‍👧 איסוף ע"י הורה</button>
+        <button class="btn btn--sm btn--danger" id="btn-track-b">🔴 שלח אימות לחמ"ל (Track B)</button>
+      </div>
+
+      <div style="background: rgba(91,141,239,0.06); border: 1px dashed rgba(91,141,239,0.32); border-radius: var(--r-md); padding: 10px 12px; margin-bottom: 12px; font-size: 12px; color: var(--info);">
+        🔒 <strong>סמכות החמ"ל בלבד</strong> — המאבטח אינו מאשר חניך באופן עצמאי. דרושים: <strong>אישור דיגיטלי</strong> מהחמ"ל + <strong>טופס נייר פיזי</strong> חתום.
+      </div>
+
+      ${approved.length === 0
+        ? '<div style="color: var(--text-low); text-align: center; padding: 24px;">אין חניכים מאושרים ליציאה.</div>'
+        : approved.map(h => {
+          const t = tribes.find(tr => tr.id === h.tribeId);
+          return `
+            <div class="vehicle-card" style="border-color: var(--ok); box-shadow: inset 4px 0 0 var(--ok); background: rgba(45,216,129,0.06);">
+              <div style="width: 40px; height: 40px; background: var(--ok); color: #052817; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px;">${util.escapeHtml((h.name.split(' ')[0] || '?')[0])}</div>
+              <div class="info">
+                <div class="driver">${util.escapeHtml(h.name)}</div>
+                <div class="vendor">שבט ${util.escapeHtml(t ? t.name : '')} · אושר ע"י ${util.escapeHtml(h.checkoutApprovedBy || 'חמ"ל')}</div>
+                <div style="font-size: 11px; color: var(--ok); margin-top: 2px;">📄 טופס: <code style="background: rgba(0,0,0,0.3); padding: 1px 6px; border-radius: 3px;">${util.escapeHtml(h.checkoutPaperRef || '—')}</code> · סיבה: ${util.escapeHtml(h.checkoutReason || '')}</div>
+              </div>
+              <span class="chip chip--ok" style="font-weight: 700;">✅ מאושר יציאה</span>
+              <button class="btn btn--ok btn--sm" data-checkout-release="${h.id}">שחרר חניך</button>
+            </div>`;
+        }).join('')}
+
+      ${verifications.length === 0 ? '' : `
+        <div style="margin-top: 18px;">
+          <div style="font-family: var(--font-ui); font-size: 12px; color: var(--text-mid); margin-bottom: 8px;">📋 בקשות אימות שנשלחו לחמ"ל (Track B)</div>
+          ${verifications.slice().reverse().map(v => {
+            const isResolved = v.status !== 'pending';
+            return `
+              <div style="padding: 10px 12px; background: ${isResolved ? 'var(--bg-elev)' : 'rgba(255,71,87,0.08)'}; border: 1px solid ${isResolved ? 'var(--border)' : 'var(--danger)'}; border-radius: var(--r-sm); margin-bottom: 6px;">
+                <strong>${util.escapeHtml(v.hanichName)}</strong>
+                <span class="chip chip--${v.status === 'approved' ? 'ok' : v.status === 'denied' ? 'danger' : 'warn'}" style="font-size: 10px; margin-right: 6px;">${v.status === 'pending' ? '⏳ ממתין' : v.status === 'approved' ? '✅ אומת' : '⛔ נדחה'}</span>
+                <div style="font-size: 11px; color: var(--text-mid); margin-top: 4px;">${util.escapeHtml(v.reason)}</div>
+              </div>`;
+          }).join('')}
+        </div>
+      `}
+    `;
+    document.querySelector('[data-pane="checkouts"]').innerHTML = html;
+    document.querySelector('[data-count="checkouts"]').textContent = approved.length;
+  }
+
+  document.addEventListener('click', e => {
+    const id = e.target.dataset.checkoutRelease;
+    if (!id) return;
+    const h = (ScoutDB.get('hanichim', []) || []).find(x => x.id === id);
+    if (!h) return;
+    // Mandatory paper verification modal
+    const host = document.createElement('div');
+    host.className = 'modal-host';
+    host.innerHTML = `
+      <div class="modal" style="width: min(540px, 92vw);">
+        <div style="color: var(--warn); font-family: var(--font-ui); font-weight: 800; letter-spacing: .14em; text-transform: uppercase; font-size: 12px;">📋 אימות חובה</div>
+        <h3 style="margin: 6px 0 6px;">שחרור חניך — ${util.escapeHtml(h.name)}</h3>
+        <p style="color: var(--text-mid); margin: 0 0 14px;">לפני שחרור, ודא קבלת <strong>טופס נייר פיזי</strong> חתום מהחמ"ל.</p>
+
+        <div style="background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--r-md); padding: 14px; margin-bottom: 14px;">
+          <div style="font-size: 11px; color: var(--text-low); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 6px;">מספר טופס מהחמ"ל</div>
+          <code style="font-family: var(--font-mono); font-size: 24px; color: var(--accent); font-weight: 700;">${util.escapeHtml(h.checkoutPaperRef || '—')}</code>
+          <div style="font-size: 11px; color: var(--text-mid); margin-top: 6px;">סיבה: ${util.escapeHtml(h.checkoutReason || '—')}</div>
+        </div>
+
+        <label style="display: flex; align-items: flex-start; gap: 10px; padding: 12px; background: var(--bg-deep); border: 1px solid var(--border); border-radius: var(--r-sm); cursor: pointer;">
+          <input type="checkbox" id="paper-check" style="accent-color: var(--ok); width: 20px; height: 20px; margin-top: 1px;">
+          <span><strong>קיבלתי את טופס הנייר הפיזי</strong> חתום מהחמ"ל ובדקתי שמספר הטופס תואם.</span>
+        </label>
+
+        <div style="display:flex; gap:10px; justify-content:flex-end; margin-top: 18px;">
+          <button class="btn btn--ghost" data-cancel>ביטול</button>
+          <button class="btn btn--ok" data-confirm-release disabled>שחרר חניך</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(host);
+    const cb = host.querySelector('#paper-check');
+    const confirmBtn = host.querySelector('[data-confirm-release]');
+    cb.addEventListener('change', () => confirmBtn.disabled = !cb.checked);
+    host.querySelector('[data-cancel]').addEventListener('click', () => host.remove());
+    confirmBtn.addEventListener('click', () => {
+      const r = Scout.Checkout.confirmAtGate(id);
+      if (!r.ok) { Toast.show(r.error, { kind: 'warn' }); return; }
+      Scout.Audio.play('blip');
+      Toast.show(`${h.name} שוחרר. תועד בלוג ובסטטוס.`, { kind: 'ok' });
+      host.remove();
+      renderCheckouts();
+    });
+  });
+
+  function openParentPickupForm() {
+    const all = (ScoutDB.get('hanichim', []) || []).filter(h => h.status === 'present');
+    if (all.length === 0) { Toast.show('אין חניכים נוכחים.', { kind: 'warn' }); return; }
+    const tribes = ScoutDB.get('tribes', []);
+    const host = document.createElement('div');
+    host.className = 'modal-host';
+    host.innerHTML = `
+      <form class="modal" style="width: min(540px, 92vw);">
+        <h3>👨‍👧 קליטת הורה לאיסוף חניך</h3>
+        <p style="color: var(--text-mid); margin: 0 0 14px;">הבקשה תועבר לחמ"ל, ומשם תנותב למרכז השבט לאימות מול המשפחה.</p>
+
+        <div class="form-field"><label>שם ההורה *</label><input class="input" name="parentName" required></div>
+        <div class="form-field"><label>טלפון ההורה *</label><input class="input" name="parentPhone" type="tel" required></div>
+        <div class="form-field"><label>שם החניך *</label>
+          <select class="select" name="hanichId" required>
+            <option value="" disabled selected>— בחר חניך —</option>
+            ${all.map(h => {
+              const t = tribes.find(tr => tr.id === h.tribeId);
+              return `<option value="${h.id}">${util.escapeHtml(h.name)} · שבט ${util.escapeHtml(t ? t.name : '')}</option>`;
+            }).join('')}
+          </select>
+        </div>
+
+        <div style="display:flex; gap:10px; justify-content:flex-end; margin-top: 14px;">
+          <button type="button" class="btn btn--ghost" data-cancel>ביטול</button>
+          <button type="submit" class="btn btn--primary">שלח בקשה לחמ"ל</button>
+        </div>
+      </form>
+    `;
+    document.body.appendChild(host);
+    const form = host.querySelector('form');
+    host.querySelector('[data-cancel]').addEventListener('click', () => host.remove());
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const r = Scout.ParentPickup.requestAtGate({
+        parentName: form.parentName.value.trim(),
+        parentPhone: form.parentPhone.value.trim(),
+        hanichId: form.hanichId.value,
+      });
+      if (!r.ok) { Toast.show(r.error, { kind: 'warn' }); return; }
+      Toast.show('הבקשה נשלחה לחמ"ל לניתוב למרכז שבט.', { kind: 'warn' });
+      Scout.Audio.play('echo-bell');
+      host.remove();
+    });
+  }
+
+  function openTrackBVerification() {
+    const present = (ScoutDB.get('hanichim', []) || []).filter(h => h.status === 'present' && !h.checkoutApproved);
+    if (present.length === 0) { Toast.show('אין חניכים זמינים.', { kind: 'warn' }); return; }
+    const tribes = ScoutDB.get('tribes', []);
+    const host = document.createElement('div');
+    host.className = 'modal-host';
+    host.innerHTML = `
+      <form class="modal" style="width: min(540px, 92vw);">
+        <div style="color: var(--danger); font-family: var(--font-ui); font-weight: 800; letter-spacing: .14em; text-transform: uppercase; font-size: 12px;">🔴 TRACK B</div>
+        <h3 style="margin: 6px 0 6px;">בקשת אימות חניך לחמ"ל</h3>
+        <p style="color: var(--text-mid); margin: 0 0 14px;">החניך הגיע עם טופס נייר חתום אבל ללא סטטוס דיגיטלי במערכת. רק <strong>אחראי חמ"ל</strong> רשאי לאשר את המקרה.</p>
+
+        <div class="form-field"><label>שם החניך / זיהוי *</label>
+          <select class="select" name="hanichId" required>
+            <option value="" disabled selected>— בחר —</option>
+            ${present.map(h => {
+              const t = tribes.find(tr => tr.id === h.tribeId);
+              return `<option value="${h.id}" data-name="${util.escapeHtml(h.name)}">${util.escapeHtml(h.name)} · שבט ${util.escapeHtml(t ? t.name : '')}</option>`;
+            }).join('')}
+          </select>
+        </div>
+        <div class="form-field"><label>סיבת האימות *</label>
+          <textarea class="textarea" name="reason" required rows="3" style="width:100%;" placeholder="לדוגמה: חניך הציג טופס חתום ביד מהחמ&quot;ל ללא רישום במערכת"></textarea>
+        </div>
+
+        <div style="display:flex; gap:10px; justify-content:flex-end; margin-top: 14px;">
+          <button type="button" class="btn btn--ghost" data-cancel>ביטול</button>
+          <button type="submit" class="btn btn--danger">שלח לחמ"ל לאימות</button>
+        </div>
+      </form>
+    `;
+    document.body.appendChild(host);
+    const form = host.querySelector('form');
+    host.querySelector('[data-cancel]').addEventListener('click', () => host.remove());
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const id = form.hanichId.value;
+      const opt = form.hanichId.options[form.hanichId.selectedIndex];
+      const name = opt.dataset.name || opt.textContent.split(' · ')[0];
+      Scout.Checkout.requestGateVerification(name, form.reason.value.trim());
+      Toast.show('הבקשה נשלחה לחמ"ל. רק אחראי חמ"ל יכול לאשר.', { kind: 'warn' });
+      Scout.Audio.play('pulse-alert');
+      host.remove();
+      renderCheckouts();
+    });
+  }
+
+  document.addEventListener('click', e => {
+    if (e.target.id === 'btn-parent-pickup') openParentPickupForm();
+    if (e.target.id === 'btn-track-b')       openTrackBVerification();
+  });
+
   function renderExceptions() {
     const all = ScoutDB.get('gateExceptions', []) || [];
     const pending = all.filter(x => !x.resolved);
@@ -1044,8 +1248,29 @@
     renderBuses();
     renderStaff();
     renderGuests();
+    renderCheckouts();
     renderExceptions();
   }
+  // Live updates from HQ
+  Bus.on('checkout:approved', () => { renderCheckouts(); Scout.Audio.play('echo-bell'); Toast.show('🟢 חמ"ל אישר חניך ליציאה — בדוק טאב יציאת חניכים', { kind: 'ok' }); });
+  Bus.on('checkout:revoked',  () => { renderCheckouts(); Toast.show('אישור יציאה בוטל ע"י חמ"ל.', { kind: 'warn' }); });
+  Bus.on('checkout:released', () => { renderCheckouts(); });
+  Bus.on('checkout:verify-resolved', payload => {
+    renderCheckouts();
+    Toast.show(payload.decision === 'approved'
+      ? `✅ אחראי חמ"ל אישר אימות חניך. רענן את הטאב.`
+      : `⛔ אחראי חמ"ל דחה את האימות.`,
+    { kind: payload.decision === 'approved' ? 'ok' : 'danger' });
+  });
+  Bus.on('parentPickup:decision', payload => {
+    if (payload.stage === 'tribe-approved') {
+      Scout.Audio.play('echo-bell');
+      Toast.show(`✅ מרכז שבט אישר איסוף ${payload.hanichName}. בדוק טאב יציאת חניכים.`, { kind: 'ok' });
+    } else {
+      Toast.show(`⛔ מרכז שבט דחה איסוף ${payload.hanichName}.`, { kind: 'danger' });
+    }
+    renderCheckouts();
+  });
 
   // ============================================================
   // ===== Universal SOS button — 3-second long-press =====
