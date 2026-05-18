@@ -1040,6 +1040,7 @@
     const DEFAULT_CREDENTIALS = {
       'national': { role: 'national',     name: 'אורי שדה — מנהל ארצי', password: '1234', isDemo: true, status: 'active' },
       'kabat':    { role: 'kabat',        name: 'קב״ט ניר אלון',         password: '1234', isDemo: true, status: 'active', staffId: 's1' },
+      'shift':    { role: 'hq-shift',     name: 'אחראי חמ״ל רחל',         password: '1234', isDemo: true, status: 'active', staffId: 's3' },
       'operator': { role: 'hq-op',        name: 'תורן עידו',              password: '1234', isDemo: true, status: 'active', staffId: 's4' },
       'guard':    { role: 'guard',        name: 'מאבטח אופיר',           password: '1234', isDemo: true, status: 'active', staffId: 's8' },
       'tribe':    { role: 'tribe',        name: 'מרכז שבט נחל',           password: '1234', isDemo: true, status: 'active' },
@@ -1533,10 +1534,217 @@
     return { devices, setRole, setActive, addEmergencyUser };
   })();
 
+  // ---------- Gate permission matrix ----------
+
+  const Gate = (function () {
+    const ADD_PERMISSIONS = {
+      bus:      ['hq-shift', 'camp-director', 'national'],
+      guest:    ['hq-shift', 'hq-op', 'kabat', 'camp-director', 'national'],
+      supplier: ['hq-shift', 'hq-op', 'kabat', 'camp-director', 'national', 'provisions', 'sanitation'],
+    };
+    // Roles that should receive routed exception alerts from the gate
+    const EXCEPTION_RECIPIENTS_GENERAL = ['hq-shift', 'hq-op', 'kabat', 'camp-director'];
+    const SUPPLIER_DEPT_RECIPIENT = {
+      economy:    'provisions',
+      sanitation: 'sanitation',
+      logistics:  'camp-director',
+    };
+
+    function canAdd(role, category) {
+      return (ADD_PERMISSIONS[category] || []).includes(role);
+    }
+    function exceptionRecipients(item) {
+      const base = EXCEPTION_RECIPIENTS_GENERAL.slice();
+      if (item && item.entityType === 'supplier' && item.data && item.data.destination) {
+        const extra = SUPPLIER_DEPT_RECIPIENT[item.data.destination];
+        if (extra && !base.includes(extra)) base.push(extra);
+      }
+      return base;
+    }
+    return { canAdd, exceptionRecipients };
+  })();
+
+  // ---------- Hanich Checkout protocol ----------
+
+  const Checkout = (function () {
+    function approveByHQ(hanichId, opts) {
+      opts = opts || {};
+      const h = (ScoutDB.get('hanichim', []) || []).find(x => x.id === hanichId);
+      if (!h) return { ok: false, error: 'חניך לא נמצא' };
+      ScoutDB.patch('hanichim', l => l.map(x => x.id === hanichId
+        ? Object.assign({}, x, {
+            checkoutApproved: true,
+            checkoutApprovedAt: nowMs(),
+            checkoutApprovedBy: UI.currentPersona().name,
+            checkoutReason: opts.reason || 'אישור שגרתי חמ״ל',
+            checkoutPaperRef: opts.paperRef || ('פתק-' + Math.floor(1000 + Math.random() * 9000)),
+          })
+        : x));
+      ScoutDB.appendAudit({
+        action: 'CHECKOUT-HQ-APPROVE', channel: 'tribe',
+        details: `אושר ע״י חמ״ל: ${h.name} (סיבה: ${opts.reason || 'שגרתי'}, טופס: פיזי)`,
+      });
+      Bus.emit('checkout:approved', { hanichId, hanichName: h.name });
+      return { ok: true };
+    }
+
+    function confirmAtGate(hanichId) {
+      const h = (ScoutDB.get('hanichim', []) || []).find(x => x.id === hanichId);
+      if (!h) return { ok: false, error: 'חניך לא נמצא' };
+      if (!h.checkoutApproved) return { ok: false, error: 'אין אישור חמ״ל' };
+      ScoutDB.patch('hanichim', l => l.map(x => x.id === hanichId
+        ? Object.assign({}, x, {
+            status: 'released',
+            checkoutCompletedAt: nowMs(),
+            checkoutCompletedBy: UI.currentPersona().name,
+          })
+        : x));
+      ScoutDB.appendAudit({
+        action: 'CHECKOUT-GATE-RELEASE', channel: 'gate',
+        details: `שוחרר בש״ג ע״י ${UI.currentPersona().name}: ${h.name} (טופס פיזי אומת)`,
+      });
+      Bus.emit('checkout:released', { hanichId, hanichName: h.name });
+      return { ok: true };
+    }
+
+    function revokeApproval(hanichId) {
+      ScoutDB.patch('hanichim', l => l.map(x => x.id === hanichId
+        ? Object.assign({}, x, {
+            checkoutApproved: false, checkoutApprovedAt: null,
+            checkoutApprovedBy: null, checkoutReason: null, checkoutPaperRef: null,
+          })
+        : x));
+      ScoutDB.appendAudit({ action: 'CHECKOUT-REVOKE', channel: 'tribe', details: 'אישור יציאה בוטל ל-' + hanichId });
+      Bus.emit('checkout:revoked', { hanichId });
+    }
+
+    // Track B — Gate-initiated verification request
+    function requestGateVerification(hanichName, reason) {
+      const id = 'cvr-' + uuid().slice(0, 6);
+      const req = {
+        id, hanichName, reason: reason || 'חניך הגיע עם טופס נייר ללא סנכרון דיגיטלי',
+        requestedBy: UI.currentPersona().name,
+        ts: nowMs(),
+        status: 'pending', // pending | approved | denied
+      };
+      ScoutDB.patch('checkoutVerifications', l => (l || []).concat([req]));
+      ScoutDB.appendAudit({ action: 'CHECKOUT-VERIFY-REQ', channel: 'gate', details: `בקשת אימות חניך ${hanichName}: ${req.reason}` });
+      Bus.emit('checkout:verify-request', req);
+      return req;
+    }
+    function resolveGateVerification(id, decision) {
+      ScoutDB.patch('checkoutVerifications', l => (l || []).map(r =>
+        r.id === id ? Object.assign({}, r, {
+          status: decision, resolvedAt: nowMs(), resolvedBy: UI.currentPersona().name,
+        }) : r));
+      ScoutDB.appendAudit({
+        action: 'CHECKOUT-VERIFY-RESOLVE', channel: 'tribe',
+        details: `אימות חניך ${id} ${decision === 'approved' ? 'אושר' : 'נדחה'} ע״י ${UI.currentPersona().name}`,
+      });
+      Bus.emit('checkout:verify-resolved', { id, decision });
+    }
+
+    return { approveByHQ, confirmAtGate, revokeApproval, requestGateVerification, resolveGateVerification };
+  })();
+
+  // ---------- Parent Pickup protocol ----------
+
+  const ParentPickup = (function () {
+    function requestAtGate({ parentName, parentPhone, hanichId }) {
+      const h = (ScoutDB.get('hanichim', []) || []).find(x => x.id === hanichId);
+      if (!h) return { ok: false, error: 'חניך לא נמצא' };
+      const id = 'pp-' + uuid().slice(0, 6);
+      const req = {
+        id,
+        parentName, parentPhone,
+        hanichId, hanichName: h.name, tribeId: h.tribeId,
+        guardName: UI.currentPersona().name,
+        ts: nowMs(),
+        stage: 'hq-pending', // hq-pending | hq-routed | tribe-pending | tribe-approved | tribe-denied
+      };
+      ScoutDB.patch('parentPickups', l => (l || []).concat([req]));
+      ScoutDB.appendAudit({
+        action: 'PARENT-PICKUP-REQ', channel: 'gate',
+        details: `הורה ${parentName} (${parentPhone}) הגיע לאסוף ${h.name} — ממתין לחמ״ל`,
+      });
+      Bus.emit('parentPickup:request', req);
+      return { ok: true, req };
+    }
+
+    function routeToTribe(id) {
+      ScoutDB.patch('parentPickups', l => (l || []).map(r =>
+        r.id === id ? Object.assign({}, r, {
+          stage: 'tribe-pending',
+          routedToTribeAt: nowMs(),
+          routedBy: UI.currentPersona().name,
+        }) : r));
+      const updated = (ScoutDB.get('parentPickups', []) || []).find(r => r.id === id);
+      ScoutDB.appendAudit({
+        action: 'PARENT-PICKUP-ROUTE', channel: 'tribe',
+        details: `חמ״ל ניתב אימות איסוף ${updated && updated.hanichName} למרכז שבט`,
+      });
+      Bus.emit('parentPickup:routed', updated);
+      return updated;
+    }
+
+    function tribeDecision(id, decision, reason) {
+      ScoutDB.patch('parentPickups', l => (l || []).map(r =>
+        r.id === id ? Object.assign({}, r, {
+          stage: decision === 'approved' ? 'tribe-approved' : 'tribe-denied',
+          tribeReason: reason || null,
+          tribeDecidedAt: nowMs(),
+          tribeDecidedBy: UI.currentPersona().name,
+        }) : r));
+      const updated = (ScoutDB.get('parentPickups', []) || []).find(r => r.id === id);
+      ScoutDB.appendAudit({
+        action: 'PARENT-PICKUP-DECISION', channel: 'tribe',
+        details: `מרכז שבט ${decision === 'approved' ? 'אישר' : 'דחה'} איסוף ${updated && updated.hanichName} ע״י ${updated && updated.parentName}${reason ? ' — ' + reason : ''}`,
+      });
+      Bus.emit('parentPickup:decision', updated);
+      // If approved, mark hanich as checkoutApproved for gate-release flow
+      if (decision === 'approved' && updated) {
+        Checkout.approveByHQ(updated.hanichId, {
+          reason: `איסוף ע״י ${updated.parentName}`,
+          paperRef: 'אימות-שבט-' + id.slice(-4),
+        });
+      }
+      return updated;
+    }
+
+    function listPending() {
+      return (ScoutDB.get('parentPickups', []) || [])
+        .filter(r => r.stage === 'hq-pending' || r.stage === 'tribe-pending');
+    }
+    function listForTribe(tribeId) {
+      return (ScoutDB.get('parentPickups', []) || [])
+        .filter(r => r.tribeId === tribeId && r.stage === 'tribe-pending');
+    }
+
+    return { requestAtGate, routeToTribe, tribeDecision, listPending, listForTribe };
+  })();
+
+  // ---------- Adults & Parents (seeded once) ----------
+
+  (function ensureAdultsSeed() {
+    if (ScoutDB.get('adultsSeeded', false)) return;
+    const adults = [
+      { id: 'a1', name: 'נטע אבירם — אם של נועם',     role: 'parent',     tribeId: 'tribe-1', present: true },
+      { id: 'a2', name: 'דורון לוי — אב של דניאל',     role: 'parent',     tribeId: 'tribe-2', present: false },
+      { id: 'a3', name: 'יעל גרשון — סייעת רפואית',    role: 'leadership', tribeId: null,      present: true },
+      { id: 'a4', name: 'אלון פרי — מנהל לוגיסטיקה',   role: 'leadership', tribeId: null,      present: true },
+      { id: 'a5', name: 'רחלי כהן — מדריכה ראשית',     role: 'staff',      tribeId: 'tribe-3', present: true },
+      { id: 'a6', name: 'דני שלום — אב של איתי',       role: 'parent',     tribeId: 'tribe-1', present: true },
+      { id: 'a7', name: 'מיכל אזולאי — אם של שירה',    role: 'parent',     tribeId: 'tribe-4', present: false },
+    ];
+    ScoutDB.set('adults', adults);
+    ScoutDB.set('adultsSeeded', true);
+  })();
+
   // ---------- Export ----------
 
   global.Scout = {
     ScoutDB, Bus, Audio, DMS, SOS, Geo, Toast, Modal, UI, Auth, Drone, Chat, Personnel,
+    Gate, Checkout, ParentPickup,
     util: { uuid, nowMs, fmtTime, fmtDate, pick, clamp, escapeHtml, getParam },
     FORESTS,
   };

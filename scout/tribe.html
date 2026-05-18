@@ -316,6 +316,44 @@
     renderAll();
   });
 
+  // ===== Parent pickup verification (from HQ routing) =====
+  Bus.on('parentPickup:routed', req => {
+    if (req.tribeId !== activeTribeId) return;
+    Scout.Audio.play('echo-bell');
+    Scout.Audio.play('voice-prompt', { text: 'בקשת אימות איסוף חניך משבטך' });
+    const host = document.createElement('div');
+    host.className = 'modal-host';
+    host.innerHTML = `
+      <div class="checkout-card" style="border-color: var(--info); box-shadow: 0 30px 80px rgba(0,0,0,.6), 0 0 60px rgba(91,141,239,0.4);">
+        <div style="color: var(--info); font-family: var(--font-ui); font-weight: 800; letter-spacing: .18em; text-transform: uppercase; font-size: 12px;">👨‍👧 בקשת אימות איסוף הורה</div>
+        <h2 style="margin: 10px 0 6px;"><span class="who">${util.escapeHtml(req.parentName)}</span></h2>
+        <div style="color: var(--text-mid); font-size: 13px; margin-bottom: 6px;">טען שהוא בא לאסוף את <strong>${util.escapeHtml(req.hanichName)}</strong></div>
+        <div style="background: var(--bg-elev); padding: 8px 12px; border-radius: var(--r-sm); font-family: var(--font-mono); font-size: 13px;">📞 ${util.escapeHtml(req.parentPhone)}</div>
+        <p style="color: var(--text-mid); margin: 14px 0 0; font-size: 13px;">בצע אימות מול המשפחה בטלפון, ואשר רק אם זה אכן ההורה.</p>
+        <div style="margin-top: 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <button class="btn btn--ok btn--lg" data-pp-act="approve">✅ אומת — אשר איסוף</button>
+          <button class="btn btn--danger btn--lg" data-pp-act="deny">❌ לא אומת — סרב</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(host);
+    host.addEventListener('click', ev => {
+      const btn = ev.target.closest('[data-pp-act]'); if (!btn) return;
+      const a = btn.dataset.ppAct;
+      if (a === 'deny') {
+        const reason = prompt('סיבת הסירוב (חובה):', 'לא אומת מול המשפחה');
+        if (!reason || !reason.trim()) { Toast.show('יש להזין סיבת סירוב.', { kind: 'warn' }); return; }
+        Scout.ParentPickup.tribeDecision(req.id, 'denied', reason);
+        Toast.show('הסירוב נשלח לחמ"ל ולשער.', { kind: 'danger' });
+      } else {
+        Scout.ParentPickup.tribeDecision(req.id, 'approved');
+        Toast.show('אומת! השער יראה את החניך כמאושר ליציאה.', { kind: 'ok' });
+      }
+      host.remove();
+      renderAll();
+    });
+  });
+
   UI.bindGlobalSOS({ lock: false });
 
   function renderAll() { renderHead(); renderStats(); renderRoster(); }
