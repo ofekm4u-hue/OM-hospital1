@@ -317,6 +317,47 @@
   });
 
   // ===== Parent pickup verification (from HQ routing) =====
+  // ===== Roster update broadcast from HQ =====
+  Bus.on('roster:update-request', msg => {
+    Scout.Audio.play('echo-bell');
+    Scout.Audio.play('voice-prompt', { text: 'הודעה מהחמ"ל: נא לשלוח מספרי חניכים' });
+    const tribeName = (tribe() || {}).name || '—';
+    const present = tribeHanichim().filter(h => h.status === 'present' || h.status === 'clinic').length;
+    const total = tribeHanichim().length;
+    const host = document.createElement('div');
+    host.className = 'modal-host';
+    host.innerHTML = `
+      <div class="modal" style="width: min(540px, 92vw); border-color: var(--warn);">
+        <div style="color: var(--warn); font-family: var(--font-ui); font-weight: 800; letter-spacing: .18em; text-transform: uppercase; font-size: 12px;">📢 הודעה מהחמ"ל</div>
+        <h2 style="margin: 10px 0 6px;">נא לשלוח מספרי חניכים מדויקים</h2>
+        <div style="color: var(--text-mid); font-size: 13px; margin-bottom: 14px;">${util.escapeHtml(msg.from)} (${util.escapeHtml(UI.ROLE_LABELS[msg.fromRole] || msg.fromRole)}) · ${util.fmtTime(msg.ts)}</div>
+        <div style="background: var(--bg-elev); padding: 14px 16px; border-radius: var(--r-md); margin-bottom: 14px;">
+          <div style="font-family: var(--font-ui); font-size: 11px; color: var(--text-mid); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 6px;">מצבת שבט ${util.escapeHtml(tribeName)} כעת</div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 32px; font-weight: 800; color: var(--ok); font-variant-numeric: tabular-nums;">${present}</span>
+            <span style="color: var(--text-mid); font-size: 13px;">/ ${total} פעילים פיזית במחנה</span>
+          </div>
+        </div>
+        <p style="color: var(--text-mid); margin: 0 0 14px; font-size: 13px;">בצע ספירה פיזית במחנה ועדכן את הנתונים אם יש סטיות.</p>
+        <div style="display:flex; gap:10px; justify-content:flex-end;">
+          <button class="btn btn--ghost" data-cancel>אעדכן בהמשך</button>
+          <button class="btn btn--ok" data-confirm>✓ ביצעתי ספירה, המספרים תקינים</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(host);
+    host.querySelector('[data-cancel]').addEventListener('click', () => host.remove());
+    host.querySelector('[data-confirm]').addEventListener('click', () => {
+      ScoutDB.appendAudit({
+        action: 'ROSTER-CONFIRM', channel: 'tribe',
+        details: `מרכז שבט ${tribeName} אישר ספירה: ${present}/${total} פעילים פיזית`,
+      });
+      Bus.emit('roster:tribe-confirmed', { tribeId: activeTribeId, present, total, by: UI.currentPersona().name });
+      Toast.show('הספירה אושרה ונשלחה לחמ"ל.', { kind: 'ok' });
+      host.remove();
+    });
+  });
+
   Bus.on('parentPickup:routed', req => {
     if (req.tribeId !== activeTribeId) return;
     Scout.Audio.play('echo-bell');

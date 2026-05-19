@@ -1886,11 +1886,89 @@
     });
   })();
 
+  // ---------- HQ Permissions (hq-shift controls hq-op) ----------
+
+  const HQPermissions = (function () {
+    const DEFAULT_RESTRICTIONS = {
+      'gate-exception-approve': true,
+      'guest-add':              true,
+      'supplier-add':           true,
+      'checkout-approve':       true,
+      'broadcast':              true,
+      'roster-broadcast':       true,
+      'route-pickup':           true,
+    };
+    const LABELS = {
+      'gate-exception-approve': 'אישור בקשות חריגות מהשער',
+      'guest-add':              'הוספת אורחים מאושרים',
+      'supplier-add':           'הוספת ספקים מאושרים',
+      'checkout-approve':       'אישור יציאות חניכים',
+      'broadcast':              'כריזה המונית',
+      'roster-broadcast':       'דרישת עדכון מצבה מהשבטים',
+      'route-pickup':           'ניתוב בקשות איסוף הורים',
+    };
+    function get() {
+      return Object.assign({}, DEFAULT_RESTRICTIONS, ScoutDB.get('hqStationPerms', {}) || {});
+    }
+    function set(key, allowed) {
+      const cur = ScoutDB.get('hqStationPerms', {}) || {};
+      cur[key] = !!allowed;
+      ScoutDB.set('hqStationPerms', cur);
+      ScoutDB.appendAudit({
+        action: 'HQ-PERM-TOGGLE', channel: 'auth',
+        details: `${LABELS[key] || key} — ${allowed ? 'הופעל' : 'נחסם'} עבור תחנת חמ"ל`,
+      });
+      Bus.emit('hq-perms:update', { key, allowed });
+    }
+    function can(role, key) {
+      if (role !== 'hq-op') return true; // only HQ Station is restricted
+      return get()[key] !== false;
+    }
+    function labels() { return LABELS; }
+    return { get, set, can, labels };
+  })();
+
+  // ---------- Roster Broadcast (HQ → tribes) ----------
+
+  const Roster = (function () {
+    function gdud(age) {
+      if (age <= 11) return { code: 'jr', label: 'גדוד צעיר (ד׳-ו׳)' };
+      if (age <= 13) return { code: 'mid', label: 'גדוד אמצעי (ז׳-ח׳)' };
+      if (age <= 15) return { code: 'sr', label: 'גדוד בוגר (ט׳)' };
+      return { code: 'shakbag', label: 'שכב״ג (י׳-י״ב)' };
+    }
+    function layer(age) {
+      if (age <= 9)  return 'כיתה ד׳';
+      if (age <= 10) return 'כיתה ה׳';
+      if (age <= 11) return 'כיתה ו׳';
+      if (age <= 12) return 'כיתה ז׳';
+      if (age <= 13) return 'כיתה ח׳';
+      if (age <= 14) return 'כיתה ט׳';
+      if (age <= 15) return 'כיתה י׳';
+      if (age <= 16) return 'כיתה י״א';
+      return 'כיתה י״ב';
+    }
+    function broadcastUpdateRequest() {
+      const persona = UI.currentPersona();
+      const msg = {
+        id: 'rb-' + uuid().slice(0, 6),
+        from: persona.name,
+        fromRole: persona.role,
+        text: 'הודעה מהחמ"ל: נא לשלוח מספרי חניכים מדויקים',
+        ts: nowMs(),
+      };
+      ScoutDB.appendAudit({ action: 'ROSTER-BROADCAST', channel: 'comms', details: `${persona.name} שלח דרישת עדכון מצבה לכלל מרכזי השבטים` });
+      Bus.emit('roster:update-request', msg);
+      return msg;
+    }
+    return { gdud, layer, broadcastUpdateRequest };
+  })();
+
   // ---------- Export ----------
 
   global.Scout = {
     ScoutDB, Bus, Audio, DMS, SOS, Geo, Toast, Modal, UI, Auth, Drone, Chat, Personnel,
-    Gate, Checkout, ParentPickup, Incidents,
+    Gate, Checkout, ParentPickup, Incidents, HQPermissions, Roster,
     util: { uuid, nowMs, fmtTime, fmtDate, pick, clamp, escapeHtml, getParam },
     FORESTS,
   };

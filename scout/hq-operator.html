@@ -170,16 +170,22 @@
 
       <div class="panel" style="display:flex; flex-direction:column; min-height:0;">
         <!-- Registry tabs -->
-        <div style="display: flex; gap: 4px; margin: -4px -4px 8px; padding: 4px; background: var(--bg-elev); border-radius: var(--r-sm);">
-          <button class="reg-tab is-active" data-reg-tab="hanichim" style="flex:1; padding: 8px; border: 0; background: transparent; color: var(--text-hi); font-family: var(--font-ui); font-weight: 600; font-size: 12px; border-radius: 4px; cursor: pointer;">👥 חניכים</button>
-          <button class="reg-tab" data-reg-tab="adults" style="flex:1; padding: 8px; border: 0; background: transparent; color: var(--text-mid); font-family: var(--font-ui); font-weight: 600; font-size: 12px; border-radius: 4px; cursor: pointer;">👨‍👩‍👧 מבוגרים</button>
-          <button class="reg-tab" data-reg-tab="pending" style="flex:1; padding: 8px; border: 0; background: transparent; color: var(--text-mid); font-family: var(--font-ui); font-weight: 600; font-size: 12px; border-radius: 4px; cursor: pointer;">⚠ ממתינים <span class="badge" id="badge-pending" style="background: var(--warn); color: #1a0e00; padding: 1px 5px; border-radius: 999px; font-size: 10px; margin-right: 4px;">0</span></button>
+        <div style="display: flex; gap: 4px; margin: -4px -4px 8px; padding: 4px; background: var(--bg-elev); border-radius: var(--r-sm); flex-wrap: wrap;">
+          <button class="reg-tab is-active" data-reg-tab="census" style="flex:1; min-width: 70px; padding: 8px 6px; border: 0; background: transparent; color: var(--text-hi); font-family: var(--font-ui); font-weight: 600; font-size: 11px; border-radius: 4px; cursor: pointer;">📊 מצבת</button>
+          <button class="reg-tab" data-reg-tab="hanichim" style="flex:1; min-width: 70px; padding: 8px 6px; border: 0; background: transparent; color: var(--text-mid); font-family: var(--font-ui); font-weight: 600; font-size: 11px; border-radius: 4px; cursor: pointer;">👥 חניכים</button>
+          <button class="reg-tab" data-reg-tab="adults" style="flex:1; min-width: 70px; padding: 8px 6px; border: 0; background: transparent; color: var(--text-mid); font-family: var(--font-ui); font-weight: 600; font-size: 11px; border-radius: 4px; cursor: pointer;">👨‍👩‍👧 מבוגרים</button>
+          <button class="reg-tab" data-reg-tab="gates" style="flex:1; min-width: 70px; padding: 8px 6px; border: 0; background: transparent; color: var(--text-mid); font-family: var(--font-ui); font-weight: 600; font-size: 11px; border-radius: 4px; cursor: pointer;">🚪 שערים</button>
+          <button class="reg-tab" data-reg-tab="pending" style="flex:1; min-width: 70px; padding: 8px 6px; border: 0; background: transparent; color: var(--text-mid); font-family: var(--font-ui); font-weight: 600; font-size: 11px; border-radius: 4px; cursor: pointer;">⚠ ממתינים <span class="badge" id="badge-pending" style="background: var(--warn); color: #1a0e00; padding: 1px 5px; border-radius: 999px; font-size: 10px; margin-right: 4px;">0</span></button>
+          <button class="reg-tab" data-reg-tab="admin" data-shift-only style="flex:1; min-width: 70px; padding: 8px 6px; border: 0; background: transparent; color: var(--text-mid); font-family: var(--font-ui); font-weight: 600; font-size: 11px; border-radius: 4px; cursor: pointer;" hidden>🛡 בקרה</button>
         </div>
         <input class="input" id="registry-search" placeholder="🔍 חיפוש שמי..." style="padding: 6px 10px; font-size: 12px; height: 30px; margin-bottom: 8px;" autocomplete="off">
 
-        <div id="reg-hanichim" class="reg-pane" style="overflow-y: auto; max-height: 280px;"></div>
-        <div id="reg-adults" class="reg-pane" style="overflow-y: auto; max-height: 280px;" hidden></div>
-        <div id="reg-pending" class="reg-pane" style="overflow-y: auto; max-height: 280px;" hidden></div>
+        <div id="reg-census" class="reg-pane" style="overflow-y: auto; max-height: 380px;"></div>
+        <div id="reg-hanichim" class="reg-pane" style="overflow-y: auto; max-height: 380px;" hidden></div>
+        <div id="reg-adults" class="reg-pane" style="overflow-y: auto; max-height: 380px;" hidden></div>
+        <div id="reg-gates" class="reg-pane" style="overflow-y: auto; max-height: 380px;" hidden></div>
+        <div id="reg-pending" class="reg-pane" style="overflow-y: auto; max-height: 380px;" hidden></div>
+        <div id="reg-admin" class="reg-pane" style="overflow-y: auto; max-height: 380px;" hidden></div>
       </div>
 
       <div class="panel" style="padding: 14px;">
@@ -259,6 +265,264 @@
   }
 
   // ====== Registry: hanichim (with paper status) ======
+  // ====== Registry: hierarchical Census (tribe → gdud → layer) ======
+  function renderCensusRegistry() {
+    const tribes = ScoutDB.get('tribes', []).filter(t => t.forestId === forestId);
+    if (tribes.length === 0) {
+      document.getElementById('reg-census').innerHTML = '<div style="padding: 20px; text-align:center; color: var(--text-low);">אין שבטים ביער זה.</div>';
+      return;
+    }
+    const sel = ScoutDB.get('censusActiveTribe', tribes[0].id);
+    const activeId = tribes.find(t => t.id === sel) ? sel : tribes[0].id;
+    const tribeName = (tribes.find(t => t.id === activeId) || {}).name;
+    const hs = ScoutDB.get('hanichim', []).filter(h => h.tribeId === activeId);
+    const active = hs.filter(h => h.status !== 'released');
+
+    // Group by gdud → layer
+    const byGdud = {};
+    active.forEach(h => {
+      const g = Scout.Roster.gdud(h.age);
+      const layer = Scout.Roster.layer(h.age);
+      if (!byGdud[g.code]) byGdud[g.code] = { label: g.label, layers: {}, count: 0 };
+      byGdud[g.code].count++;
+      if (!byGdud[g.code].layers[layer]) byGdud[g.code].layers[layer] = [];
+      byGdud[g.code].layers[layer].push(h);
+    });
+
+    const ord = { jr: 1, mid: 2, sr: 3, shakbag: 4 };
+    const gdudsSorted = Object.entries(byGdud).sort((a, b) => (ord[a[0]] || 9) - (ord[b[0]] || 9));
+
+    document.getElementById('reg-census').innerHTML = `
+      <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 10px; flex-wrap: wrap;">
+        <label style="font-size: 11px; color: var(--text-mid); font-weight: 700; text-transform: uppercase; letter-spacing: .08em;">שבט:</label>
+        <select class="select" id="census-tribe" style="flex:1; min-width: 140px; padding: 5px 10px; font-size: 13px; height: 30px;">
+          ${tribes.map(t => `<option value="${t.id}" ${t.id === activeId ? 'selected' : ''}>${util.escapeHtml(t.name)}</option>`).join('')}
+        </select>
+      </div>
+
+      <button class="btn btn--danger btn--block" id="census-broadcast-btn" style="margin-bottom: 12px;">
+        📢 שלח דרישת עדכון מצבה
+      </button>
+
+      <div style="background: var(--bg-elev); padding: 10px 12px; border-radius: var(--r-sm); margin-bottom: 10px; display: flex; align-items: center; gap: 10px;">
+        <strong style="font-family: var(--font-ui); font-size: 13px;">📚 שבט ${util.escapeHtml(tribeName)}</strong>
+        <span style="flex:1;"></span>
+        <span class="chip chip--ok">${active.length} / ${hs.length} פעילים</span>
+      </div>
+
+      ${gdudsSorted.map(([code, g]) => {
+        const layersSorted = Object.entries(g.layers).sort((a, b) => a[0].localeCompare(b[0], 'he'));
+        return `
+        <div style="background: var(--bg-deep); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 10px 12px; margin-bottom: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+            <strong style="font-family: var(--font-ui); font-size: 12px;">${util.escapeHtml(g.label)}</strong>
+            <span style="flex:1;"></span>
+            <span class="chip" style="font-size: 10px;">${g.count} חניכים</span>
+          </div>
+          ${layersSorted.map(([layer, ns]) => `
+            <div style="display: flex; align-items: center; gap: 6px; padding: 3px 0; font-size: 12px; border-top: 1px dotted var(--border-soft);">
+              <span style="color: var(--text-mid); min-width: 70px;">${util.escapeHtml(layer)}</span>
+              <span style="flex:1;"></span>
+              <span style="font-family: var(--font-mono); color: var(--accent); font-weight: 700;">${ns.length}</span>
+              <span style="color: var(--text-low); font-size: 10px;">חניכים</span>
+            </div>
+          `).join('')}
+        </div>`;
+      }).join('')}
+
+      ${gdudsSorted.length === 0 ? '<div style="padding: 14px; text-align:center; color: var(--text-low);">אין חניכים פעילים בשבט.</div>' : ''}
+    `;
+
+    document.getElementById('census-tribe').addEventListener('change', e => {
+      ScoutDB.set('censusActiveTribe', e.target.value);
+      renderCensusRegistry();
+    });
+    document.getElementById('census-broadcast-btn').addEventListener('click', () => {
+      if (persona.role === 'hq-op' && !Scout.HQPermissions.can(persona.role, 'roster-broadcast')) {
+        Toast.show('🔒 פעולה זו חסומה ע"י אחראי חמ"ל.', { kind: 'warn' });
+        return;
+      }
+      if (!confirm('לשלוח דרישת עדכון מצבה לכלל מרכזי השבטים?')) return;
+      Scout.Roster.broadcastUpdateRequest();
+      Toast.show('דרישת עדכון נשלחה לכלל מרכזי השבטים.', { kind: 'ok' });
+      Scout.Audio.play('echo-bell');
+    });
+  }
+
+  // ====== Registry: Gates (read+manage gate tables) ======
+  function renderGatesRegistry() {
+    const buses     = ScoutDB.get('buses', []) || [];
+    const suppliers = ScoutDB.get('vehicles', []) || [];
+    const allStaff  = ScoutDB.get('staff', []) || [];
+    const guests    = allStaff.filter(s => s.guestPass || s.role === 'guest');
+    const team      = allStaff.filter(s => !s.guestPass && s.role !== 'guest');
+    const tribes    = ScoutDB.get('tribes', []);
+    const busLabels = { planned: 'מתוכנן', waiting: 'בחניון', cleared: 'מאושר', inside: 'בתוך', left: 'עזב' };
+
+    const role = persona.role;
+    const canAddBus     = Scout.Gate.canAdd(role, 'bus')     && Scout.HQPermissions.can(role, 'guest-add');
+    const canAddSup     = Scout.Gate.canAdd(role, 'supplier') && Scout.HQPermissions.can(role, 'supplier-add');
+    const canAddGuest   = Scout.Gate.canAdd(role, 'guest')   && Scout.HQPermissions.can(role, 'guest-add');
+
+    document.getElementById('reg-gates').innerHTML = `
+      <details open style="background: var(--bg-elev); border-radius: var(--r-sm); padding: 10px 12px; margin-bottom: 6px;">
+        <summary style="font-family: var(--font-ui); font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+          <span>🚌 אוטובוסים</span><span class="chip">${buses.length}</span>
+          <span style="flex:1;"></span>
+          ${canAddBus ? '<button class="btn btn--sm btn--primary" data-hq-add="bus">+ הוסף</button>' : '<span class="chip chip--demo">🔒</span>'}
+        </summary>
+        <div style="margin-top: 8px; font-size: 12px;">
+          ${buses.length === 0 ? '<div style="color: var(--text-low); padding: 8px;">אין אוטובוסים.</div>' :
+          buses.map(b => {
+            const t = tribes.find(tr => tr.id === b.tribeId);
+            return `<div style="display: flex; align-items: center; gap: 6px; padding: 4px 0; border-top: 1px dotted var(--border-soft);">
+              <span style="font-family: var(--font-mono); color: var(--accent);">${util.escapeHtml(b.plate)}</span>
+              <span style="color: var(--text-mid);">${util.escapeHtml(t ? t.name : (b.tribeName || '—'))}</span>
+              <span style="flex:1;"></span>
+              <span class="chip" style="font-size: 10px;">${busLabels[b.status] || b.status}</span>
+            </div>`;
+          }).join('')}
+        </div>
+      </details>
+
+      <details style="background: var(--bg-elev); border-radius: var(--r-sm); padding: 10px 12px; margin-bottom: 6px;">
+        <summary style="font-family: var(--font-ui); font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+          <span>🚚 ספקים</span><span class="chip">${suppliers.length}</span>
+          <span style="flex:1;"></span>
+          ${canAddSup ? '<button class="btn btn--sm btn--primary" data-hq-add="supplier">+ הוסף</button>' : '<span class="chip chip--demo">🔒</span>'}
+        </summary>
+        <div style="margin-top: 8px; font-size: 12px;">
+          ${suppliers.map(v => `<div style="display: flex; align-items: center; gap: 6px; padding: 4px 0; border-top: 1px dotted var(--border-soft);">
+            <span style="font-family: var(--font-mono); color: var(--accent);">${util.escapeHtml(v.plate)}</span>
+            <span style="color: var(--text-mid);">${util.escapeHtml(v.driver)}</span>
+            <span style="flex:1;"></span>
+            <span style="color: var(--text-low); font-size: 11px;">${util.escapeHtml(v.vendor)}</span>
+          </div>`).join('')}
+        </div>
+      </details>
+
+      <details style="background: var(--bg-elev); border-radius: var(--r-sm); padding: 10px 12px; margin-bottom: 6px;">
+        <summary style="font-family: var(--font-ui); font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+          <span>👤 אורחים</span><span class="chip">${guests.length}</span>
+          <span style="flex:1;"></span>
+          ${canAddGuest ? '<button class="btn btn--sm btn--primary" data-hq-add="guest">+ הוסף</button>' : '<span class="chip chip--demo">🔒</span>'}
+        </summary>
+        <div style="margin-top: 8px; font-size: 12px;">
+          ${guests.length === 0 ? '<div style="color: var(--text-low); padding: 8px;">אין אורחים.</div>' :
+          guests.map(g => `<div style="display: flex; align-items: center; gap: 6px; padding: 4px 0; border-top: 1px dotted var(--border-soft);">
+            <strong>${util.escapeHtml(g.name)}</strong>
+            <span style="color: var(--text-mid); font-size: 11px;">${util.escapeHtml(g.affiliation || '')}</span>
+            <span style="flex:1;"></span>
+            ${g.plate ? '<span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-low);">' + util.escapeHtml(g.plate) + '</span>' : ''}
+          </div>`).join('')}
+        </div>
+      </details>
+
+      <details style="background: var(--bg-elev); border-radius: var(--r-sm); padding: 10px 12px;">
+        <summary style="font-family: var(--font-ui); font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+          <span>⛺ צוות מחנה</span><span class="chip">${team.length}</span>
+        </summary>
+        <div style="margin-top: 8px; font-size: 12px;">
+          ${team.map(s => {
+            const isPending = s.pendingOnboarding;
+            return `<div style="display: flex; align-items: center; gap: 6px; padding: 4px 0; border-top: 1px dotted var(--border-soft);">
+              <strong>${util.escapeHtml(s.name)}</strong>
+              <span style="color: var(--text-mid); font-size: 11px;">${util.escapeHtml(UI.ROLE_LABELS[s.role] || s.role)}</span>
+              <span style="flex:1;"></span>
+              <span class="chip ${isPending ? '' : 'chip--ok'}" style="font-size: 10px; ${isPending ? 'background: rgba(154,168,188,0.12); color: var(--text-mid); border-color: transparent;' : ''}">${isPending ? '⏳ ממתין' : '✅ פעיל'}</span>
+            </div>`;
+          }).join('')}
+        </div>
+      </details>
+    `;
+
+    // Wire add buttons — simple prompts since HQ tabs are minimal
+    document.querySelectorAll('[data-hq-add]').forEach(b => b.addEventListener('click', () => {
+      const kind = b.dataset.hqAdd;
+      if (kind === 'bus') {
+        const plate = prompt('מספר רישוי האוטובוס:');
+        if (!plate) return;
+        const tribe = prompt('שם השבט:', 'נחל'); if (!tribe) return;
+        const battalion = prompt('גדוד:', 'גדוד ב'); if (!battalion) return;
+        const escort = prompt('שם המלווה:'); if (!escort) return;
+        const hanichim = parseInt(prompt('כמות חניכים:', '40'), 10) || 40;
+        ScoutDB.patch('buses', l => (l || []).concat([{
+          id: 'b-' + util.uuid().slice(0, 6), plate, tribeName: tribe, battalion, escort, hanichim,
+          status: 'planned', addedByKabat: false, addedByHQ: true, addedAt: util.nowMs(),
+        }]));
+        ScoutDB.appendAudit({ action: 'BUS-ADD-HQ', channel: 'gate', details: `${tribe} (${battalion}) — ${plate}` });
+        Bus.emit('bus:bus-added', { kind: 'bus' });
+        Toast.show('האוטובוס הוקם בלוח ההיסעים.', { kind: 'ok' });
+        renderGatesRegistry();
+      }
+      if (kind === 'supplier') {
+        const vendor = prompt('שם החברה / ספק:'); if (!vendor) return;
+        const plate = prompt('מספר רישוי:'); if (!plate) return;
+        const driver = prompt('שם הנהג:'); if (!driver) return;
+        ScoutDB.patch('vehicles', l => (l || []).concat([{
+          id: 'v-' + util.uuid().slice(0, 6), plate, driver, vendor,
+          cleared: true, arrived: false, addedByHQ: true, addedAt: util.nowMs(),
+        }]));
+        ScoutDB.appendAudit({ action: 'VEH-ADD-HQ', channel: 'gate', details: `${vendor} — ${plate}` });
+        Bus.emit('bus:vehicle-added', {});
+        Toast.show('הספק נוסף לרשימה הירוקה.', { kind: 'ok' });
+        renderGatesRegistry();
+      }
+      if (kind === 'guest') {
+        const name = prompt('שם האורח:'); if (!name) return;
+        const phone = prompt('טלפון:'); if (!phone) return;
+        const affiliation = prompt('סיבת הגעה / שיוך:'); if (!affiliation) return;
+        const plate = prompt('מספר רכב (אופציונלי):', '') || null;
+        ScoutDB.patch('staff', l => (l || []).concat([{
+          id: 'st-' + util.uuid().slice(0, 6), name, role: 'guest',
+          active: true, guestPass: true, kabatCoordinated: false,
+          affiliation, phone, plate,
+          issuedAt: util.nowMs(), issuedByHQ: true,
+        }]));
+        ScoutDB.set('personnelTelemetry', null);
+        ScoutDB.appendAudit({ action: 'GUEST-PASS-ISSUE-HQ', channel: 'gate', details: `${name} (${affiliation})${plate ? ' — רכב ' + plate : ''}` });
+        Bus.emit('bus:guest-issued', { name });
+        Toast.show('אורח נוסף לרשימה.', { kind: 'ok' });
+        renderGatesRegistry();
+      }
+    }));
+  }
+
+  // ====== Registry: Admin (hq-shift only) — toggle hq-op permissions ======
+  function renderAdminRegistry() {
+    if (persona.role !== 'hq-shift' && persona.role !== 'national') {
+      document.getElementById('reg-admin').innerHTML = '<div style="padding: 14px; text-align:center; color: var(--text-low);">תפריט זה זמין רק לאחראי חמ"ל ולמנהל ארצי.</div>';
+      return;
+    }
+    const perms = Scout.HQPermissions.get();
+    const labels = Scout.HQPermissions.labels();
+    document.getElementById('reg-admin').innerHTML = `
+      <div style="background: rgba(91,141,239,0.06); border: 1px dashed rgba(91,141,239,0.32); border-radius: var(--r-sm); padding: 10px 12px; margin-bottom: 10px; font-size: 12px; color: var(--info);">
+        🛡 <strong>בקרת סמכויות תחנת חמ"ל</strong> — נעל/פתח הרשאות תפעוליות עבור משתמש "חמ"ל" הסטטי (operator). השינויים נכנסים לתוקף מיידית.
+      </div>
+      ${Object.entries(labels).map(([key, label]) => {
+        const on = perms[key] !== false;
+        return `
+        <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--bg-elev); border: 1px solid ${on ? 'var(--ok)' : 'var(--danger)'}; border-radius: var(--r-sm); margin-bottom: 6px;">
+          <div style="flex:1;">
+            <div style="font-family: var(--font-ui); font-weight: 600; font-size: 13px;">${util.escapeHtml(label)}</div>
+            <div style="color: var(--text-mid); font-size: 11px;">${on ? '✅ הופעל לתחנת חמ"ל' : '⛔ חסום לתחנת חמ"ל'}</div>
+          </div>
+          <button class="btn btn--sm ${on ? 'btn--danger' : 'btn--ok'}" data-hq-perm="${key}" data-allow="${!on}">
+            ${on ? '🔒 נעל' : '🔓 פתח'}
+          </button>
+        </div>`;
+      }).join('')}
+    `;
+    document.querySelectorAll('[data-hq-perm]').forEach(b => b.addEventListener('click', () => {
+      const key = b.dataset.hqPerm;
+      const allow = b.dataset.allow === 'true';
+      Scout.HQPermissions.set(key, allow);
+      Toast.show(allow ? 'הרשאה הופעלה' : 'הרשאה נחסמה', { kind: allow ? 'ok' : 'warn' });
+      renderAdminRegistry();
+    }));
+  }
+
   function renderHanichimRegistry() {
     const tribes = ScoutDB.get('tribes', []).filter(t => t.forestId === forestId);
     const tribeMap = Object.fromEntries(tribes.map(t => [t.id, t.name]));
@@ -565,7 +829,12 @@
   // Real-time wiring — HQ is "watching eye": sees everything, manages registry
   Bus.on('bus:gate-exception', () => { renderPendingRegistry(); renderRegistryStats(); });
   Bus.on('bus:gate-exception:resolved', () => { renderPendingRegistry(); renderRegistryStats(); });
-  Bus.on('bus:medical:new', () => { renderRegistryStats(); renderHanichimRegistry(); });
+  Bus.on('bus:medical:new', () => { renderRegistryStats(); renderHanichimRegistry(); renderCensusRegistry(); });
+  Bus.on('checkout:approved', () => { renderHanichimRegistry(); renderCensusRegistry(); renderGatesRegistry(); renderRegistryStats(); });
+  Bus.on('checkout:released', () => { renderHanichimRegistry(); renderCensusRegistry(); renderGatesRegistry(); renderRegistryStats(); });
+  Bus.on('bus:bus-added',     () => { renderGatesRegistry(); });
+  Bus.on('bus:vehicle-added', () => { renderGatesRegistry(); });
+  Bus.on('bus:guest-issued',  () => { renderGatesRegistry(); });
   Bus.on('parentPickup:request', () => { renderPendingRegistry(); renderRegistryStats(); Scout.Audio.play('echo-bell'); Toast.show('🚨 בקשת איסוף הורה הגיעה מהשער', { kind: 'warn' }); });
   Bus.on('parentPickup:routed',  () => { renderPendingRegistry(); });
   Bus.on('parentPickup:decision', payload => { renderPendingRegistry(); renderRegistryStats(); Toast.show(`מרכז שבט ${payload.stage === 'tribe-approved' ? 'אישר' : 'דחה'} איסוף ${payload.hanichName}`, { kind: payload.stage === 'tribe-approved' ? 'ok' : 'warn' }); });
@@ -605,11 +874,22 @@
   // Security incident management is exclusively Kabat's authority.
   UI.bindGlobalSOS({ lock: false });
 
+  // Show "בקרה" tab only for hq-shift / national
+  if (persona.role === 'hq-shift' || persona.role === 'national') {
+    document.querySelector('[data-shift-only]').hidden = false;
+  }
+
+  // Update existing tab-switching to include new panes
+  Bus.on('hq-perms:update', () => { renderAdminRegistry(); renderGatesRegistry(); });
+
   // Initial render
   renderRegistryStats();
+  renderCensusRegistry();
   renderHanichimRegistry();
   renderAdultsRegistry();
+  renderGatesRegistry();
   renderPendingRegistry();
+  renderAdminRegistry();
   renderEvents();
 })();
 </script>
