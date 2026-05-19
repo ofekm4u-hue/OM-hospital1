@@ -1153,12 +1153,12 @@
   // ===== Patrol View (alternate UI for security in patrol mode) =====
   function renderPatrolView() {
     const waypoints = ScoutDB.get('patrolWaypoints', null) || [
-      { id: 'wp1', name: 'סריקת שבט נחל',     visited: false },
-      { id: 'wp2', name: 'גדר היקפית — צפון',  visited: false },
-      { id: 'wp3', name: 'גדר היקפית — דרום',  visited: false },
-      { id: 'wp4', name: 'שער ראשי',           visited: true },
-      { id: 'wp5', name: 'מתחם אקונומיה',     visited: false },
-      { id: 'wp6', name: 'מגדל תצפית',         visited: false },
+      { id: 'wp1', name: 'סריקת שבט נחל',     visited: false, x: 50, y: 35 },
+      { id: 'wp2', name: 'גדר היקפית — צפון',  visited: false, x: 30, y: 18 },
+      { id: 'wp3', name: 'גדר היקפית — דרום',  visited: false, x: 70, y: 85 },
+      { id: 'wp4', name: 'שער ראשי',           visited: true,  x: 88, y: 50 },
+      { id: 'wp5', name: 'מתחם אקונומיה',     visited: false, x: 22, y: 70 },
+      { id: 'wp6', name: 'מגדל תצפית',         visited: false, x: 55, y: 55 },
     ];
     if (!ScoutDB.get('patrolWaypoints', null)) ScoutDB.set('patrolWaypoints', waypoints);
     const checklist = ScoutDB.get('patrolChecklist', null) || [
@@ -1171,43 +1171,104 @@
     if (!ScoutDB.get('patrolChecklist', null)) ScoutDB.set('patrolChecklist', checklist);
     const visited = waypoints.filter(w => w.visited).length;
     const done = checklist.filter(c => c.done).length;
+    const guardPos = { x: 45 + Math.sin(util.nowMs() / 7000) * 15, y: 50 + Math.cos(util.nowMs() / 9000) * 18 };
+
     return `
-      <div style="padding: 14px;">
-        <div style="background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--r-md); padding: 14px 16px; margin-bottom: 14px;">
-          <div style="font-family: var(--font-ui); font-weight: 800; font-size: 18px; margin-bottom: 4px;">🚶 משמרת סיור פעילה</div>
-          <div style="color: var(--text-mid); font-size: 13px;">${visited}/${waypoints.length} נקודות ציון · ${done}/${checklist.length} משימות סבב</div>
+      <div class="patrol-split" style="display: grid; grid-template-rows: 45vh 1fr; gap: 8px; padding: 8px; min-height: calc(100vh - var(--header-h));">
+
+        <!-- TOP: Live tactical map (SVG mock for performance on mobile) -->
+        <div class="patrol-map" style="background: #0a1410; border: 1px solid var(--border); border-radius: var(--r-md); position: relative; overflow: hidden;">
+          <!-- Grid + forest background -->
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" style="position: absolute; inset: 0; width: 100%; height: 100%;">
+            <defs>
+              <pattern id="pgrid" width="10" height="10" patternUnits="userSpaceOnUse">
+                <path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(77,208,225,0.06)" stroke-width="0.3"/>
+              </pattern>
+              <radialGradient id="ptglow" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stop-color="rgba(45,216,129,0.45)"/>
+                <stop offset="100%" stop-color="rgba(45,216,129,0)"/>
+              </radialGradient>
+            </defs>
+            <rect width="100" height="100" fill="url(#pgrid)"/>
+            <!-- Stylized perimeter -->
+            <polygon points="15,15 85,12 90,80 60,90 12,85" fill="none" stroke="rgba(77,208,225,0.35)" stroke-width="0.7" stroke-dasharray="2,2"/>
+            <!-- Waypoint pins -->
+            ${waypoints.map(w => `
+              <g>
+                <circle cx="${w.x}" cy="${w.y}" r="${w.visited ? 2.6 : 2.2}"
+                        fill="${w.visited ? 'var(--ok)' : 'var(--warn)'}"
+                        stroke="white" stroke-width="0.5"/>
+                <text x="${w.x}" y="${w.y - 4}" text-anchor="middle" font-size="2.4" fill="rgba(255,255,255,0.75)" font-family="Heebo">${util.escapeHtml(w.name.slice(0, 14))}</text>
+              </g>
+            `).join('')}
+            <!-- Guard position (animated dot) -->
+            <circle cx="${guardPos.x}" cy="${guardPos.y}" r="6" fill="url(#ptglow)">
+              <animate attributeName="r" values="4;8;4" dur="2s" repeatCount="indefinite"/>
+            </circle>
+            <circle cx="${guardPos.x}" cy="${guardPos.y}" r="2" fill="var(--ok)" stroke="white" stroke-width="0.6"/>
+          </svg>
+          <!-- Overlay HUD -->
+          <div style="position: absolute; top: 8px; left: 10px; display: flex; gap: 6px; align-items: center;">
+            <span style="background: rgba(0,0,0,0.6); padding: 4px 10px; border-radius: var(--r-pill); font-size: 11px; font-family: var(--font-ui); font-weight: 700; color: var(--ok);">🚶 סיור פעיל</span>
+          </div>
+          <div style="position: absolute; top: 8px; right: 10px; font-family: var(--font-mono); color: var(--text-mid); font-size: 11px; background: rgba(0,0,0,0.6); padding: 3px 8px; border-radius: 4px;">
+            📍 GPS: ${(31.957 + guardPos.x / 10000).toFixed(5)}, ${(34.951 + guardPos.y / 10000).toFixed(5)}
+          </div>
+          <div style="position: absolute; bottom: 8px; right: 10px; font-family: var(--font-mono); color: var(--accent); font-size: 11px; background: rgba(0,0,0,0.6); padding: 3px 8px; border-radius: 4px;">
+            ${visited}/${waypoints.length} נקודות · ${done}/${checklist.length} משימות
+          </div>
+          <div style="position: absolute; bottom: 8px; left: 10px; font-size: 16px; opacity: 0.7;">🧭 N</div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
-          <div class="panel" style="padding: 14px;">
-            <div style="font-family: var(--font-ui); font-weight: 700; margin-bottom: 10px;">📍 נקודות ציון לסבב</div>
-            <div style="display: grid; gap: 6px;">
-              ${waypoints.map(w => `
-                <label style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: ${w.visited ? 'rgba(45,216,129,0.1)' : 'var(--bg-deep)'}; border: 1px solid ${w.visited ? 'var(--ok)' : 'var(--border)'}; border-radius: var(--r-sm); cursor: pointer;">
-                  <input type="checkbox" data-wp="${w.id}" ${w.visited ? 'checked' : ''} style="accent-color: var(--ok); width: 18px; height: 18px;">
-                  <span style="${w.visited ? 'color: var(--ok);' : ''}">${util.escapeHtml(w.name)}</span>
-                </label>
-              `).join('')}
+        <!-- BOTTOM: Scrollable mission panel (50%, mobile-friendly) -->
+        <div class="patrol-panel" style="overflow-y: auto; padding-bottom: 120px;">
+          <div style="display: grid; gap: 8px;">
+
+            <!-- Waypoints checklist -->
+            <details open style="background: var(--bg-panel); border: 1px solid var(--border); border-radius: var(--r-md); padding: 10px 12px;">
+              <summary style="display: flex; align-items: center; gap: 8px; font-family: var(--font-ui); font-weight: 700; font-size: 14px; cursor: pointer;">
+                <span>📍 נקודות ציון לסבב</span>
+                <span style="flex:1;"></span>
+                <span class="chip">${visited}/${waypoints.length}</span>
+              </summary>
+              <div style="display: grid; gap: 6px; margin-top: 10px;">
+                ${waypoints.map(w => `
+                  <label style="display: flex; align-items: center; gap: 12px; padding: 14px; background: ${w.visited ? 'rgba(45,216,129,0.10)' : 'var(--bg-deep)'}; border: 1px solid ${w.visited ? 'var(--ok)' : 'var(--border)'}; border-radius: var(--r-sm); cursor: pointer; min-height: 48px;">
+                    <input type="checkbox" data-wp="${w.id}" ${w.visited ? 'checked' : ''} style="accent-color: var(--ok); width: 22px; height: 22px;">
+                    <span style="${w.visited ? 'color: var(--ok); font-weight: 600;' : ''}; font-size: 14px;">${util.escapeHtml(w.name)}</span>
+                  </label>
+                `).join('')}
+              </div>
+            </details>
+
+            <!-- Round checklist -->
+            <details style="background: var(--bg-panel); border: 1px solid var(--border); border-radius: var(--r-md); padding: 10px 12px;">
+              <summary style="display: flex; align-items: center; gap: 8px; font-family: var(--font-ui); font-weight: 700; font-size: 14px; cursor: pointer;">
+                <span>📋 צ׳ק-ליסט סבב</span>
+                <span style="flex:1;"></span>
+                <span class="chip">${done}/${checklist.length}</span>
+              </summary>
+              <div style="display: grid; gap: 6px; margin-top: 10px;">
+                ${checklist.map(c => `
+                  <label style="display: flex; align-items: center; gap: 12px; padding: 14px; background: ${c.done ? 'rgba(77,208,225,0.10)' : 'var(--bg-deep)'}; border: 1px solid ${c.done ? 'var(--accent)' : 'var(--border)'}; border-radius: var(--r-sm); cursor: pointer; min-height: 48px;">
+                    <input type="checkbox" data-task="${c.id}" ${c.done ? 'checked' : ''} style="accent-color: var(--accent); width: 22px; height: 22px;">
+                    <span style="${c.done ? 'color: var(--accent); text-decoration: line-through;' : ''}; font-size: 14px;">${util.escapeHtml(c.label)}</span>
+                  </label>
+                `).join('')}
+              </div>
+            </details>
+
+            <!-- Quick actions -->
+            <button class="btn btn--lg btn--block" id="btn-report-hazard" style="background: var(--warn); color: #1a0e00; border-color: var(--warn); padding: 16px; font-size: 15px;">
+              📸 דיווח מפגע מהיר
+            </button>
+
+            <div style="text-align: center; padding: 8px; color: var(--text-low); font-size: 11px;">
+              ⬇ לחצן SOS אדום ענק בתחתית — החזק 3 שניות להפעלה
             </div>
           </div>
-
-          <div class="panel" style="padding: 14px;">
-            <div style="font-family: var(--font-ui); font-weight: 700; margin-bottom: 10px;">📋 צ׳ק-ליסט סבב</div>
-            <div style="display: grid; gap: 6px;">
-              ${checklist.map(c => `
-                <label style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: ${c.done ? 'rgba(77,208,225,0.1)' : 'var(--bg-deep)'}; border: 1px solid ${c.done ? 'var(--accent)' : 'var(--border)'}; border-radius: var(--r-sm); cursor: pointer;">
-                  <input type="checkbox" data-task="${c.id}" ${c.done ? 'checked' : ''} style="accent-color: var(--accent); width: 18px; height: 18px;">
-                  <span style="${c.done ? 'color: var(--accent); text-decoration: line-through;' : ''}">${util.escapeHtml(c.label)}</span>
-                </label>
-              `).join('')}
-            </div>
-          </div>
         </div>
 
-        <div style="margin-top: 14px;">
-          <button class="btn btn--lg btn--block" id="btn-report-hazard">📸 דיווח מפגע מהיר</button>
-          <div style="text-align: center; margin-top: 10px; font-size: 11px; color: var(--text-low);">⬇ לחצן SOS אדום בתחתית — החזק 3 שניות להפעלה</div>
-        </div>
       </div>
     `;
   }
