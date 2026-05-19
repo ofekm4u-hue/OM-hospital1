@@ -236,9 +236,9 @@
       <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 40px;">
         <div style="text-align: center; max-width: 380px;">
           <div style="font-size: 56px;">🖥️</div>
-          <h2 style="font-family: var(--font-ui); margin: 16px 0 8px;">תחנת חמ"ל — Desktop בלבד</h2>
-          <p style="color: var(--text-mid); line-height: 1.6;">חשבון "חמ"ל" מיועד לעבודה ממחשב באוהל החמ"ל הפיזי בלבד. גישה מהמכשיר הנייד חסומה ע"י הגדרות אחראי החמ"ל.</p>
-          <p style="color: var(--text-low); font-size: 12px; margin-top: 18px;">לעבודה מהשטח — התחבר כ-<strong style="color: var(--accent);">shift</strong> (אחראי חמ"ל, היברידי).</p>
+          <h2 style="font-family: var(--font-ui); margin: 16px 0 8px;">מערכת חמ"ל — Desktop בלבד</h2>
+          <p style="color: var(--text-mid); line-height: 1.6;">חשבון "מערכת חמ"ל" (תחנה סטטית) מיועד לעבודה ממחשב באוהל החמ"ל הפיזי בלבד. גישה מהמכשיר הנייד חסומה ע"י הגדרות אחראי החמ"ל.</p>
+          <p style="color: var(--text-low); font-size: 12px; margin-top: 18px;">לעבודה מהשטח — התחבר כ-<strong style="color: var(--accent);">operator</strong> (אחראי חמ"ל, היברידי — מובייל + Desktop).</p>
           <a href="index.html" class="btn btn--ghost" style="margin-top: 16px;">← חזור ל-login</a>
         </div>
       </div>`;
@@ -498,7 +498,7 @@
     const labels = Scout.HQPermissions.labels();
     document.getElementById('reg-admin').innerHTML = `
       <div style="background: rgba(91,141,239,0.06); border: 1px dashed rgba(91,141,239,0.32); border-radius: var(--r-sm); padding: 10px 12px; margin-bottom: 10px; font-size: 12px; color: var(--info);">
-        🛡 <strong>בקרת סמכויות תחנת חמ"ל</strong> — נעל/פתח הרשאות תפעוליות עבור משתמש "חמ"ל" הסטטי (operator). השינויים נכנסים לתוקף מיידית.
+        🛡 <strong>בקרת סמכויות "מערכת חמ"ל"</strong> — נעל/פתח הרשאות תפעוליות עבור משתמש <strong>system</strong> (התחנה הסטטית במחשב). השינויים נכנסים לתוקף מיידית.
       </div>
       ${Object.entries(labels).map(([key, label]) => {
         const on = perms[key] !== false;
@@ -506,7 +506,7 @@
         <div style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--bg-elev); border: 1px solid ${on ? 'var(--ok)' : 'var(--danger)'}; border-radius: var(--r-sm); margin-bottom: 6px;">
           <div style="flex:1;">
             <div style="font-family: var(--font-ui); font-weight: 600; font-size: 13px;">${util.escapeHtml(label)}</div>
-            <div style="color: var(--text-mid); font-size: 11px;">${on ? '✅ הופעל לתחנת חמ"ל' : '⛔ חסום לתחנת חמ"ל'}</div>
+            <div style="color: var(--text-mid); font-size: 11px;">${on ? '✅ פעיל ל-"מערכת חמ"ל"' : '⛔ חסום ל-"מערכת חמ"ל"'}</div>
           </div>
           <button class="btn btn--sm ${on ? 'btn--danger' : 'btn--ok'}" data-hq-perm="${key}" data-allow="${!on}">
             ${on ? '🔒 נעל' : '🔓 פתח'}

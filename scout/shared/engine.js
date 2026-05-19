@@ -8,7 +8,7 @@
   // ---------- Constants ----------
 
   const NS = 'scout:';
-  const SCHEMA_VERSION = 4;
+  const SCHEMA_VERSION = 5;
 
   const FORESTS = [
     { id: 'ben-shemen',   name: 'יער בן שמן',     lat: 31.957, lng: 34.951, region: 'מרכז',  hanichim: 412, staff: 78, status: 'ok' },
@@ -141,10 +141,10 @@
     }
     function seedStaff() {
       return [
-        { id: 's1', name: 'רס״ל ניר אלון',  role: 'kabat',   active: true },
-        { id: 's2', name: 'רס״ל יוסי גולן', role: 'achmash', active: true },
-        { id: 's3', name: 'אחראי חמ״ל רחל', role: 'hq-shift', active: true },
-        { id: 's4', name: 'תורן עידו',      role: 'hq-op',   active: true },
+        { id: 's1', name: 'רס״ל ניר אלון',     role: 'kabat',    active: true },
+        { id: 's2', name: 'רס״ל יוסי גולן',    role: 'achmash',  active: true },
+        { id: 's3', name: 'אחראי חמ״ל — עידו', role: 'hq-shift', active: true },
+        { id: 's4', name: 'מערכת חמ״ל (תחנה)', role: 'hq-op',    active: true },
         { id: 's5', name: 'ד״ר נועה לוי',   role: 'doctor',  active: true },
         { id: 's6', name: 'פאר חובש שדה',   role: 'medic',   active: true },
         { id: 's7', name: 'יואב מע״ר',      role: 'first-aid', active: true },
@@ -1037,11 +1037,12 @@
 
   const Auth = (function () {
     // Default seed credentials — copied to DB on first run so they can be edited live
+    const CREDS_VERSION = 2; // bump to force reseed when CREDS_VERSION changes
     const DEFAULT_CREDENTIALS = {
-      'national': { role: 'national',     name: 'אורי שדה — מנהל ארצי', password: '1234', isDemo: true, status: 'active' },
-      'kabat':    { role: 'kabat',        name: 'קב״ט ניר אלון',         password: '1234', isDemo: true, status: 'active', staffId: 's1' },
-      'shift':    { role: 'hq-shift',     name: 'אחראי חמ״ל רחל',         password: '1234', isDemo: true, status: 'active', staffId: 's3' },
-      'operator': { role: 'hq-op',        name: 'תורן עידו',              password: '1234', isDemo: true, status: 'active', staffId: 's4' },
+      'national': { role: 'national',     name: 'אורי שדה — מנהל ארצי',  password: '1234', isDemo: true, status: 'active' },
+      'kabat':    { role: 'kabat',        name: 'קב״ט ניר אלון',          password: '1234', isDemo: true, status: 'active', staffId: 's1' },
+      'operator': { role: 'hq-shift',     name: 'אחראי חמ״ל — עידו',      password: '1234', isDemo: true, status: 'active', staffId: 's3' },
+      'system':   { role: 'hq-op',        name: 'מערכת חמ״ל (תחנה)',      password: '1234', isDemo: true, status: 'active', staffId: 's4' },
       'guard':    { role: 'guard',        name: 'מאבטח אופיר',           password: '1234', isDemo: true, status: 'active', staffId: 's8' },
       'tribe':    { role: 'tribe',        name: 'מרכז שבט נחל',           password: '1234', isDemo: true, status: 'active' },
       'clinic':   { role: 'clinic-chief', name: 'ד״ר נועה לוי',           password: '1234', isDemo: true, status: 'active', staffId: 's5' },
@@ -1066,8 +1067,18 @@
     };
 
     function ensureCredsSeed() {
-      if (ScoutDB.get('credentials', null)) return;
+      const v = ScoutDB.get('credsVersion', 0);
+      if (v >= CREDS_VERSION && ScoutDB.get('credentials', null)) return;
+      // Force fresh seed when version bumps (e.g., renamed/added users)
       ScoutDB.set('credentials', DEFAULT_CREDENTIALS);
+      ScoutDB.set('credsVersion', CREDS_VERSION);
+      // If a session is logged in under an old/renamed username, kick to login
+      const cur = ScoutDB.get('loginUser', null);
+      if (cur && !DEFAULT_CREDENTIALS[cur]) {
+        ScoutDB.set('loggedIn', false);
+        ScoutDB.remove('currentPersona');
+        ScoutDB.remove('loginUser');
+      }
     }
     ensureCredsSeed();
 
@@ -1916,7 +1927,7 @@
       ScoutDB.set('hqStationPerms', cur);
       ScoutDB.appendAudit({
         action: 'HQ-PERM-TOGGLE', channel: 'auth',
-        details: `${LABELS[key] || key} — ${allowed ? 'הופעל' : 'נחסם'} עבור תחנת חמ"ל`,
+        details: `${LABELS[key] || key} — ${allowed ? 'הופעל' : 'נחסם'} עבור משתמש "מערכת חמ"ל"`,
       });
       Bus.emit('hq-perms:update', { key, allowed });
     }
