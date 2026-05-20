@@ -1897,7 +1897,88 @@
     });
   })();
 
-  // ---------- HQ Permissions (hq-shift controls hq-op) ----------
+  // ---------- Debrief / Analytics aggregator ----------
+
+  const Debrief = (function () {
+    function within(range) {
+      // range: { from: ms, to: ms } or { lastHours: N }
+      const now = nowMs();
+      if (range.lastHours)  return { from: now - range.lastHours * 3600_000, to: now };
+      if (range.lastDays)   return { from: now - range.lastDays * 86_400_000, to: now };
+      return { from: range.from || 0, to: range.to || now };
+    }
+    function inRange(ts, r) { return ts >= r.from && ts <= r.to; }
+
+    function generate(range, shiftFilter) {
+      const r = within(range);
+
+      // 1. Incidents analytics
+      const incidents = (ScoutDB.get('incidents', []) || []).filter(i => inRange(i.ts, r));
+      const closed    = incidents.filter(i => i.locked);
+      const open      = incidents.filter(i => !i.locked);
+      const byPriority = {
+        high:   incidents.filter(i => i.priority === 'high').length,
+        medium: incidents.filter(i => i.priority === 'medium').length,
+        low:    incidents.filter(i => i.priority === 'low').length,
+      };
+      const debriefs = closed.map(i => ({
+        id: i.id, title: i.title, type: i.type, priority: i.priority,
+        closedAt: i.resolvedAt, closedBy: i.resolvedBy, debrief: i.debrief,
+      }));
+
+      // 2. Logistics: buses
+      const audit = (ScoutDB.get('audit', []) || []).filter(a => inRange(a.ts, r));
+      const busAudit = audit.filter(a => a.action.startsWith('BUS-'));
+      const busIn  = busAudit.filter(a => a.action === 'BUS-IN' || a.action === 'BUS-CLEAR').length;
+      const busOut = busAudit.filter(a => a.action === 'BUS-OUT').length;
+      const busAdded = busAudit.filter(a => a.action.endsWith('-ADD-KABAT') || a.action.endsWith('-ADD-HQ')).length;
+
+      // Manual gate approvals (kabat/HQ overrides)
+      const gateApprove = audit.filter(a => a.action === 'GATE-APPROVE').length;
+      const gateDeny    = audit.filter(a => a.action === 'GATE-DENY').length;
+      const vehAdd = audit.filter(a => a.action.startsWith('VEH-ADD')).length;
+      const guestAdd = audit.filter(a => a.action.startsWith('GUEST-PASS-ISSUE') || a.action === 'GUEST-CHECKIN').length;
+
+      // 3. Patrol performance
+      const waypoints = ScoutDB.get('patrolWaypoints', []) || [];
+      const checklist = ScoutDB.get('patrolChecklist', []) || [];
+      const wpVisited = waypoints.filter(w => w.visited).length;
+      const wpTotal = waypoints.length;
+      const taskDone = checklist.filter(c => c.done).length;
+      const taskTotal = checklist.length;
+      const patrolAudit = audit.filter(a => a.action === 'PATROL-WP' || a.action === 'PATROL-TASK');
+      const hazards = (ScoutDB.get('hazards', []) || []).filter(h => inRange(h.ts, r));
+      const openHazards = incidents.filter(i => i.type === 'hazard' && !i.locked);
+
+      return {
+        range: r,
+        shiftFilter: shiftFilter || null,
+        incidents: {
+          total: incidents.length, open: open.length, closed: closed.length,
+          byPriority, debriefs,
+        },
+        logistics: {
+          busesIn: busIn, busesOut: busOut, busesAdded: busAdded,
+          gateApprovals: gateApprove, gateDenials: gateDeny,
+          vehiclesAdded: vehAdd, guestsAdded: guestAdd,
+        },
+        patrol: {
+          waypointsCompleted: wpVisited, waypointsTotal: wpTotal,
+          tasksCompleted: taskDone, tasksTotal: taskTotal,
+          patrolActions: patrolAudit.length,
+          hazardsReported: hazards.length,
+          hazardsStillOpen: openHazards.length,
+          openHazardsList: openHazards.map(h => ({ id: h.id, title: h.title, gps: h.gps, priority: h.priority })),
+        },
+        meta: {
+          generatedAt: nowMs(),
+          generatedBy: UI.currentPersona().name,
+          generatedByRole: UI.currentPersona().role,
+        },
+      };
+    }
+    return { generate, within };
+  })();
 
   const HQPermissions = (function () {
     const DEFAULT_RESTRICTIONS = {
@@ -1979,7 +2060,7 @@
 
   global.Scout = {
     ScoutDB, Bus, Audio, DMS, SOS, Geo, Toast, Modal, UI, Auth, Drone, Chat, Personnel,
-    Gate, Checkout, ParentPickup, Incidents, HQPermissions, Roster,
+    Gate, Checkout, ParentPickup, Incidents, HQPermissions, Roster, Debrief,
     util: { uuid, nowMs, fmtTime, fmtDate, pick, clamp, escapeHtml, getParam },
     FORESTS,
   };
