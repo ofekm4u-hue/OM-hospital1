@@ -135,12 +135,164 @@
   .stat-card.danger .stat-n { color: var(--danger); }
   .stat-card.warn .stat-n { color: var(--warn); }
   .stat-card.ok .stat-n { color: var(--ok); }
+
+  /* ===== Top tab nav (HQ navigation overhaul) ===== */
+  .hq-tab-nav {
+    display: flex;
+    gap: 4px;
+    padding: 6px;
+    margin: 12px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    overflow-x: auto;
+  }
+  .hq-tab {
+    flex: 1;
+    min-width: 110px;
+    padding: 12px 14px;
+    background: transparent;
+    border: 0;
+    color: var(--text-mid);
+    font-family: var(--font-ui);
+    font-weight: 600;
+    font-size: 13px;
+    border-radius: var(--r-sm);
+    cursor: pointer;
+    transition: all var(--t-fast);
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .hq-tab:hover { background: var(--bg-elev); color: var(--text-hi); }
+  .hq-tab.is-active {
+    background: var(--accent);
+    color: #06121A;
+    box-shadow: 0 4px 14px var(--accent-glow);
+  }
+  .hq-pane { display: none; }
+  .hq-pane.is-active { display: block; animation: fade-in 240ms var(--ease); }
+
+  /* Dashboard layout */
+  .dash-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    padding: 0 12px 12px;
+  }
+  @media (max-width: 1100px) {
+    .dash-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  .dash-card {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .dash-card .ico { font-size: 28px; }
+  .dash-card .num { font-size: 36px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; }
+  .dash-card .lbl { font-size: 11px; color: var(--text-low); text-transform: uppercase; letter-spacing: .1em; }
+  .dash-card.hanichim   { border-color: var(--ok); }
+  .dash-card.leadership { border-color: var(--accent); }
+  .dash-card.staff      { border-color: var(--info); }
+  .dash-card.security   { border-color: var(--warn); }
+  .dash-card.medical    { border-color: var(--danger); }
+  .dash-card.hanichim   .num { color: var(--ok); }
+  .dash-card.leadership .num { color: var(--accent); }
+  .dash-card.staff      .num { color: var(--info); }
+  .dash-card.security   .num { color: var(--warn); }
+  .dash-card.medical    .num { color: var(--danger); }
+
+  .ops-feed-card {
+    margin: 0 12px;
+    padding: 16px 18px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+  }
+  .ops-feed-card h2 {
+    font-family: var(--font-ui);
+    font-size: 16px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .ops-feed-list {
+    max-height: 460px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .ops-feed-item {
+    padding: 10px 14px;
+    background: var(--bg-elev);
+    border-right: 3px solid var(--border-hi);
+    border-radius: var(--r-sm);
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 10px;
+    font-size: 13px;
+  }
+  .ops-feed-item.kind-bus       { border-right-color: var(--info); }
+  .ops-feed-item.kind-checkout  { border-right-color: var(--ok); }
+  .ops-feed-item.kind-exception { border-right-color: var(--warn); }
+  .ops-feed-item.kind-incident  { border-right-color: var(--danger); }
+  .ops-feed-item .ts {
+    color: var(--text-low);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    align-self: flex-end;
+  }
+
+  /* Full-width single-pane sections */
+  .full-section {
+    margin: 12px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    overflow: hidden;
+  }
+  .full-section > h2 {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, #131A26, var(--bg-panel));
+    font-family: var(--font-ui);
+    font-size: 15px;
+  }
+  .full-section .body { padding: 16px 18px; }
 </style>
 </head>
 <body class="tactical-grid">
   <div id="header"></div>
 
-  <div class="page">
+  <!-- HQ Top tab nav (5 categories) -->
+  <nav class="hq-tab-nav">
+    <button class="hq-tab is-active" data-hq-tab="dashboard">🏠 דף הבית</button>
+    <button class="hq-tab" data-hq-tab="map">🗺 מפה ו-GPS</button>
+    <button class="hq-tab" data-hq-tab="census">📊 נתוני חניכים</button>
+    <button class="hq-tab" data-hq-tab="gates">🚧 טבלאות שער</button>
+    <button class="hq-tab" data-hq-tab="chat">💬 צ׳אט מבצעי</button>
+  </nav>
+
+  <!-- 🏠 Dashboard (default) -->
+  <section class="hq-pane is-active" data-hq-pane="dashboard">
+    <div class="dash-grid" id="hq-dash-counters"></div>
+    <div class="ops-feed-card">
+      <h2>📡 הודעות חריגות ועדכונים</h2>
+      <div class="ops-feed-list" id="hq-ops-feed"></div>
+    </div>
+  </section>
+
+  <!-- 🗺 Map (full-width) -->
+  <section class="hq-pane" data-hq-pane="map">
+    <div class="page" style="grid-template-columns: 1fr;">
     <!-- Map -->
     <div class="map-card">
       <div class="map-bar">
@@ -154,9 +306,13 @@
       </div>
       <div id="map"></div>
     </div>
+    </div>
+  </section>
 
-    <!-- Sidebar — Master Forest Registry -->
-    <aside class="side">
+  <!-- 📊 Census (the existing sidebar tabs, now full-page) -->
+  <section class="hq-pane" data-hq-pane="census">
+    <div class="page" style="grid-template-columns: 1fr;">
+    <aside class="side" style="display: grid; gap: 12px;">
       <div class="panel">
         <div class="section-title">🌲 מצבת יער חיה</div>
         <div class="stat-grid">
@@ -194,11 +350,34 @@
         <div style="font-size: 11px; color: var(--text-low); margin-top: 6px; text-align: center;">הוצא טופס נייר חתום והכוון לשער</div>
       </div>
     </aside>
-  </div>
+    </div>
+  </section>
 
-  <!-- Events strip docks at the bottom only on wide screens -->
-  <div class="events-strip" style="margin: 0 12px 12px;">
-    <div class="section-title" style="margin: 0;">יומן אירועים</div>
+  <!-- 🚧 Gates (dedicated full-width section) -->
+  <section class="hq-pane" data-hq-pane="gates">
+    <div class="full-section">
+      <h2>🚧 טבלאות שער — ניהול מלא</h2>
+      <div class="body">
+        <p style="color: var(--text-mid); margin: 0 0 14px; font-size: 13px;">החמ"ל מקבל סמכויות זהות לקב"ט: עריכה, הוספה, מחיקה ואישור חריגים בלייב על כל 4 הטבלאות.</p>
+        <div id="hq-gates-full"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 💬 Chat -->
+  <section class="hq-pane" data-hq-pane="chat">
+    <div class="full-section">
+      <h2>💬 צ׳אט מבצעי</h2>
+      <div class="body">
+        <p style="color: var(--text-mid); margin: 0 0 14px;">החמ"ל פעיל בערוץ ההנהלה ובערוץ החירום. גישה מלאה לצ'אט נמצאת בדשבורד של הקב"ט.</p>
+        <div id="hq-chat-channels"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Events strip — visible across tabs at bottom -->
+  <div class="events-strip" style="margin: 12px;">
+    <div class="section-title" style="margin: 0;">יומן אירועים אחרון</div>
     <ul id="events"></ul>
   </div>
 
@@ -882,6 +1061,144 @@
   // Update existing tab-switching to include new panes
   Bus.on('hq-perms:update', () => { renderAdminRegistry(); renderGatesRegistry(); });
 
+  // ===== HQ Top tab nav =====
+  document.querySelectorAll('.hq-tab').forEach(t => {
+    t.addEventListener('click', () => {
+      document.querySelectorAll('.hq-tab').forEach(x => x.classList.remove('is-active'));
+      t.classList.add('is-active');
+      document.querySelectorAll('.hq-pane').forEach(p => p.classList.toggle('is-active', p.dataset.hqPane === t.dataset.hqTab));
+      // Leaflet needs invalidateSize() when its container becomes visible
+      if (t.dataset.hqTab === 'map' && map) {
+        setTimeout(() => map.invalidateSize(), 80);
+      }
+      if (t.dataset.hqTab === 'dashboard') renderDashboard();
+      if (t.dataset.hqTab === 'gates') renderHQGatesFull();
+      if (t.dataset.hqTab === 'chat') renderHQChatChannels();
+    });
+  });
+
+  // ===== Dashboard: counters + operational feed =====
+  function renderDashboard() {
+    const tribes = ScoutDB.get('tribes', []).filter(t => t.forestId === forestId);
+    const tribeIds = tribes.map(t => t.id);
+    const hanichim = ScoutDB.get('hanichim', []).filter(h => tribeIds.includes(h.tribeId));
+    const presentH = hanichim.filter(h => h.status !== 'released').length;
+    const adults = ScoutDB.get('adults', []) || [];
+    const leadership = adults.filter(a => a.role === 'leadership' && a.present).length;
+    const staff = ScoutDB.get('staff', []) || [];
+    const campStaff = staff.filter(s => s.active && !s.guestPass && !['kabat','achmash','guard','patrol','medic','first-aid','paramedic','doctor','clinic-chief','national'].includes(s.role)).length
+                    + adults.filter(a => a.role === 'staff' && a.present).length;
+    const guards = staff.filter(s => s.active && ['guard','patrol','achmash'].includes(s.role)).length;
+    const medics = staff.filter(s => s.active && ['medic','first-aid','paramedic','doctor','clinic-chief'].includes(s.role)).length;
+
+    document.getElementById('hq-dash-counters').innerHTML = `
+      <div class="dash-card hanichim">
+        <span class="ico">👥</span>
+        <span class="num">${presentH}</span>
+        <span class="lbl">חניכים נוכחים ביער</span>
+      </div>
+      <div class="dash-card leadership">
+        <span class="ico">🎯</span>
+        <span class="num">${leadership}</span>
+        <span class="lbl">צוות הנהגה</span>
+      </div>
+      <div class="dash-card staff">
+        <span class="ico">⛺</span>
+        <span class="num">${campStaff}</span>
+        <span class="lbl">צוות מחנה</span>
+      </div>
+      <div class="dash-card security">
+        <span class="ico">🛡</span>
+        <span class="num">${guards}</span>
+        <span class="lbl">מאבטחים (סיור + ש"ג)</span>
+      </div>
+      <div class="dash-card medical">
+        <span class="ico">🚑</span>
+        <span class="num">${medics}</span>
+        <span class="lbl">צוות רפואי וחובשים</span>
+      </div>
+    `;
+
+    // Operational feed — aggregate recent events from multiple channels
+    const audit = (ScoutDB.get('audit', []) || []).slice(-50).reverse();
+    const exceptions = (ScoutDB.get('gateExceptions', []) || []).slice().reverse().slice(0, 5);
+    const incidents  = Scout.Incidents.list().slice(0, 5);
+    const buses      = (ScoutDB.get('buses', []) || []).filter(b => b.status !== 'planned' && b.status !== 'left').slice(0, 5);
+
+    const feed = [];
+    incidents.forEach(i => feed.push({
+      ts: i.ts, kind: 'incident',
+      title: '🚨 ' + (Scout.Incidents.TYPE_LABELS[i.type] || i.type) + ': ' + i.title,
+      meta: i.reporter + ' · ' + (Scout.Incidents.STATUS_LABELS[i.status] || i.status),
+    }));
+    exceptions.forEach(x => feed.push({
+      ts: x.ts, kind: 'exception',
+      title: '⚠ חריג שער: ' + (x.plate || (x.data && x.data.name) || 'בקשה'),
+      meta: x.reason ? x.reason.slice(0, 60) : '',
+    }));
+    buses.forEach(b => {
+      const labels = { planned: 'מתוכנן', waiting: 'בחניון המתנה', cleared: 'מאושר לכניסה', inside: 'בתוך המחנה', left: 'עזב' };
+      feed.push({
+        ts: b.addedAt || util.nowMs() - 600000, kind: 'bus',
+        title: '🚌 אוטובוס ' + b.plate + ' — ' + (labels[b.status] || b.status),
+        meta: 'שבט ' + (b.tribeName || '—'),
+      });
+    });
+    // Checkout events from audit
+    audit.filter(a => a.action.startsWith('CHECKOUT-') || a.action.startsWith('PARENT-PICKUP-')).slice(0, 5).forEach(a => {
+      feed.push({
+        ts: a.ts, kind: 'checkout',
+        title: '🚪 ' + a.action.replace('CHECKOUT-', 'יציאה: ').replace('PARENT-PICKUP-', 'איסוף הורה: '),
+        meta: a.details.slice(0, 80),
+      });
+    });
+
+    feed.sort((a, b) => b.ts - a.ts);
+    const feedEl = document.getElementById('hq-ops-feed');
+    if (feed.length === 0) {
+      feedEl.innerHTML = '<div style="padding: 18px; text-align: center; color: var(--text-low);">אין פעולות חריגות בשעות האחרונות.</div>';
+    } else {
+      feedEl.innerHTML = feed.slice(0, 20).map(f => `
+        <div class="ops-feed-item kind-${f.kind}">
+          <span style="font-weight: 700; font-size: 13px;">${util.escapeHtml(f.title)}</span>
+          <span style="color: var(--text-mid); font-size: 12px;">${util.escapeHtml(f.meta)}</span>
+          <span class="ts">${util.fmtTime(f.ts)}</span>
+        </div>
+      `).join('');
+    }
+  }
+
+  function renderHQGatesFull() {
+    // Reuse the existing renderGatesRegistry output by cloning the inner content
+    const src = document.getElementById('reg-gates');
+    if (src && src.innerHTML.trim()) {
+      document.getElementById('hq-gates-full').innerHTML = src.innerHTML;
+    } else {
+      renderGatesRegistry();
+      document.getElementById('hq-gates-full').innerHTML = document.getElementById('reg-gates').innerHTML;
+    }
+  }
+
+  function renderHQChatChannels() {
+    const role = UI.currentPersona().role;
+    const channels = Scout.Chat.visibleChannels(role, persona.staffId);
+    document.getElementById('hq-chat-channels').innerHTML = channels.map(c => {
+      const msgs = Scout.Chat.messages(c.id);
+      const last = msgs[msgs.length - 1];
+      return `
+        <div style="padding: 12px 14px; background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--r-sm); margin-bottom: 6px;">
+          <div style="font-family: var(--font-ui); font-weight: 700;">${c.locked ? '🔒 ' : ''}${util.escapeHtml(c.name)}</div>
+          <div style="font-size: 11px; color: var(--text-mid); margin-top: 4px;">${last ? util.escapeHtml(last.from) + ': ' + util.escapeHtml(last.text.slice(0, 80)) : 'אין הודעות'}</div>
+        </div>
+      `;
+    }).join('') || '<div style="color: var(--text-low); padding: 14px; text-align: center;">אין ערוצים זמינים.</div>';
+  }
+
+  // Periodic refresh for dashboard
+  setInterval(() => {
+    if (document.querySelector('.hq-tab.is-active[data-hq-tab="dashboard"]')) renderDashboard();
+  }, 8000);
+
   // Initial render
   renderRegistryStats();
   renderCensusRegistry();
@@ -891,6 +1208,7 @@
   renderPendingRegistry();
   renderAdminRegistry();
   renderEvents();
+  renderDashboard();
 })();
 </script>
 </body>

@@ -782,6 +782,7 @@
       <button class="tab-btn" data-tab="overrides">🛡 עקיפות גלובליות</button>
       <button class="tab-btn" data-tab="audit">📜 לוג מערכת</button>
       <button class="tab-btn" data-tab="incidents">🚨 ניהול אירועים <span class="badge" id="b-incidents" style="background: var(--danger); color: #fff;">0</span></button>
+      <button class="tab-btn" data-tab="debrief">📊 דו"ח ופ"ל</button>
       <button class="tab-btn is-classified" data-tab="drone">🛩 רחפנים <span class="badge">סודי</span></button>
       <button class="tab-btn" data-tab="chat">💬 צ׳אט מבצעי <span class="badge" id="b-chat">0</span></button>
     </nav>
@@ -1111,6 +1112,41 @@
     <!-- ============================================================ -->
     <!-- Tab: Chat -->
     <!-- ============================================================ -->
+    <!-- ============================================================ -->
+    <!-- Tab: Debrief / Daily Lessons -->
+    <!-- ============================================================ -->
+    <section class="tab-pane" data-pane="debrief">
+      <div class="panel pad" style="margin-bottom: 12px;">
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <h2 style="font-family: var(--font-ui); font-size: 18px;">📊 הפקת לקחים — דו"ח ביצועים</h2>
+          <span style="flex:1"></span>
+          <select class="select" id="debrief-range" style="width: auto; padding: 6px 10px; font-size: 13px;">
+            <option value="24h">24 שעות אחרונות (לישיבת הערב)</option>
+            <option value="48h">48 שעות אחרונות</option>
+            <option value="week">שבוע מלא (7 ימים)</option>
+            <option value="halfcamp">חצי מחנה (14 ימים)</option>
+            <option value="all">כל המחנה (30 ימים)</option>
+          </select>
+          <select class="select" id="debrief-shift" style="width: auto; padding: 6px 10px; font-size: 13px;">
+            <option value="">כל המשמרות</option>
+            <option value="morning">משמרת בוקר (06-14)</option>
+            <option value="evening">משמרת ערב (14-22)</option>
+            <option value="night">משמרת לילה (22-06)</option>
+          </select>
+          <button class="btn btn--primary" id="debrief-generate">חולל דו"ח</button>
+          <button class="btn" id="debrief-print">🖨 הורד PDF / הדפס</button>
+        </div>
+      </div>
+
+      <div id="debrief-output" class="panel pad" style="display: none;">
+        <!-- Generated report renders here -->
+      </div>
+
+      <div id="debrief-placeholder" class="panel pad" style="text-align: center; color: var(--text-low); padding: 40px;">
+        בחר טווח זמן ולחץ "חולל דו"ח" כדי לראות סיכום ביצועים מרוכז לישיבת סוף יום.
+      </div>
+    </section>
+
     <section class="tab-pane" data-pane="chat">
       <div class="chat-wrap">
         <aside class="chat-side">
@@ -2899,6 +2935,146 @@
   renderSosPanel();
   renderIncidents();
   updateChatBadge();
+
+  // ============================================================
+  // ===== DEBRIEF / DAILY LESSONS =====
+  // ============================================================
+  document.getElementById('debrief-generate').addEventListener('click', () => {
+    const rangeKey = document.getElementById('debrief-range').value;
+    const shift = document.getElementById('debrief-shift').value;
+    const ranges = { '24h': { lastHours: 24 }, '48h': { lastHours: 48 }, 'week': { lastDays: 7 }, 'halfcamp': { lastDays: 14 }, 'all': { lastDays: 30 } };
+    const data = Scout.Debrief.generate(ranges[rangeKey] || ranges['24h'], shift || null);
+    renderDebrief(data, rangeKey, shift);
+  });
+
+  document.getElementById('debrief-print').addEventListener('click', () => {
+    if (document.getElementById('debrief-output').style.display === 'none') {
+      Toast.show('יש לחולל קודם את הדו"ח.', { kind: 'warn' });
+      return;
+    }
+    window.print();
+  });
+
+  function renderDebrief(d, rangeKey, shift) {
+    document.getElementById('debrief-placeholder').style.display = 'none';
+    const out = document.getElementById('debrief-output');
+    out.style.display = 'block';
+    const rangeLbl = { '24h': '24 שעות אחרונות', '48h': '48 שעות אחרונות', 'week': '7 ימים אחרונים', 'halfcamp': '14 ימים אחרונים', 'all': 'כל המחנה' }[rangeKey];
+    const shiftLbl = { morning: 'בוקר (06-14)', evening: 'ערב (14-22)', night: 'לילה (22-06)' }[shift] || 'כל המשמרות';
+
+    // Priority bars
+    const totalInc = d.incidents.total || 1;
+    const highPct = Math.round(d.incidents.byPriority.high / totalInc * 100) || 0;
+    const medPct  = Math.round(d.incidents.byPriority.medium / totalInc * 100) || 0;
+    const lowPct  = Math.round(d.incidents.byPriority.low / totalInc * 100) || 0;
+
+    out.innerHTML = `
+      <div class="debrief-report" style="font-family: var(--font-body);">
+        <!-- Header -->
+        <div style="border-bottom: 2px solid var(--accent); padding-bottom: 12px; margin-bottom: 18px;">
+          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <div>
+              <h1 style="font-family: var(--font-ui); font-size: 22px; margin-bottom: 4px;">📋 דו"ח ביצועים והפקת לקחים</h1>
+              <div style="color: var(--text-mid); font-size: 13px;">
+                ${util.escapeHtml(rangeLbl)} · ${util.escapeHtml(shiftLbl)} · נוצר ע"י ${util.escapeHtml(d.meta.generatedBy)}
+              </div>
+            </div>
+            <span style="flex:1"></span>
+            <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-low); text-align: left;">
+              ${util.fmtDate(d.meta.generatedAt)}<br>${util.fmtTime(d.meta.generatedAt)}
+            </div>
+          </div>
+        </div>
+
+        <!-- Section 1: Incidents -->
+        <h2 style="font-family: var(--font-ui); font-size: 17px; margin-bottom: 12px;">1. 🚨 ריכוז אירועים חריגים</h2>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px;">
+          <div class="stat-card"><span class="stat-n">${d.incidents.total}</span><span class="stat-l">סה"כ אירועים</span></div>
+          <div class="stat-card danger"><span class="stat-n">${d.incidents.byPriority.high}</span><span class="stat-l">🟥 קריטיים</span></div>
+          <div class="stat-card warn"><span class="stat-n">${d.incidents.byPriority.medium}</span><span class="stat-l">🟨 בינוניים</span></div>
+          <div class="stat-card ok"><span class="stat-n">${d.incidents.closed}</span><span class="stat-l">נסגרו</span></div>
+        </div>
+
+        <!-- Priority distribution bar -->
+        <div style="background: var(--bg-elev); border-radius: var(--r-sm); padding: 12px 14px; margin-bottom: 14px;">
+          <div style="font-family: var(--font-ui); font-weight: 700; font-size: 12px; margin-bottom: 6px;">פילוח לפי דחיפות</div>
+          <div style="display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: var(--bg-deep);">
+            <div style="width: ${highPct}%; background: var(--danger);" title="גבוהה: ${d.incidents.byPriority.high}"></div>
+            <div style="width: ${medPct}%; background: var(--warn);" title="בינונית: ${d.incidents.byPriority.medium}"></div>
+            <div style="width: ${lowPct}%; background: var(--info);" title="נמוכה: ${d.incidents.byPriority.low}"></div>
+          </div>
+          <div style="display: flex; gap: 14px; margin-top: 6px; font-size: 11px;">
+            <span><span class="dot" style="background: var(--danger); display: inline-block;"></span> ${highPct}% גבוהה</span>
+            <span><span class="dot" style="background: var(--warn); display: inline-block;"></span> ${medPct}% בינונית</span>
+            <span><span class="dot" style="background: var(--info); display: inline-block;"></span> ${lowPct}% נמוכה</span>
+          </div>
+        </div>
+
+        <!-- Debriefs box -->
+        <div style="background: var(--bg-deep); border-right: 4px solid var(--accent); padding: 14px 18px; border-radius: var(--r-sm); margin-bottom: 22px;">
+          <div style="font-family: var(--font-ui); font-weight: 800; font-size: 14px; color: var(--accent); margin-bottom: 10px;">📝 מה יש לתקן לפעם הבאה (תיבות תחקור):</div>
+          ${d.incidents.debriefs.length === 0
+            ? '<div style="color: var(--text-low); padding: 10px 0;">לא נסגרו אירועים בתחקיר בטווח הזמן שנבחר.</div>'
+            : d.incidents.debriefs.map(db => `
+              <div style="padding: 10px 0; border-bottom: 1px dashed var(--border-soft);">
+                <div style="font-weight: 700; font-size: 13px;">${util.escapeHtml(Scout.Incidents.TYPE_LABELS[db.type] || db.type)} · ${util.escapeHtml(db.title)}</div>
+                <div style="font-size: 12px; color: var(--text-mid); margin-top: 4px;">${util.escapeHtml(db.debrief)}</div>
+                <div style="font-size: 10px; color: var(--text-low); margin-top: 4px;">סגר: ${util.escapeHtml(db.closedBy)} · ${util.fmtTime(db.closedAt)}</div>
+              </div>
+            `).join('')}
+        </div>
+
+        <!-- Section 2: Logistics -->
+        <h2 style="font-family: var(--font-ui); font-size: 17px; margin-bottom: 12px;">2. 🚌 בקרת תנועה ושערים</h2>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px;">
+          <div class="stat-card"><span class="stat-n">${d.logistics.busesIn}</span><span class="stat-l">אוטובוסים שנכנסו</span></div>
+          <div class="stat-card"><span class="stat-n">${d.logistics.busesOut}</span><span class="stat-l">אוטובוסים שיצאו</span></div>
+          <div class="stat-card warn"><span class="stat-n">${d.logistics.gateApprovals}</span><span class="stat-l">אישורים חריגים</span></div>
+          <div class="stat-card danger"><span class="stat-n">${d.logistics.gateDenials}</span><span class="stat-l">דחיות</span></div>
+        </div>
+        <div style="background: var(--bg-elev); padding: 10px 14px; border-radius: var(--r-sm); margin-bottom: 22px; font-size: 13px; color: var(--text-mid);">
+          ${d.logistics.vehiclesAdded > 0 ? `🚚 ${d.logistics.vehiclesAdded} ספקים נוספו ידנית. ` : ''}
+          ${d.logistics.guestsAdded > 0 ? `🎫 ${d.logistics.guestsAdded} אורחים אושרו ידנית. ` : ''}
+          ${d.logistics.busesAdded > 0 ? `🚌 ${d.logistics.busesAdded} אוטובוסים הוקמו ידנית.` : ''}
+          ${(d.logistics.vehiclesAdded + d.logistics.guestsAdded + d.logistics.busesAdded) === 0 ? 'לא נרשמו הוספות ידניות לטבלאות השער.' : ''}
+        </div>
+
+        <!-- Section 3: Patrol -->
+        <h2 style="font-family: var(--font-ui); font-size: 17px; margin-bottom: 12px;">3. 🛡 ביצועי אבטחה וסיורים</h2>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px;">
+          <div class="stat-card ${d.patrol.waypointsTotal && d.patrol.waypointsCompleted === d.patrol.waypointsTotal ? 'ok' : 'warn'}">
+            <span class="stat-n">${d.patrol.waypointsCompleted}/${d.patrol.waypointsTotal}</span>
+            <span class="stat-l">נקודות ציון</span>
+          </div>
+          <div class="stat-card ${d.patrol.tasksTotal && d.patrol.tasksCompleted === d.patrol.tasksTotal ? 'ok' : 'warn'}">
+            <span class="stat-n">${d.patrol.tasksCompleted}/${d.patrol.tasksTotal}</span>
+            <span class="stat-l">משימות סבב</span>
+          </div>
+          <div class="stat-card"><span class="stat-n">${d.patrol.patrolActions}</span><span class="stat-l">פעולות סיור</span></div>
+          <div class="stat-card danger"><span class="stat-n">${d.patrol.hazardsStillOpen}</span><span class="stat-l">מפגעים פעילים</span></div>
+        </div>
+
+        ${d.patrol.openHazardsList.length > 0 ? `
+          <div style="background: rgba(255,71,87,0.06); border: 1px solid rgba(255,71,87,0.3); border-radius: var(--r-sm); padding: 12px 14px; margin-bottom: 22px;">
+            <div style="font-family: var(--font-ui); font-weight: 700; font-size: 13px; color: var(--danger); margin-bottom: 8px;">⚠ מפגעים שעדיין בטיפול:</div>
+            ${d.patrol.openHazardsList.map(h => `
+              <div style="font-size: 12px; padding: 4px 0;">
+                ▸ ${util.escapeHtml(h.title)} ${h.gps ? '📍 ' + h.gps.lat.toFixed(4) + ',' + h.gps.lng.toFixed(4) : ''}
+                <span class="chip" style="font-size: 10px; margin-right: 6px;">${Scout.Incidents.PRIORITY_LABELS[h.priority]}</span>
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
+
+        <!-- Footer -->
+        <div style="border-top: 1px solid var(--border); margin-top: 18px; padding-top: 12px; font-size: 11px; color: var(--text-low); text-align: center;">
+          📋 דו"ח אוטומטי שנוצר ממערכת השו"ב · ${util.fmtDate(d.meta.generatedAt)} · אינו תחליף לתחקיר ידני בישיבת ההנהלה
+        </div>
+      </div>
+    `;
+
+    ScoutDB.appendAudit({ action: 'DEBRIEF-GEN', channel: 'comms', details: `דו"ח ${rangeLbl} (${shiftLbl})` });
+  }
 })();
 </script>
 </body>

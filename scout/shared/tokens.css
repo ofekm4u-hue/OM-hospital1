@@ -457,7 +457,32 @@ button { font-family: inherit; }
   font-family: var(--font-ui);
 }
 
-/* Hide demo badge on print */
+/* Print-friendly mode (debrief report etc.) */
 @media print {
-  .mock-badge, .arm-pill, .header { display: none; }
+  /* Hide non-essential UI */
+  .mock-badge, .arm-pill, .header, .tab-nav, .hq-tab-nav,
+  .sos-fab, .chat-fab, .chat-sheet,
+  #map, .map-card, .leaflet-container,
+  .toast-host, .incident-alert-banner,
+  .sos-overlay, [data-sos], .modal-host { display: none !important; }
+
+  /* Show only the active tab pane */
+  .tab-pane:not(.is-active), .hq-pane:not(.is-active) { display: none !important; }
+
+  /* Force light-on-white for printing */
+  body, .tactical-grid { background: #fff !important; color: #000 !important; }
+  .panel, .panel-elev, .stat-card, .debrief-report,
+  .dash-card, .ops-feed-card, .full-section {
+    background: #fff !important;
+    border-color: #ccc !important;
+    color: #000 !important;
+    box-shadow: none !important;
+  }
+  .stat-card .stat-n, .stat-card.danger .stat-n, .stat-card.warn .stat-n, .stat-card.ok .stat-n {
+    color: #000 !important;
+  }
+  .chip { border-color: #888 !important; color: #000 !important; background: #f4f4f4 !important; }
+  h1, h2, h3, h4 { color: #000 !important; }
+  /* Show only debrief tab content on print */
+  body[data-print-only] :is(:not(.debrief-report, .debrief-report *)) { display: none !important; }
 }
