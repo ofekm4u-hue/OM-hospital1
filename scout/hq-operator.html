@@ -401,6 +401,19 @@
   });
   UI.bindHeader(document.body);
   UI.mockBadge('דמו פרזנטציה');
+
+  // If national manager is browsing this forest, show an SSO override banner
+  if (persona.role === 'national') {
+    const banner = document.createElement('div');
+    banner.style.cssText = 'background: linear-gradient(90deg, var(--accent), var(--info)); color: #06121A; padding: 8px 16px; font-family: var(--font-ui); font-weight: 700; font-size: 13px; display: flex; align-items: center; gap: 10px; box-shadow: 0 2px 8px rgba(77,208,225,0.2);';
+    banner.innerHTML = `
+      <span>👑 מנהל ארצי — שליטה מלאה ב<strong style="color: #0a0e14;">${util.escapeHtml(forest.name)}</strong></span>
+      <span style="flex:1"></span>
+      <span style="opacity: 0.8; font-size: 11px;">SSO Super-Admin — הרשאות עליון</span>
+      <a href="home.html" class="btn btn--sm" style="background: rgba(0,0,0,0.2); color: #06121A; border: 1px solid rgba(0,0,0,0.3);">← חזרה למפת היערות</a>
+    `;
+    document.body.insertBefore(banner, document.body.firstChild.nextSibling);
+  }
   document.querySelector('[data-forest-name]').textContent = forest.name;
 
   // Forest selector
@@ -615,56 +628,147 @@
       </details>
     `;
 
-    // Wire add buttons — simple prompts since HQ tabs are minimal
+    // Wire add buttons — proper form modals
     document.querySelectorAll('[data-hq-add]').forEach(b => b.addEventListener('click', () => {
       const kind = b.dataset.hqAdd;
-      if (kind === 'bus') {
-        const plate = prompt('מספר רישוי האוטובוס:');
-        if (!plate) return;
-        const tribe = prompt('שם השבט:', 'נחל'); if (!tribe) return;
-        const battalion = prompt('גדוד:', 'גדוד ב'); if (!battalion) return;
-        const escort = prompt('שם המלווה:'); if (!escort) return;
-        const hanichim = parseInt(prompt('כמות חניכים:', '40'), 10) || 40;
-        ScoutDB.patch('buses', l => (l || []).concat([{
-          id: 'b-' + util.uuid().slice(0, 6), plate, tribeName: tribe, battalion, escort, hanichim,
-          status: 'planned', addedByKabat: false, addedByHQ: true, addedAt: util.nowMs(),
-        }]));
-        ScoutDB.appendAudit({ action: 'BUS-ADD-HQ', channel: 'gate', details: `${tribe} (${battalion}) — ${plate}` });
-        Bus.emit('bus:bus-added', { kind: 'bus' });
-        Toast.show('האוטובוס הוקם בלוח ההיסעים.', { kind: 'ok' });
-        renderGatesRegistry();
-      }
-      if (kind === 'supplier') {
-        const vendor = prompt('שם החברה / ספק:'); if (!vendor) return;
-        const plate = prompt('מספר רישוי:'); if (!plate) return;
-        const driver = prompt('שם הנהג:'); if (!driver) return;
-        ScoutDB.patch('vehicles', l => (l || []).concat([{
-          id: 'v-' + util.uuid().slice(0, 6), plate, driver, vendor,
-          cleared: true, arrived: false, addedByHQ: true, addedAt: util.nowMs(),
-        }]));
-        ScoutDB.appendAudit({ action: 'VEH-ADD-HQ', channel: 'gate', details: `${vendor} — ${plate}` });
-        Bus.emit('bus:vehicle-added', {});
-        Toast.show('הספק נוסף לרשימה הירוקה.', { kind: 'ok' });
-        renderGatesRegistry();
-      }
-      if (kind === 'guest') {
-        const name = prompt('שם האורח:'); if (!name) return;
-        const phone = prompt('טלפון:'); if (!phone) return;
-        const affiliation = prompt('סיבת הגעה / שיוך:'); if (!affiliation) return;
-        const plate = prompt('מספר רכב (אופציונלי):', '') || null;
-        ScoutDB.patch('staff', l => (l || []).concat([{
-          id: 'st-' + util.uuid().slice(0, 6), name, role: 'guest',
-          active: true, guestPass: true, kabatCoordinated: false,
-          affiliation, phone, plate,
-          issuedAt: util.nowMs(), issuedByHQ: true,
-        }]));
-        ScoutDB.set('personnelTelemetry', null);
-        ScoutDB.appendAudit({ action: 'GUEST-PASS-ISSUE-HQ', channel: 'gate', details: `${name} (${affiliation})${plate ? ' — רכב ' + plate : ''}` });
-        Bus.emit('bus:guest-issued', { name });
-        Toast.show('אורח נוסף לרשימה.', { kind: 'ok' });
-        renderGatesRegistry();
-      }
+      if (kind === 'bus')      openHQFormModal('bus');
+      if (kind === 'supplier') openHQFormModal('supplier');
+      if (kind === 'guest')    openHQFormModal('guest');
     }));
+  }
+
+  // ====== Reusable form modal helper for HQ ======
+  function openHQFormModal(kind) {
+    const FORMS = {
+      bus: {
+        title: '+ הוסף אוטובוס מאושר',
+        subtitle: 'האוטובוס ייכנס ללוח ההיסעים בסטטוס "מתוכנן" וייראה בלייב לכל הצוותים בשטח.',
+        fields: [
+          { name: 'tribeName', label: 'שם השבט', required: true, placeholder: 'נחל' },
+          { name: 'battalion', label: 'גדוד',    required: true, placeholder: 'גדוד ב' },
+          { name: 'plate',     label: 'מספר רישוי האוטובוס', required: true, placeholder: '70-555-44' },
+          { name: 'escort',    label: 'שם מלווה האוטובוס', required: true },
+          { name: 'escortPhone', label: 'טלפון מלווה', placeholder: '052-1234567' },
+          { name: 'hanichim',  label: 'כמות חניכים צפויה', type: 'number', required: true, placeholder: '40' },
+        ],
+        submitLabel: 'הקם אוטובוס',
+        onSubmit: data => {
+          ScoutDB.patch('buses', l => (l || []).concat([{
+            id: 'b-' + util.uuid().slice(0, 6), plate: data.plate,
+            tribeName: data.tribeName, battalion: data.battalion,
+            escort: data.escort, escortPhone: data.escortPhone || null,
+            hanichim: parseInt(data.hanichim, 10) || 0,
+            status: 'planned', addedByHQ: true, addedAt: util.nowMs(),
+          }]));
+          ScoutDB.appendAudit({ action: 'BUS-ADD-HQ', channel: 'gate', details: `שבט ${data.tribeName} (${data.battalion}) — ${data.plate}` });
+          Bus.emit('bus:bus-added', {});
+          Toast.show('האוטובוס הוקם בלוח ההיסעים.', { kind: 'ok' });
+          renderGatesRegistry();
+        },
+      },
+      supplier: {
+        title: '+ הוסף ספק מאושר',
+        subtitle: 'הספק יתווסף לרשימה הירוקה של הש"ג ויאושר מראש לכניסה.',
+        fields: [
+          { name: 'vendor',  label: 'שם החברה / ספק', required: true, placeholder: 'אקונומיה אלפא בע"מ' },
+          { name: 'plate',   label: 'מספר רישוי',      required: true, placeholder: '12-345-67' },
+          { name: 'driver',  label: 'שם הנהג',         required: true },
+          { name: 'phone',   label: 'טלפון',           placeholder: '050-1234567' },
+          { name: 'department', label: 'מחלקה', type: 'select', required: true, options: [
+            { value: 'economy',    label: 'אקונומיה' },
+            { value: 'sanitation', label: 'תברואה' },
+            { value: 'logistics',  label: 'לוגיסטיקה' },
+          ]},
+        ],
+        submitLabel: 'אשר ספק',
+        onSubmit: data => {
+          const deptLabels = { economy: 'אקונומיה', sanitation: 'תברואה', logistics: 'לוגיסטיקה' };
+          ScoutDB.patch('vehicles', l => (l || []).concat([{
+            id: 'v-' + util.uuid().slice(0, 6),
+            plate: data.plate, driver: data.driver,
+            vendor: data.vendor + ' · ' + (deptLabels[data.department] || data.department),
+            phone: data.phone || null, department: data.department,
+            cleared: true, arrived: false, addedByHQ: true, addedAt: util.nowMs(),
+          }]));
+          ScoutDB.appendAudit({ action: 'VEH-ADD-HQ', channel: 'gate', details: `${data.vendor} — ${data.plate}` });
+          Bus.emit('bus:vehicle-added', {});
+          Toast.show('הספק נוסף לרשימה הירוקה.', { kind: 'ok' });
+          renderGatesRegistry();
+        },
+      },
+      guest: {
+        title: '+ הוסף אורח מאושר בתיאום',
+        subtitle: 'רישום אורח עם כניסה מאושרת מראש. הש"ג יראה אותו כ"מאושר בתיאום חמ"ל".',
+        fields: [
+          { name: 'name',        label: 'שם האורח',                  required: true, placeholder: 'מאיר כהן' },
+          { name: 'phone',       label: 'מספר טלפון',                 required: true, placeholder: '050-7654321' },
+          { name: 'plate',       label: 'מספר רכב (אופציונלי)',        required: false, placeholder: 'לא חובה' },
+          { name: 'affiliation', label: 'סיבת הגעה / שיוך',           required: true, placeholder: 'הורה של חניך בתיאום' },
+        ],
+        submitLabel: 'אשר אורח',
+        onSubmit: data => {
+          ScoutDB.patch('staff', l => (l || []).concat([{
+            id: 'st-' + util.uuid().slice(0, 6), name: data.name,
+            role: 'guest', active: true,
+            guestPass: true, kabatCoordinated: false,
+            affiliation: data.affiliation, phone: data.phone, plate: data.plate || null,
+            issuedAt: util.nowMs(), issuedByHQ: true,
+          }]));
+          ScoutDB.set('personnelTelemetry', null);
+          ScoutDB.appendAudit({ action: 'GUEST-PASS-ISSUE-HQ', channel: 'gate', details: `${data.name} (${data.affiliation})` });
+          Bus.emit('bus:guest-issued', { name: data.name });
+          Toast.show('האורח נוסף לרשימה.', { kind: 'ok' });
+          renderGatesRegistry();
+        },
+      },
+    };
+
+    const spec = FORMS[kind];
+    if (!spec) return;
+    const host = document.createElement('div');
+    host.className = 'modal-host';
+    const fieldsHtml = spec.fields.map(f => {
+      if (f.type === 'select') {
+        return `
+          <div style="margin-bottom: 12px;">
+            <label style="display:block; font-family: var(--font-ui); font-size: 11px; font-weight: 700; color: var(--text-mid); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 5px;">${util.escapeHtml(f.label)}${f.required ? ' *' : ''}</label>
+            <select class="select" name="${f.name}" ${f.required ? 'required' : ''}>
+              ${f.options.map(o => `<option value="${util.escapeHtml(o.value)}">${util.escapeHtml(o.label)}</option>`).join('')}
+            </select>
+          </div>`;
+      }
+      return `
+        <div style="margin-bottom: 12px;">
+          <label style="display:block; font-family: var(--font-ui); font-size: 11px; font-weight: 700; color: var(--text-mid); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 5px;">${util.escapeHtml(f.label)}${f.required ? ' *' : ''}</label>
+          <input class="input" type="${f.type || 'text'}" name="${f.name}"
+                 ${f.required ? 'required' : ''}
+                 ${f.placeholder ? `placeholder="${util.escapeHtml(f.placeholder)}"` : ''}>
+        </div>`;
+    }).join('');
+    host.innerHTML = `
+      <form class="modal" style="width: min(560px, 92vw);">
+        <h3>${util.escapeHtml(spec.title)}</h3>
+        ${spec.subtitle ? `<p style="color: var(--text-mid); margin: 0 0 14px;">${util.escapeHtml(spec.subtitle)}</p>` : ''}
+        ${fieldsHtml}
+        <div style="display:flex; gap:10px; justify-content:flex-end; margin-top: 18px;">
+          <button type="button" class="btn btn--ghost" data-cancel>ביטול</button>
+          <button type="submit" class="btn btn--primary">${util.escapeHtml(spec.submitLabel)}</button>
+        </div>
+      </form>
+    `;
+    document.body.appendChild(host);
+    const form = host.querySelector('form');
+    host.querySelector('[data-cancel]').addEventListener('click', () => host.remove());
+    host.addEventListener('click', e => { if (e.target === host) host.remove(); });
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const data = {};
+      spec.fields.forEach(f => { data[f.name] = (form.elements[f.name].value || '').trim(); });
+      try { spec.onSubmit(data); } catch (err) { console.error(err); }
+      host.remove();
+    });
+    const first = form.querySelector('input, select');
+    if (first) first.focus();
   }
 
   // ====== Registry: Admin (hq-shift only) — toggle hq-op permissions ======

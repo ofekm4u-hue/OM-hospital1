@@ -1082,6 +1082,7 @@
               <h2 style="font-family: var(--font-ui); font-size: 18px;">📋 טבלת אירועים מאסטר</h2>
               <span class="chip" id="inc-count">0 אירועים</span>
               <span style="flex:1;"></span>
+              <button class="btn btn--sm btn--primary" id="btn-incident-manual">+ הקם אירוע יזום</button>
               <select class="select" id="inc-filter-priority" style="width: auto; padding: 5px 10px; font-size: 12px; height: 30px;">
                 <option value="">כל הדחיפויות</option>
                 <option value="high">🟥 גבוהה</option>
@@ -2858,6 +2859,121 @@
   });
   document.getElementById('inc-filter-priority').addEventListener('change', renderIncidents);
   document.getElementById('inc-filter-status').addEventListener('change', renderIncidents);
+
+  // Manual incident creation — full debrief form
+  document.getElementById('btn-incident-manual').addEventListener('click', openManualIncidentForm);
+
+  function openManualIncidentForm() {
+    const host = document.createElement('div');
+    host.className = 'modal-host';
+    host.innerHTML = `
+      <form class="modal" style="width: min(640px, 92vw); max-height: 90vh; overflow-y: auto;">
+        <div style="color: var(--accent); font-family: var(--font-ui); font-weight: 800; letter-spacing: .14em; text-transform: uppercase; font-size: 11px;">+ הקמת אירוע יזום</div>
+        <h3 style="margin: 6px 0 4px;">תיעוד אירוע + תחקיר מלא</h3>
+        <p style="color: var(--text-mid); margin: 0 0 14px; font-size: 13px;">הקלד את פרטי האירוע. עם השמירה הרשומה תינעל ב-Audit Trail באופן בלתי הפיך ותועבר לדו"ח סוף יום.</p>
+
+        <div style="margin-bottom: 12px;">
+          <label style="display:block; font-family: var(--font-ui); font-size: 11px; font-weight: 700; color: var(--text-mid); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 5px;">שם האירוע *</label>
+          <input class="input" name="title" required placeholder='לדוגמה: "פריצת גדר היקפית גזרה מערבית"'>
+        </div>
+
+        <div style="margin-bottom: 12px;">
+          <label style="display:block; font-family: var(--font-ui); font-size: 11px; font-weight: 700; color: var(--text-mid); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 5px;">סוג אירוע *</label>
+          <select class="select" name="type" required>
+            <option value="security">🛡 אבטחה</option>
+            <option value="medical">🚑 רפואי</option>
+            <option value="hazard">⚠ מפגע</option>
+            <option value="gate-exception">⛩ חריג שער</option>
+            <option value="other">📋 אחר</option>
+          </select>
+        </div>
+
+        <div style="margin-bottom: 12px;">
+          <label style="display:block; font-family: var(--font-ui); font-size: 11px; font-weight: 700; color: var(--text-mid); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 5px;">תיאור האירוע (מה קרה בשטח) *</label>
+          <textarea class="textarea" name="description" rows="3" required style="width:100%; resize: vertical;" placeholder="פירוט חופשי של השתלשלות העניינים..."></textarea>
+        </div>
+
+        <div style="margin-bottom: 12px;">
+          <label style="display:block; font-family: var(--font-ui); font-size: 11px; font-weight: 700; color: var(--text-mid); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 5px;">משתתפי האירוע</label>
+          <input class="input" name="participants" placeholder='בעלי תפקידים, מאבטחים, חניכים (מופרדים בפסיק)'>
+        </div>
+
+        <div style="margin-bottom: 12px;">
+          <label style="display:block; font-family: var(--font-ui); font-size: 11px; font-weight: 700; color: var(--text-mid); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 5px;">רמת חומרה *</label>
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px;">
+            <label style="padding: 10px; background: rgba(255,71,87,0.10); border: 1px solid var(--danger); border-radius: var(--r-sm); cursor: pointer; text-align: center;">
+              <input type="radio" name="priority" value="high" style="margin-left: 6px;" checked>🟥 קריטי
+            </label>
+            <label style="padding: 10px; background: rgba(255,181,71,0.10); border: 1px solid var(--warn); border-radius: var(--r-sm); cursor: pointer; text-align: center;">
+              <input type="radio" name="priority" value="medium" style="margin-left: 6px;">🟨 בינוני
+            </label>
+            <label style="padding: 10px; background: rgba(91,141,239,0.10); border: 1px solid var(--info); border-radius: var(--r-sm); cursor: pointer; text-align: center;">
+              <input type="radio" name="priority" value="low" style="margin-left: 6px;">🟦 נמוך
+            </label>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 12px;">
+          <label style="display:block; font-family: var(--font-ui); font-size: 11px; font-weight: 700; color: var(--text-mid); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 5px;">איך טופל *</label>
+          <textarea class="textarea" name="treatment" rows="3" required style="width:100%; resize: vertical;" placeholder="פירוט הפעולות הטקטיות והרפואיות שננקטו..."></textarea>
+        </div>
+
+        <div style="margin-bottom: 12px;">
+          <label style="display:block; font-family: var(--font-ui); font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 5px;">📚 לקחי האירוע (חובה) *</label>
+          <textarea class="textarea" name="lessons" rows="3" required style="width:100%; resize: vertical;" placeholder='לדוגמה: "יש לעבות תאורה בגזרה המערבית" / "ריענון נהלים לחובשים..."'></textarea>
+        </div>
+
+        <div style="background: rgba(255,71,87,0.06); border: 1px solid rgba(255,71,87,0.32); border-radius: var(--r-sm); padding: 10px 14px; margin-bottom: 12px; font-size: 12px; color: var(--text-mid);">
+          🔒 עם השמירה, הרשומה תינעל ב-Audit Trail ותועבר לדו"ח הפקת הלקחים של סוף היום. לא ניתן יהיה לערוך אותה.
+        </div>
+
+        <div style="display:flex; gap:10px; justify-content:flex-end;">
+          <button type="button" class="btn btn--ghost" data-cancel>ביטול</button>
+          <button type="submit" class="btn btn--danger">שמור ונעל אירוע</button>
+        </div>
+      </form>
+    `;
+    document.body.appendChild(host);
+    const form = host.querySelector('form');
+    host.querySelector('[data-cancel]').addEventListener('click', () => host.remove());
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const data = {
+        title:        form.title.value.trim(),
+        type:         form.type.value,
+        description:  form.description.value.trim(),
+        participants: form.participants.value.trim(),
+        priority:     form.priority.value,
+        treatment:    form.treatment.value.trim(),
+        lessons:      form.lessons.value.trim(),
+      };
+      if (data.lessons.length < 10) {
+        Toast.show('שדה לקחי האירוע חייב להכיל לפחות 10 תווים.', { kind: 'warn' });
+        return;
+      }
+      // Build a structured debrief text combining all fields
+      const debriefText = [
+        `📝 תיאור: ${data.description}`,
+        data.participants ? `👥 משתתפים: ${data.participants}` : null,
+        `🛠 טיפול: ${data.treatment}`,
+        `📚 לקחים: ${data.lessons}`,
+      ].filter(Boolean).join('\n\n');
+
+      // Create incident + immediately close it with the consolidated debrief
+      const inc = Scout.Incidents.create({
+        type: data.type,
+        title: data.title,
+        details: data.description,
+        priority: data.priority,
+      });
+      Scout.Incidents.close(inc.id, debriefText);
+      Toast.show('אירוע יזום נשמר ננעל ב-Audit Trail.', { kind: 'ok' });
+      Scout.Audio.play('blip');
+      host.remove();
+      renderIncidents();
+    });
+    form.title.focus();
+  }
 
   // Inbound alert banner — top-floating, non-blocking
   function showIncidentAlertBanner(inc) {

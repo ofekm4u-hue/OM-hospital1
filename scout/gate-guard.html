@@ -418,6 +418,7 @@
         <div style="font-family: var(--font-ui); font-weight: 700; font-size: 13px; margin-bottom: 8px;">📷 סורק תעודות</div>
         <button class="btn btn--primary btn--block" id="btn-scan">סרוק תעודת זהות</button>
         <button class="btn btn--block" id="btn-request-exception" style="margin-top: 6px;">בקש אישור חריג</button>
+        <button class="btn btn--danger btn--block" id="btn-gate-field-report" style="margin-top: 6px;">📡 דווח אירוע / מפגע</button>
       </div>
     </nav>
 
@@ -955,8 +956,9 @@
   }
 
   document.addEventListener('click', e => {
-    if (e.target.id === 'btn-parent-pickup') openParentPickupForm();
-    if (e.target.id === 'btn-track-b')       openTrackBVerification();
+    if (e.target.id === 'btn-parent-pickup')     openParentPickupForm();
+    if (e.target.id === 'btn-track-b')           openTrackBVerification();
+    if (e.target.id === 'btn-gate-field-report') openFieldReportForm();
   });
 
   function renderExceptions() {
@@ -1273,6 +1275,93 @@
     `;
   }
 
+  // ===== Field Incident Reporting (mobile guard → kabat/HQ) =====
+  function openFieldReportForm() {
+    const host = document.createElement('div');
+    host.className = 'modal-host';
+    host.innerHTML = `
+      <form class="modal" style="width: min(560px, 92vw); max-height: 92vh; overflow-y: auto;">
+        <div style="color: var(--warn); font-family: var(--font-ui); font-weight: 800; letter-spacing: .14em; text-transform: uppercase; font-size: 11px;">📡 דיווח אירוע מהשטח</div>
+        <h3 style="margin: 6px 0 4px;">שלח התראה לקב"ט וחמ"ל</h3>
+        <p style="color: var(--text-mid); margin: 0 0 14px; font-size: 13px;">הדיווח יישלח מיידית עם המיקום שלך והשעון המדויק. נוצר אירוע במערכת ניהול האירועים של הקב"ט.</p>
+
+        <div style="margin-bottom: 12px;">
+          <label style="display:block; font-family: var(--font-ui); font-size: 11px; font-weight: 700; color: var(--text-mid); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 5px;">סוג האירוע *</label>
+          <select class="select" name="type" required>
+            <option value="security">🛡 אדם חשוד / חריג בטחוני</option>
+            <option value="hazard">⚠ מפגע בטיחותי</option>
+            <option value="medical">🚑 פציעה / אירוע רפואי</option>
+            <option value="fire">🔥 שרפה / חשד לעשן</option>
+            <option value="gate-exception">⛩ חריג שער</option>
+            <option value="other">📋 אחר</option>
+          </select>
+        </div>
+
+        <div style="margin-bottom: 12px;">
+          <label style="display:block; font-family: var(--font-ui); font-size: 11px; font-weight: 700; color: var(--text-mid); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 5px;">כותרת קצרה *</label>
+          <input class="input" name="title" required placeholder='לדוגמה: "חיתוך בגדר צפון"'>
+        </div>
+
+        <div style="margin-bottom: 12px;">
+          <label style="display:block; font-family: var(--font-ui); font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 5px;">פירוט האירוע לקב"ט *</label>
+          <textarea class="textarea" name="details" rows="4" required style="width:100%; resize: vertical;" placeholder='לדוגמה: "מזהה חיתוך קטן בגדר צפון, קרוב למתחם חוגים, אין כרגע גורם חשוד באזור..."'></textarea>
+        </div>
+
+        <div style="margin-bottom: 12px;">
+          <label style="display:block; font-family: var(--font-ui); font-size: 11px; font-weight: 700; color: var(--text-mid); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 5px;">רמת דחיפות מוצעת</label>
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px;">
+            <label style="padding: 8px; background: rgba(255,71,87,0.10); border: 1px solid var(--danger); border-radius: var(--r-sm); cursor: pointer; text-align: center; font-size: 13px;">
+              <input type="radio" name="priority" value="high" style="margin-left: 6px;">🟥
+            </label>
+            <label style="padding: 8px; background: rgba(255,181,71,0.10); border: 1px solid var(--warn); border-radius: var(--r-sm); cursor: pointer; text-align: center; font-size: 13px;">
+              <input type="radio" name="priority" value="medium" style="margin-left: 6px;" checked>🟨
+            </label>
+            <label style="padding: 8px; background: rgba(91,141,239,0.10); border: 1px solid var(--info); border-radius: var(--r-sm); cursor: pointer; text-align: center; font-size: 13px;">
+              <input type="radio" name="priority" value="low" style="margin-left: 6px;">🟦
+            </label>
+          </div>
+          <div style="font-size: 11px; color: var(--text-low); margin-top: 4px;">הקב"ט יסקור ויעדכן את הדחיפות בהתאם.</div>
+        </div>
+
+        <div style="display:flex; gap:10px; justify-content:flex-end;">
+          <button type="button" class="btn btn--ghost" data-cancel>ביטול</button>
+          <button type="submit" class="btn btn--danger">📡 שלח דיווח</button>
+        </div>
+      </form>
+    `;
+    document.body.appendChild(host);
+    const form = host.querySelector('form');
+    host.querySelector('[data-cancel]').addEventListener('click', () => host.remove());
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const pos = Scout.Geo.snapshot()[0];
+      const gps = pos ? { lat: pos.lat, lng: pos.lng } : null;
+      const data = {
+        type: form.type.value,
+        title: form.title.value.trim(),
+        details: form.details.value.trim(),
+        priority: form.priority.value,
+      };
+      Scout.Incidents.create({
+        type: data.type,
+        title: data.title,
+        details: data.details,
+        priority: data.priority,
+        gps,
+      });
+      // Also keep the legacy hazards record for backward compat
+      ScoutDB.patch('hazards', l => (l || []).concat([{
+        id: util.uuid().slice(0, 6), desc: data.details, ts: util.nowMs(),
+        reportedBy: UI.currentPersona().name,
+      }]));
+      Bus.emit('bus:hazard', { desc: data.details, ts: util.nowMs() });
+      Scout.Audio.play('pulse-alert');
+      Toast.show('הדיווח נשלח. נוצר אירוע במערכת ניהול האירועים של הקב"ט.', { kind: 'warn' });
+      host.remove();
+    });
+    form.title.focus();
+  }
+
   function bindPatrolView() {
     document.querySelectorAll('[data-wp]').forEach(cb => cb.addEventListener('change', () => {
       ScoutDB.patch('patrolWaypoints', l => l.map(w => w.id === cb.dataset.wp ? Object.assign({}, w, { visited: cb.checked }) : w));
@@ -1287,24 +1376,7 @@
       bindPatrolView();
     }));
     const reportBtn = document.getElementById('btn-report-hazard');
-    if (reportBtn) reportBtn.addEventListener('click', () => {
-      const desc = prompt('תיאור המפגע (יישלח לקב"ט וחמ"ל עם המיקום הנוכחי):');
-      if (!desc || !desc.trim()) return;
-      const pos = Scout.Geo.snapshot()[0];
-      const gps = pos ? { lat: pos.lat, lng: pos.lng } : null;
-      ScoutDB.patch('hazards', l => (l || []).concat([{ id: util.uuid().slice(0,6), desc, ts: util.nowMs(), reportedBy: UI.currentPersona().name }]));
-      // Create an incident in the master table — routed to Incident Management
-      Scout.Incidents.create({
-        type: 'hazard',
-        title: 'דיווח מפגע מסיור: ' + desc.slice(0, 60),
-        details: desc,
-        priority: 'medium',
-        gps,
-      });
-      Bus.emit('bus:hazard', { desc, ts: util.nowMs() });
-      Scout.Audio.play('pulse-alert');
-      Toast.show('המפגע דווח לקב"ט/חמ"ל. נוצר אירוע ב-"ניהול אירועים".', { kind: 'warn' });
-    });
+    if (reportBtn) reportBtn.addEventListener('click', openFieldReportForm);
   }
 
   // ===== Initial render — depends on mission =====

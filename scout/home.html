@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>שו"ב | תנועת הצופים — מגדל פיקוח לאומי</title>
+<title>שו"ב | מנהל תנועה צופים ארצית</title>
 <link rel="stylesheet" href="shared/tokens.css">
 <style>
   .hero {
@@ -193,9 +193,9 @@
   </div>
 
   <section class="hero">
-    <div class="hero-line">⛺ Multi-Forest Control Tower</div>
-    <h1 class="hero-title">מגדל פיקוח לאומי</h1>
-    <p class="hero-subtitle">תצוגת מצב חיה של כלל היערות הפעילים מטעם תנועת הצופים. לחיצה על יער פותחת מעבר מיידי (SSO) למערכת השו"ב המקומית — אותן הרשאות-על של הקב"ט המקומי.</p>
+    <div class="hero-line">⛺ National Forest Operations Command</div>
+    <h1 class="hero-title">מנהל תנועה צופים ארצית</h1>
+    <p class="hero-subtitle">שליטה גלובלית על כלל יערות הצופים הפעילים בארץ. לחיצה על יער מעבירה מיידית (SSO Super-Admin) לדשבורד הניהול המלא של אותו היער — הרשאות עליון מלאות לצפייה, עריכה ותחקור אירועים.</p>
   </section>
 
   <main class="layout">
@@ -316,7 +316,7 @@
   if (!Auth.requireLogin()) return;
 
   // Header (persona was set at login)
-  document.getElementById('header').innerHTML = UI.header({ title: 'מגדל פיקוח לאומי — תנועת הצופים' });
+  document.getElementById('header').innerHTML = UI.header({ title: 'מנהל תנועה צופים ארצית' });
   UI.bindHeader(document.body);
   UI.mockBadge('דמו פרזנטציה • localStorage + WebAudio');
 
@@ -397,17 +397,34 @@
     });
   }
 
+  function enterForest(forest) {
+    ScoutDB.set('currentForest', forest.id);
+    // For National manager, navigate directly to the forest dashboard
+    // (the spec: clicking a forest opens the FULL forest management, not a persona picker)
+    if (UI.currentPersona().role === 'national') {
+      ScoutDB.appendAudit({
+        action: 'NATIONAL-FOREST-ENTER', channel: 'auth',
+        details: `מנהל ארצי נכנס לדשבורד יער ${forest.name}`,
+        actor: UI.currentPersona().name + ' / מנהל ארצי',
+      });
+      location.href = 'hq-operator.html?forest=' + forest.id;
+    } else {
+      // Other roles still get the persona switcher (legacy multi-role demo)
+      openPersonaModal(forest);
+    }
+  }
+
   document.addEventListener('click', e => {
     const card = e.target.closest('.forest-card');
     if (card) {
       const f = ScoutDB.get('forests', []).find(x => x.id === card.dataset.forest);
-      if (f) openPersonaModal(f);
+      if (f) enterForest(f);
       return;
     }
     const pin = e.target.closest('.forest-pin');
     if (pin) {
       const f = ScoutDB.get('forests', []).find(x => x.id === pin.dataset.forest);
-      if (f) openPersonaModal(f);
+      if (f) enterForest(f);
     }
   });
 
