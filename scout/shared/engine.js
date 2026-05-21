@@ -1897,6 +1897,95 @@
     });
   })();
 
+  // ---------- Forests (multi-tenancy registry, national-managed) ----------
+
+  const Forests = (function () {
+    function listSeeded() { return FORESTS.slice(); }
+    function listCustom() { return ScoutDB.get('customForests', []) || []; }
+    function list() {
+      return listSeeded().concat(listCustom());
+    }
+    function get(id) {
+      return list().find(f => f.id === id) || null;
+    }
+    function create({ name, region, lat, lng }) {
+      if (!name || !String(name).trim()) return { ok: false, error: 'שם יער נדרש' };
+      const all = list();
+      if (all.find(f => f.name === name)) return { ok: false, error: 'יער בשם זה כבר קיים' };
+      const id = 'f-' + uuid().slice(0, 6);
+      const forest = {
+        id, name: String(name).trim(),
+        region: region || 'אזור חדש',
+        lat: lat || (31 + Math.random() * 2.5),
+        lng: lng || (34.5 + Math.random() * 2),
+        hanichim: 0, staff: 0, status: 'ok',
+        custom: true,
+        createdBy: UI.currentPersona().name,
+        createdByRole: UI.currentPersona().role,
+        createdAt: nowMs(),
+      };
+      ScoutDB.patch('customForests', l => (l || []).concat([forest]));
+      ScoutDB.appendAudit({
+        action: 'FOREST-CREATE', channel: 'auth',
+        details: `הוקם יער "${forest.name}" (${forest.region}) ע"י ${forest.createdBy}`,
+      });
+      Bus.emit('forests:updated', { kind: 'created', forest });
+      return { ok: true, forest };
+    }
+    function remove(id) {
+      const cur = listCustom();
+      const f = cur.find(x => x.id === id);
+      if (!f) return { ok: false, error: 'יער לא נמצא או שמדובר ביער מערכת קבוע' };
+      ScoutDB.patch('customForests', l => (l || []).filter(x => x.id !== id));
+      ScoutDB.appendAudit({ action: 'FOREST-DELETE', channel: 'auth', details: `יער ${f.name} (${id}) נמחק` });
+      Bus.emit('forests:updated', { kind: 'deleted', id });
+      return { ok: true };
+    }
+    return { list, listSeeded, listCustom, get, create, remove };
+  })();
+
+  // ---------- Role-creation permission matrix ----------
+
+  const RoleProvisioning = (function () {
+    // Who can create which role:
+    // - national: ANY role, in ANY forest
+    // - kabat:    ANY role, but only in their assigned forest
+    // - camp-director: only leadership/staff/tribe-coordinator/sanitation/safety/provisions
+    //                  (NOT security or medical roles)
+    const PROVISIONING_RULES = {
+      'national':      { allowed: '*', scope: 'any-forest' },
+      'kabat':         { allowed: '*', scope: 'own-forest' },
+      'camp-director': {
+        allowed: ['camp-director', 'safety', 'sanitation', 'tribe', 'provisions', 'staff'],
+        scope:   'own-forest',
+      },
+    };
+    const SECURITY_ROLES = ['kabat', 'achmash', 'guard', 'patrol'];
+    const MEDICAL_ROLES  = ['doctor', 'paramedic', 'medic', 'first-aid', 'clinic-chief'];
+
+    function canIssue(byRole, targetRole) {
+      const rule = PROVISIONING_RULES[byRole];
+      if (!rule) return false;
+      if (rule.allowed === '*') return true;
+      return rule.allowed.includes(targetRole);
+    }
+    function blockedRolesFor(byRole) {
+      const rule = PROVISIONING_RULES[byRole];
+      if (!rule) return [];
+      if (rule.allowed === '*') return [];
+      // Whatever isn't in allowed
+      const all = Object.keys(UI.ROLE_LABELS);
+      return all.filter(r => !rule.allowed.includes(r));
+    }
+    function explanation(byRole) {
+      if (byRole === 'national') return 'מנהל ארצי — סמכות מוחלטת על כל המשתמשים בכל היערות בארץ.';
+      if (byRole === 'kabat')    return 'קב"ט יער — סמכות מלאה על כל סוגי המשתמשים, אך רק בגזרת היער שלו.';
+      if (byRole === 'camp-director') return 'מנהל מחנה — חסום מהקמת משתמשי אבטחה ורפואה. רק הנהגה / צוות / מרכזי שבטים.';
+      return 'אין הרשאה להקים משתמשים מסוג זה.';
+    }
+    return { canIssue, blockedRolesFor, explanation, SECURITY_ROLES, MEDICAL_ROLES };
+  })();
+
   // ---------- Debrief / Analytics aggregator ----------
 
   const Debrief = (function () {
@@ -2061,6 +2150,7 @@
   global.Scout = {
     ScoutDB, Bus, Audio, DMS, SOS, Geo, Toast, Modal, UI, Auth, Drone, Chat, Personnel,
     Gate, Checkout, ParentPickup, Incidents, HQPermissions, Roster, Debrief,
+    Forests, RoleProvisioning,
     util: { uuid, nowMs, fmtTime, fmtDate, pick, clamp, escapeHtml, getParam },
     FORESTS,
   };

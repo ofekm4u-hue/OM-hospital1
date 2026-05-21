@@ -392,7 +392,7 @@
 
   const forestId = util.getParam('forest') || ScoutDB.get('currentForest', 'ben-shemen');
   ScoutDB.set('currentForest', forestId);
-  const forest = (ScoutDB.get('forests', []) || FORESTS).find(f => f.id === forestId) || FORESTS[0];
+  const forest = Scout.Forests.list().find(f => f.id === forestId) || FORESTS[0];
 
   // Header
   document.getElementById('header').innerHTML = UI.header({
@@ -418,7 +418,7 @@
 
   // Forest selector
   const sel = document.querySelector('[data-forest-select]');
-  sel.innerHTML = (ScoutDB.get('forests', []) || FORESTS).map(f => `<option value="${f.id}" ${f.id === forestId ? 'selected' : ''}>${util.escapeHtml(f.name)}</option>`).join('');
+  sel.innerHTML = Scout.Forests.list().map(f => `<option value="${f.id}" ${f.id === forestId ? 'selected' : ''}>${util.escapeHtml(f.name)}</option>`).join('');
   sel.addEventListener('change', () => { location.href = 'hq-operator.html?forest=' + sel.value; });
 
   // ====== Mobile block for HQ Station ONLY (hq-op) — hq-shift is hybrid ======

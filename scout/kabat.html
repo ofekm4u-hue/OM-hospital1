@@ -1264,7 +1264,7 @@
   const markers = {};
 
   function initMap() {
-    const forest = (ScoutDB.get('forests', []) || FORESTS).find(f => f.id === forestId) || FORESTS[0];
+    const forest = Scout.Forests.list().find(f => f.id === forestId) || FORESTS[0];
     Geo.seed(forestId);
     Geo.start(forestId);
 

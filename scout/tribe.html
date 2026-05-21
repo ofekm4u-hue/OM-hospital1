@@ -166,7 +166,7 @@
     document.getElementById('tribe-name').textContent = t.name;
     document.getElementById('tribe-mark').textContent = t.name[0];
     document.getElementById('tribe-coord').textContent = UI.currentPersona().name;
-    const f = (ScoutDB.get('forests', []).find(x => x.id === t.forestId) || {});
+    const f = (Scout.Forests.list().find(x => x.id === t.forestId) || {});
     document.getElementById('tribe-forest').textContent = f.name || '—';
   }
 
