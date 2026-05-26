@@ -1317,10 +1317,34 @@
       return { ok: true };
     }
 
+    // National-only maintenance: purge ALL users except the national super-admin.
+    // Keeps system config/rules/data; wipes only user identities.
+    function purgeUsers() {
+      const persona = UI.currentPersona();
+      if (persona.role !== 'national') return { ok: false, error: 'רק מנהל ארצי מורשה לבצע איפוס משתמשים' };
+      const creds = getCreds();
+      // Keep ONLY the national account(s)
+      const fresh = {};
+      Object.entries(creds).forEach(([user, c]) => {
+        if (c.role === 'national') fresh[user] = c;
+      });
+      setCreds(fresh);
+      // Wipe staff identities + runtime personnel state (NOT rules/architecture)
+      ScoutDB.set('staff', []);
+      ScoutDB.set('personnelTelemetry', null);
+      ScoutDB.remove('missions');
+      ScoutDB.appendAudit({
+        action: 'USER-PURGE', channel: 'auth',
+        details: `מנהל ארצי ביצע איפוס משתמשים גורף — נשמר רק מנהל ארצי. הגדרות, חוקים ומטריצת הרשאות נותרו ללא שינוי.`,
+      });
+      Bus.emit('auth:purge', { ts: nowMs(), by: persona.name });
+      return { ok: true };
+    }
+
     return {
       login, logout, isLoggedIn, isPending, requireLogin, routeForRole,
       listDemoUsers, issueTempUser, completeOnboarding,
-      getPendingUsers, revokePendingUser, deleteUser,
+      getPendingUsers, revokePendingUser, deleteUser, purgeUsers,
     };
   })();
 
@@ -2144,6 +2168,24 @@
     }
     return { gdud, layer, broadcastUpdateRequest };
   })();
+
+  // ---------- Global force-logout on user purge ----------
+  // When the national super-admin purges users, every connected tab whose
+  // logged-in user no longer exists is bounced back to the login screen.
+  Bus.on('auth:purge', () => {
+    if (!ScoutDB.get('loggedIn', false)) return;
+    const u = ScoutDB.get('loginUser', null);
+    const creds = ScoutDB.get('credentials', {}) || {};
+    if (u && !creds[u]) {
+      ScoutDB.set('loggedIn', false);
+      ScoutDB.remove('currentPersona');
+      ScoutDB.remove('loginUser');
+      // Avoid redirect loop on the login page itself
+      if (!/index\.html$|\/$/.test(global.location.pathname)) {
+        global.location.replace('index.html');
+      }
+    }
+  });
 
   // ---------- Export ----------
 

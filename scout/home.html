@@ -305,6 +305,7 @@
         <div style="display:grid; gap: 8px;">
           <button class="btn btn--primary" id="btn-create-forest">+ הקם יער חדש</button>
           <button class="btn" id="btn-provision-user">👥 הקם משתמש חדש למערכת</button>
+          <button class="btn btn--danger" id="btn-purge-users">🗑 איפוס משתמשים (Purge)</button>
         </div>
         <div style="margin-top: 10px; padding: 8px 12px; background: rgba(77,208,225,0.08); border: 1px dashed rgba(77,208,225,0.32); border-radius: var(--r-sm); font-size: 11px; color: var(--text-mid);">
           🔐 סמכות עליון: הקמת יערות עצמאיים + הנפקת משתמשים בכל יער, לכל תפקיד.
@@ -484,6 +485,46 @@
 
   document.getElementById('btn-create-forest').addEventListener('click', openCreateForestModal);
   document.getElementById('btn-provision-user').addEventListener('click', openProvisionUserModal);
+  document.getElementById('btn-purge-users').addEventListener('click', openPurgeModal);
+
+  function openPurgeModal() {
+    const creds = ScoutDB.get('credentials', {}) || {};
+    const count = Object.values(creds).filter(c => c.role !== 'national').length;
+    const host = document.createElement('div');
+    host.className = 'modal-host';
+    host.innerHTML = `
+      <div class="modal" style="width: min(540px, 92vw); border-color: var(--danger);">
+        <div style="color: var(--danger); font-family: var(--font-ui); font-weight: 800; letter-spacing: .14em; text-transform: uppercase; font-size: 11px;">🗑 איפוס משתמשים</div>
+        <h3 style="margin: 6px 0 6px;">מחיקת כל המשתמשים (פרט למנהל ארצי)</h3>
+        <p style="color: var(--text-mid); margin: 0 0 12px; font-size: 13px;">
+          פעולה זו תמחק <strong style="color: var(--danger);">${count} משתמשים</strong> מה-localStorage ומבסיס הנתונים — קב"טים, חמ"לים, מאבטחים, חובשים, מרכזים וכל היתר.
+        </p>
+        <div style="background: rgba(45,216,129,0.06); border: 1px solid rgba(45,216,129,0.3); border-radius: var(--r-sm); padding: 10px 14px; margin-bottom: 10px; font-size: 12px; color: var(--text-mid);">
+          ✅ <strong style="color: var(--ok);">נשמר ללא שינוי:</strong> מנהל ארצי, הגדרות מערכת, לוגיקת 5 שלבי אוטובוסים, טפסים, מטריצת ההרשאות, ונתוני היערות.
+        </div>
+        <div style="background: rgba(255,71,87,0.08); border: 1px solid rgba(255,71,87,0.32); border-radius: var(--r-sm); padding: 10px 14px; margin-bottom: 14px; font-size: 12px; color: var(--warn);">
+          ⚠ כל המכשירים המחוברים כרגע ינותקו מיידית ויוחזרו למסך התחברות (Force Logout). תוכל להקים מערך משתמשים נקי מאפס.
+        </div>
+        <div style="display:flex; gap:10px; justify-content:flex-end;">
+          <button class="btn btn--ghost" data-cancel>ביטול</button>
+          <button class="btn btn--danger" data-confirm>מחק ${count} משתמשים</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(host);
+    host.querySelector('[data-cancel]').addEventListener('click', () => host.remove());
+    host.addEventListener('click', e => { if (e.target === host) host.remove(); });
+    host.querySelector('[data-confirm]').addEventListener('click', () => {
+      if (!confirm('אישור אחרון: למחוק את כל המשתמשים פרט למנהל הארצי? פעולה זו בלתי הפיכה.')) return;
+      const r = Scout.Auth.purgeUsers();
+      host.remove();
+      if (!r.ok) { Toast.show(r.error, { kind: 'danger' }); return; }
+      Toast.show('המשתמשים נמחקו. המערכת נקייה — ניתן להקים יערות ומשתמשים מאפס.', { kind: 'ok' });
+      Scout.Audio.play('blip');
+      renderForests();
+      renderAudit();
+    });
+  }
 
   function openCreateForestModal() {
     const host = document.createElement('div');
