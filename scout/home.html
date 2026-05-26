@@ -305,10 +305,26 @@
         <div style="display:grid; gap: 8px;">
           <button class="btn btn--primary" id="btn-create-forest">+ הקם יער חדש</button>
           <button class="btn" id="btn-provision-user">👥 הקם משתמש חדש למערכת</button>
-          <button class="btn btn--danger" id="btn-purge-users">🗑 איפוס משתמשים (Purge)</button>
+          <button class="btn" id="btn-purge-users">🗑 איפוס משתמשים בלבד</button>
         </div>
         <div style="margin-top: 10px; padding: 8px 12px; background: rgba(77,208,225,0.08); border: 1px dashed rgba(77,208,225,0.32); border-radius: var(--r-sm); font-size: 11px; color: var(--text-mid);">
           🔐 סמכות עליון: הקמת יערות עצמאיים + הנפקת משתמשים בכל יער, לכל תפקיד.
+        </div>
+
+        <!-- ⚠ Danger Zone — hard system reset -->
+        <div style="margin-top: 22px; border: 2px solid var(--danger); border-radius: var(--r-md); overflow: hidden;">
+          <div style="background: rgba(255,71,87,0.12); padding: 10px 14px; border-bottom: 1px solid var(--danger); display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 18px;">⚠</span>
+            <strong style="font-family: var(--font-ui); color: var(--danger); letter-spacing: .04em;">אזור סכנה (Danger Zone)</strong>
+          </div>
+          <div style="padding: 14px;">
+            <p style="color: var(--text-mid); font-size: 12px; margin: 0 0 12px; line-height: 1.6;">
+              איפוס מערכת גורף — מוחק לצמיתות את <strong>כל</strong> המשתמשים, היערות והנתונים. מבנה ההגדרות, ה-Schemas והחוקים נשמרים. נקודת הכניסה היחידה שתישאר היא המנהל הארצי.
+            </p>
+            <button class="btn btn--danger btn--block" id="btn-hard-reset" style="font-weight: 800;">
+              💥 איפוס מערכת גורף — התחלה מחדש
+            </button>
+          </div>
         </div>
       </div>
 
@@ -338,6 +354,23 @@
     const forests = Scout.Forests.list();
     const activeSOS = SOS.current();
     const sosForest = activeSOS && !activeSOS.acked ? activeSOS.forestId : null;
+
+    // Empty (blank-slate) state — after a hard reset
+    if (forests.length === 0) {
+      document.getElementById('forest-cards').innerHTML = `
+        <div style="padding: 22px; text-align: center; color: var(--text-low); border: 1px dashed var(--border); border-radius: var(--r-md);">
+          🌱 אין יערות פעילים. לחץ <strong style="color: var(--accent);">"+ הקם יער חדש"</strong> כדי להתחיל מאפס.
+        </div>`;
+      // Hide the decorative SVG pins (their forests no longer exist)
+      document.querySelectorAll('.forest-pin').forEach(p => { p.style.display = 'none'; });
+      return;
+    }
+    document.querySelectorAll('.forest-pin').forEach(p => {
+      // A custom-created forest won't have a matching hardcoded pin; show only
+      // pins whose forest still exists
+      const exists = forests.find(x => x.id === p.dataset.forest);
+      p.style.display = exists ? '' : 'none';
+    });
 
     document.getElementById('forest-cards').innerHTML = forests.map(f => {
       const isAlert = sosForest === f.id;
@@ -486,6 +519,49 @@
   document.getElementById('btn-create-forest').addEventListener('click', openCreateForestModal);
   document.getElementById('btn-provision-user').addEventListener('click', openProvisionUserModal);
   document.getElementById('btn-purge-users').addEventListener('click', openPurgeModal);
+  document.getElementById('btn-hard-reset').addEventListener('click', openHardResetModal);
+
+  function openHardResetModal() {
+    const host = document.createElement('div');
+    host.className = 'modal-host';
+    host.innerHTML = `
+      <div class="modal" style="width: min(560px, 92vw); border: 2px solid var(--danger);">
+        <div style="text-align: center; font-size: 44px;">⚠</div>
+        <h3 style="text-align: center; color: var(--danger); margin: 6px 0 12px;">אזהרה חמורה!</h3>
+        <p style="color: var(--text-hi); margin: 0 0 14px; line-height: 1.7; text-align: center;">
+          פעולה זו תמחק לצמיתות את <strong>כל המשתמשים והיערות</strong> במערכת.
+          מבנה ההגדרות יישמר, אך המידע ייעלם לחלוטין ולא ניתן יהיה לשחזר אותו.
+          <br><strong style="color: var(--danger);">האם אתה בטוח לחלוטין?</strong>
+        </p>
+        <div style="background: rgba(45,216,129,0.06); border: 1px solid rgba(45,216,129,0.3); border-radius: var(--r-sm); padding: 10px 14px; margin-bottom: 10px; font-size: 12px; color: var(--text-mid);">
+          ✅ נשמר: מבנה ה-Schemas, שדות החובה, מטריצת ההרשאות, לוגיקת 5 שלבי האוטובוסים, והמנהל הארצי.
+        </div>
+        <div style="background: rgba(255,71,87,0.08); border: 1px solid rgba(255,71,87,0.32); border-radius: var(--r-sm); padding: 10px 14px; margin-bottom: 16px; font-size: 12px; color: var(--warn);">
+          ⚡ כל המכשירים המחוברים ינותקו מיידית ויחזרו למסך התחברות.
+        </div>
+        <div style="display:flex; gap:10px; justify-content:flex-end;">
+          <button class="btn btn--ghost" data-cancel>ביטול</button>
+          <button class="btn btn--danger" data-confirm>כן, אפס את כל המערכת</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(host);
+    host.querySelector('[data-cancel]').addEventListener('click', () => host.remove());
+    host.addEventListener('click', e => { if (e.target === host) host.remove(); });
+    host.querySelector('[data-confirm]').addEventListener('click', () => {
+      const r = Scout.System.hardReset();
+      host.remove();
+      if (!r.ok) {
+        Toast.show((r.code === 403 ? '403 — ' : '') + r.error, { kind: 'danger' });
+        return;
+      }
+      Toast.show('המערכת אופסה בהצלחה! כעת ניתן להקים משתמשים ויערות חדשים מאפס.', { kind: 'ok', duration: 5000 });
+      Scout.Audio.play('blip');
+      ScoutDB.set('currentForest', '');
+      renderForests();
+      renderAudit();
+    });
+  }
 
   function openPurgeModal() {
     const creds = ScoutDB.get('credentials', {}) || {};

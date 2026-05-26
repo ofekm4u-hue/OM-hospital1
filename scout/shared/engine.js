@@ -1924,7 +1924,12 @@
   // ---------- Forests (multi-tenancy registry, national-managed) ----------
 
   const Forests = (function () {
-    function listSeeded() { return FORESTS.slice(); }
+    function listSeeded() {
+      // After a system hard-reset the demo's seeded forests are suppressed
+      // so the national admin truly starts from a blank slate.
+      if (ScoutDB.get('blankSlate', false)) return [];
+      return FORESTS.slice();
+    }
     function listCustom() { return ScoutDB.get('customForests', []) || []; }
     function list() {
       return listSeeded().concat(listCustom());
@@ -1966,6 +1971,61 @@
       return { ok: true };
     }
     return { list, listSeeded, listCustom, get, create, remove };
+  })();
+
+  // ---------- System (national-only hard reset / blank slate) ----------
+
+  const System = (function () {
+    // Data keys wiped on hard reset (everything operational).
+    // NOT wiped: schemaVersion, credsVersion (so no auto-reseed),
+    // blankSlate flag itself, and the national credential.
+    const WIPE_KEYS = [
+      'customForests', 'tribes', 'hanichim', 'staff', 'adults',
+      'vehicles', 'buses', 'blacklist', 'gateExceptions', 'patients',
+      'incidents', 'parentPickups', 'checkoutVerifications',
+      'chats', 'customChannels', 'dmChannels', 'chatSeeded', 'chatLastSeen',
+      'missions', 'hqStationPerms', 'permissions',
+      'patrolWaypoints', 'patrolChecklist', 'hazards',
+      'drone', 'activeSOS', 'sosArchive', 'personnelTelemetry',
+      'adultsSeeded', 'censusActiveTribe', 'currentForest', 'lastTribeId',
+      'dmsInterval', 'audioProfile',
+    ];
+
+    function hardReset() {
+      const persona = UI.currentPersona();
+      // Hard permission gate — the client-side equivalent of an
+      // "Admin Middleware" returning 403 Forbidden for non-admins.
+      if (persona.role !== 'national') {
+        return { ok: false, code: 403, error: 'Forbidden — רק מנהל תנועה צופים ארצית מורשה לאיפוס מערכת גורף' };
+      }
+
+      // Preserve ONLY national credentials
+      const creds = ScoutDB.get('credentials', {}) || {};
+      const survivors = {};
+      Object.entries(creds).forEach(([u, c]) => { if (c.role === 'national') survivors[u] = c; });
+
+      // Wipe all operational data (records only — schemas/rules live in code)
+      WIPE_KEYS.forEach(k => ScoutDB.remove(k));
+
+      // Restore national credentials, set blank-slate flag
+      ScoutDB.set('credentials', survivors);
+      ScoutDB.set('blankSlate', true);
+
+      // Reset the audit log to a single record documenting the reset
+      ScoutDB.set('audit', [{
+        id: uuid(), ts: nowMs(),
+        actor: persona.name + ' / מנהל ארצי',
+        action: 'SYSTEM-HARD-RESET', channel: 'auth',
+        details: 'איפוס מערכת גורף — כל המשתמשים והיערות נמחקו. מבנה ההגדרות, ה-Schemas והחוקים נשמרו.',
+      }]);
+
+      Bus.emit('system:reset', { ts: nowMs(), by: persona.name });
+      return { ok: true };
+    }
+
+    function isBlankSlate() { return !!ScoutDB.get('blankSlate', false); }
+
+    return { hardReset, isBlankSlate, WIPE_KEYS };
   })();
 
   // ---------- Role-creation permission matrix ----------
@@ -2169,30 +2229,33 @@
     return { gdud, layer, broadcastUpdateRequest };
   })();
 
-  // ---------- Global force-logout on user purge ----------
-  // When the national super-admin purges users, every connected tab whose
-  // logged-in user no longer exists is bounced back to the login screen.
-  Bus.on('auth:purge', () => {
+  // ---------- Global force-logout on user purge / system reset ----------
+  // When the national super-admin purges users or performs a hard reset,
+  // every connected tab whose logged-in user no longer exists is bounced
+  // back to the login screen. Surviving (national) tabs reload to reflect
+  // the blank slate.
+  function handleGlobalFlush() {
     if (!ScoutDB.get('loggedIn', false)) return;
     const u = ScoutDB.get('loginUser', null);
     const creds = ScoutDB.get('credentials', {}) || {};
+    const onLoginPage = /index\.html$|\/$/.test(global.location.pathname);
     if (u && !creds[u]) {
+      // This user was deleted → force logout to the login screen
       ScoutDB.set('loggedIn', false);
       ScoutDB.remove('currentPersona');
       ScoutDB.remove('loginUser');
-      // Avoid redirect loop on the login page itself
-      if (!/index\.html$|\/$/.test(global.location.pathname)) {
-        global.location.replace('index.html');
-      }
+      if (!onLoginPage) global.location.replace('index.html');
     }
-  });
+  }
+  Bus.on('auth:purge', handleGlobalFlush);
+  Bus.on('system:reset', handleGlobalFlush);
 
   // ---------- Export ----------
 
   global.Scout = {
     ScoutDB, Bus, Audio, DMS, SOS, Geo, Toast, Modal, UI, Auth, Drone, Chat, Personnel,
     Gate, Checkout, ParentPickup, Incidents, HQPermissions, Roster, Debrief,
-    Forests, RoleProvisioning,
+    Forests, RoleProvisioning, System,
     util: { uuid, nowMs, fmtTime, fmtDate, pick, clamp, escapeHtml, getParam },
     FORESTS,
   };
