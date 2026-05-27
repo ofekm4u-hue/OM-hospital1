@@ -651,54 +651,66 @@
       });
       if (!r.ok) { Toast.show(r.error, { kind: 'warn' }); return; }
       host.remove();
-      Toast.show(`היער "${r.forest.name}" הוקם בהצלחה.`, { kind: 'ok' });
       Scout.Audio.play('echo-bell');
-      offerCoreUserProvisioning(r.forest);
+      renderForests();
+      // Show the auto-generated core-user credentials (sticky modal)
+      showForestCredentialsModal(r.forest, r.coreUsers);
     });
     form.name.focus();
   }
 
-  function offerCoreUserProvisioning(forest) {
+  // "פרטי התחברות ליער החדש" — sticky modal, only closes via the Close button
+  function showForestCredentialsModal(forest, coreUsers) {
     const host = document.createElement('div');
     host.className = 'modal-host';
-    host.innerHTML = `
-      <div class="modal" style="width: min(540px, 92vw);">
-        <div style="color: var(--ok); font-family: var(--font-ui); font-weight: 800; letter-spacing: .14em; text-transform: uppercase; font-size: 11px;">✓ יער הוקם</div>
-        <h3 style="margin: 6px 0 6px;">${util.escapeHtml(forest.name)}</h3>
-        <p style="color: var(--text-mid); margin: 0 0 14px; font-size: 13px;">הקם כעת את משתמשי הליבה של היער. כל אחד יקבל שם משתמש זמני וסיסמה זמנית עבור Onboarding ראשוני.</p>
-
-        <div style="display: grid; gap: 8px;">
-          <button class="btn btn--primary btn--lg" data-issue-role="kabat">
-            🛡 קב"ט היער (Forest Admin)
-          </button>
-          <button class="btn btn--lg" data-issue-role="hq-shift">
-            👑 אחראי חמ"ל (Operations Chief - hybrid)
-          </button>
-          <button class="btn btn--lg" data-issue-role="hq-op">
-            🖥 מערכת חמ"ל (HQ Station - desktop only)
-          </button>
-          <button class="btn btn--lg" data-issue-role="camp-director">
-            ⛺ מנהל מחנה (Camp Director)
-          </button>
+    const rows = coreUsers.map(u => `
+      <div style="background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--r-md); padding: 12px 14px; margin-bottom: 8px;">
+        <div style="font-family: var(--font-ui); font-weight: 700; font-size: 13px; margin-bottom: 8px;">${util.escapeHtml(u.roleLabel)}</div>
+        <div style="display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; margin-bottom: 6px;">
+          <span style="font-size: 11px; color: var(--text-low); min-width: 64px;">שם משתמש</span>
+          <code style="font-family: var(--font-mono); color: var(--accent); font-weight: 700; font-size: 15px;">${util.escapeHtml(u.tempUsername)}</code>
+          <button class="btn btn--sm" data-copy="${util.escapeHtml(u.tempUsername)}">העתק</button>
         </div>
-
-        <div style="margin-top: 18px; display:flex; gap:10px; justify-content:flex-end;">
-          <button class="btn btn--ghost" data-skip>דלג — אקים מאוחר יותר</button>
+        <div style="display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center;">
+          <span style="font-size: 11px; color: var(--text-low); min-width: 64px;">סיסמה</span>
+          <code style="font-family: var(--font-mono); color: var(--warn); font-weight: 700; font-size: 15px; letter-spacing: .08em;">${util.escapeHtml(u.tempPassword)}</code>
+          <button class="btn btn--sm" data-copy="${util.escapeHtml(u.tempPassword)}">העתק</button>
+        </div>
+      </div>
+    `).join('');
+    host.innerHTML = `
+      <div class="modal" style="width: min(560px, 92vw); max-height: 92vh; overflow-y: auto;">
+        <div style="color: var(--ok); font-family: var(--font-ui); font-weight: 800; letter-spacing: .14em; text-transform: uppercase; font-size: 11px;">✓ היער הוקם — פרטי התחברות</div>
+        <h3 style="margin: 6px 0 4px;">🌲 ${util.escapeHtml(forest.name)} <span style="color: var(--text-mid); font-size: 13px;">(${util.escapeHtml(forest.region)})</span></h3>
+        <p style="color: var(--text-mid); margin: 0 0 14px; font-size: 13px;">נוצרו אוטומטית 3 משתמשי ליבה זמניים. העתק ושלח לצוות בשטח — בכניסה הראשונה יוגדר פרופיל קבוע.</p>
+        ${rows}
+        <div style="background: rgba(255,181,71,0.08); border: 1px solid rgba(255,181,71,0.3); border-radius: var(--r-sm); padding: 10px 14px; margin: 8px 0 14px; font-size: 12px; color: var(--text-mid);">
+          ⚠ הסיסמאות מוצגות פעם אחת בלבד. ודא שהעתקת לפני סגירה.
+        </div>
+        <div style="display:flex; gap:10px; justify-content:space-between;">
+          <button class="btn btn--ghost" data-copy-all>📋 העתק את כל הפרטים</button>
+          <button class="btn btn--primary" data-close>סגור</button>
         </div>
       </div>
     `;
     document.body.appendChild(host);
+    function copyText(text) {
+      if (navigator.clipboard) navigator.clipboard.writeText(text).then(() => Toast.show('הועתק ✓', { kind: 'ok' }));
+      else {
+        const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta);
+        ta.select(); try { document.execCommand('copy'); Toast.show('הועתק ✓', { kind: 'ok' }); } catch (e) {}
+        ta.remove();
+      }
+    }
     host.addEventListener('click', e => {
-      if (e.target.closest('[data-skip]')) { host.remove(); return; }
-      const btn = e.target.closest('[data-issue-role]');
-      if (!btn) return;
-      const role = btn.dataset.issueRole;
-      const r = Scout.Auth.issueTempUser(role);
-      Toast.show(`${UI.ROLE_LABELS[role]} ל-${forest.name}: ${r.tempUsername} / ${r.tempPassword}`, { kind: 'ok', duration: 8000 });
-      ScoutDB.appendAudit({
-        action: 'USER-PROVISION-FOR-FOREST', channel: 'auth',
-        details: `${UI.ROLE_LABELS[role]} עבור ${forest.name} (${r.tempUsername})`,
-      });
+      if (e.target.dataset.copy) { copyText(e.target.dataset.copy); return; }
+      if (e.target.dataset.copyAll !== undefined && e.target.closest('[data-copy-all]')) {
+        const all = `יער: ${forest.name}\n\n` + coreUsers.map(u => `${u.roleLabel}\nשם משתמש: ${u.tempUsername}\nסיסמה: ${u.tempPassword}`).join('\n\n');
+        copyText(all);
+        return;
+      }
+      if (e.target.closest('[data-close]')) host.remove();
+      // NOTE: clicking the backdrop does NOT close — sticky on purpose
     });
   }
 
@@ -716,6 +728,15 @@
         <div style="color: var(--accent); font-family: var(--font-ui); font-weight: 800; letter-spacing: .14em; text-transform: uppercase; font-size: 11px;">+ הקמת משתמש קצה</div>
         <h3 style="margin: 6px 0 4px;">הנפק חשבון חדש למערכת</h3>
         <p style="color: var(--text-mid); margin: 0 0 12px; font-size: 13px;">${util.escapeHtml(Provisioning.explanation(persona.role))}</p>
+
+        <div style="margin-bottom: 12px;">
+          <label style="display:block; font-family: var(--font-ui); font-size: 11px; font-weight: 700; color: var(--text-mid); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 5px;">שייך ליער *</label>
+          <select class="select" name="forestId" required>
+            <option value="" disabled selected>— בחר יער —</option>
+            ${Scout.Forests.list().map(f => `<option value="${f.id}">${util.escapeHtml(f.name)} · ${util.escapeHtml(f.region || '')}</option>`).join('')}
+          </select>
+          ${Scout.Forests.list().length === 0 ? '<div style="font-size: 11px; color: var(--warn); margin-top: 4px;">⚠ אין יערות. הקם יער קודם.</div>' : ''}
+        </div>
 
         <div style="margin-bottom: 12px;">
           <label style="display:block; font-family: var(--font-ui); font-size: 11px; font-weight: 700; color: var(--text-mid); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 5px;">בחר תפקיד *</label>
@@ -745,12 +766,14 @@
     form.addEventListener('submit', e => {
       e.preventDefault();
       const role = form.role.value;
+      const forestId = form.forestId.value;
       if (!role) return;
+      if (!forestId) { Toast.show('יש לבחור יער לשיוך המשתמש.', { kind: 'warn' }); return; }
       if (!Provisioning.canIssue(persona.role, role)) {
         Toast.show('🔒 אין לך הרשאה ליצור משתמש מסוג זה.', { kind: 'danger' });
         return;
       }
-      const r = Scout.Auth.issueTempUser(role);
+      const r = Scout.Auth.issueTempUser(role, { forestId });
       host.remove();
       showProvisionResult(r);
     });
@@ -762,7 +785,8 @@
     host.innerHTML = `
       <div class="modal" style="width: min(520px, 92vw);">
         <div style="color: var(--ok); font-family: var(--font-ui); font-weight: 800; letter-spacing: .14em; text-transform: uppercase; font-size: 11px;">✓ משתמש הונפק</div>
-        <h3 style="margin: 6px 0 14px;">פרטי גישה זמניים</h3>
+        <h3 style="margin: 6px 0 6px;">פרטי גישה זמניים</h3>
+        <div style="color: var(--text-mid); font-size: 13px; margin-bottom: 14px;">${util.escapeHtml(UI.ROLE_LABELS[r.role] || r.role)}${r.forestId ? ' · יער ' + util.escapeHtml((Scout.Forests.get(r.forestId) || {}).name || '') : ''}</div>
         <div style="background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--r-md); padding: 14px; margin-bottom: 10px;">
           <div style="font-size: 11px; color: var(--text-low); text-transform: uppercase; letter-spacing: .12em;">שם משתמש</div>
           <div style="font-family: var(--font-mono); font-size: 20px; color: var(--accent); font-weight: 700;">${util.escapeHtml(r.tempUsername)}</div>

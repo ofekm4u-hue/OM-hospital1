@@ -753,10 +753,11 @@
 
     function currentPersona() {
       const stored = ScoutDB.get('currentPersona', null);
-      const def = { name: 'אורח דמו', role: 'national', roleLabel: ROLE_LABELS['national'], staffId: null };
+      const def = { name: 'אורח דמו', role: 'national', roleLabel: ROLE_LABELS['national'], staffId: null, forestId: null };
       const p = stored || def;
       p.roleLabel = ROLE_LABELS[p.role] || p.role;
       if (p.staffId === undefined) p.staffId = null;
+      if (p.forestId === undefined) p.forestId = null;
       return p;
     }
     function setPersona(p) {
@@ -766,6 +767,7 @@
         role,
         roleLabel: ROLE_LABELS[role],
         staffId: p.staffId || null,
+        forestId: p.forestId || null,
       });
     }
 
@@ -1106,7 +1108,8 @@
       if (!found) return { ok: false, error: 'שם משתמש לא קיים במערכת' };
       const { user, cred } = found;
       if (cred.password !== password) return { ok: false, error: 'סיסמה שגויה' };
-      UI.setPersona({ name: cred.name, role: cred.role, staffId: cred.staffId, username: user });
+      UI.setPersona({ name: cred.name, role: cred.role, staffId: cred.staffId, username: user, forestId: cred.forestId || null });
+      if (cred.forestId) ScoutDB.set('currentForest', cred.forestId);
       ScoutDB.set('loggedIn', true);
       ScoutDB.set('loginTs', nowMs());
       ScoutDB.set('loginUser', user);
@@ -1171,13 +1174,22 @@
         }));
     }
 
-    function issueTempUser(role) {
+    function issueTempUser(role, opts) {
       if (!role) throw new Error('role required');
+      opts = opts || {};
       const creds = getCreds();
-      let tempUsername = 'temp_user_' + (100 + Math.floor(Math.random() * 900));
-      while (creds[tempUsername]) tempUsername = 'temp_user_' + (100 + Math.floor(Math.random() * 900));
+      let tempUsername;
+      if (opts.usernamePrefix) {
+        tempUsername = opts.usernamePrefix;
+        let n = 2;
+        while (creds[tempUsername]) tempUsername = opts.usernamePrefix + '_' + (n++);
+      } else {
+        tempUsername = 'temp_user_' + (100 + Math.floor(Math.random() * 900));
+        while (creds[tempUsername]) tempUsername = 'temp_user_' + (100 + Math.floor(Math.random() * 900));
+      }
       const tempPassword = generateTempPassword();
       const staffId = 'st-' + uuid().slice(0, 6);
+      const forestId = opts.forestId || null;
 
       ScoutDB.patch('staff', l => (l || []).concat([{
         id: staffId,
@@ -1186,6 +1198,7 @@
         active: true,
         pendingOnboarding: true,
         tempUsername,
+        forestId,
         createdByKabat: true,
         createdAt: nowMs(),
       }]));
@@ -1193,18 +1206,19 @@
 
       creds[tempUsername] = {
         role, name: tempUsername, password: tempPassword,
-        staffId, status: 'pending', createdAt: nowMs(),
+        staffId, status: 'pending', createdAt: nowMs(), forestId,
       };
       setCreds(creds);
 
       const roleLabel = UI.ROLE_LABELS[role] || role;
+      const forestSuffix = forestId ? ` (יער ${(Forests.get(forestId) || {}).name || forestId})` : '';
       ScoutDB.appendAudit({
         action: 'USER-INVITE', channel: 'auth',
-        details: `הונפק משתמש זמני "${tempUsername}" בתפקיד ${roleLabel} — ממתין להפעלה`,
+        details: `הונפק משתמש זמני "${tempUsername}" בתפקיד ${roleLabel}${forestSuffix} — ממתין להפעלה`,
       });
-      Bus.emit('auth:user-invited', { tempUsername, role, staffId });
+      Bus.emit('auth:user-invited', { tempUsername, role, staffId, forestId });
       Bus.emit('personnel:update', { staffId, invited: true });
-      return { tempUsername, tempPassword, role, staffId };
+      return { tempUsername, tempPassword, role, staffId, forestId };
     }
 
     function completeOnboarding(profile) {
@@ -1247,11 +1261,13 @@
         status: 'active',
         phone,
         onboardedAt: nowMs(),
+        forestId: cred.forestId || null,
       };
       setCreds(creds);
 
-      UI.setPersona({ name: credKey, role: cred.role, staffId: cred.staffId, username: credKey });
+      UI.setPersona({ name: credKey, role: cred.role, staffId: cred.staffId, username: credKey, forestId: cred.forestId || null });
       ScoutDB.set('loginUser', credKey);
+      if (cred.forestId) ScoutDB.set('currentForest', cred.forestId);
 
       const roleLabel = UI.ROLE_LABELS[cred.role] || cred.role;
       ScoutDB.appendAudit({
@@ -1937,13 +1953,15 @@
     function get(id) {
       return list().find(f => f.id === id) || null;
     }
-    function create({ name, region, lat, lng }) {
+    function create({ name, region, lat, lng, provisionCore }) {
       if (!name || !String(name).trim()) return { ok: false, error: 'שם יער נדרש' };
       const all = list();
       if (all.find(f => f.name === name)) return { ok: false, error: 'יער בשם זה כבר קיים' };
-      const id = 'f-' + uuid().slice(0, 6);
+      // Short numeric tag used for the auto-generated core usernames
+      const tag = String(100 + Math.floor(Math.random() * 900));
+      const id = 'f-' + tag + '-' + uuid().slice(0, 4);
       const forest = {
-        id, name: String(name).trim(),
+        id, tag, name: String(name).trim(),
         region: region || 'אזור חדש',
         lat: lat || (31 + Math.random() * 2.5),
         lng: lng || (34.5 + Math.random() * 2),
@@ -1959,7 +1977,24 @@
         details: `הוקם יער "${forest.name}" (${forest.region}) ע"י ${forest.createdBy}`,
       });
       Bus.emit('forests:updated', { kind: 'created', forest });
-      return { ok: true, forest };
+
+      // Auto-provision the 3 core users tied ONLY to this forest
+      let coreUsers = [];
+      if (provisionCore !== false) {
+        coreUsers = [
+          Object.assign({ roleLabel: 'קב"ט היער' },
+            Auth.issueTempUser('kabat',         { forestId: id, usernamePrefix: 'kbat_' + tag })),
+          Object.assign({ roleLabel: 'מנהל מחנה' },
+            Auth.issueTempUser('camp-director', { forestId: id, usernamePrefix: 'mahane_' + tag })),
+          Object.assign({ roleLabel: 'אחראי חמ"ל' },
+            Auth.issueTempUser('hq-shift',      { forestId: id, usernamePrefix: 'hamal_' + tag })),
+        ];
+        ScoutDB.appendAudit({
+          action: 'FOREST-CORE-USERS', channel: 'auth',
+          details: `נוצרו אוטומטית 3 משתמשי ליבה ליער "${forest.name}": קב"ט, מנהל מחנה, אחראי חמ"ל`,
+        });
+      }
+      return { ok: true, forest, coreUsers };
     }
     function remove(id) {
       const cur = listCustom();
