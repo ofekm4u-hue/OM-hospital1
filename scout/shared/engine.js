@@ -841,6 +841,46 @@
       document.body.appendChild(el);
     }
 
+    // Reusable temp-credentials modal (shown after issuing a user)
+    function showCredentialModal(result, opts) {
+      opts = opts || {};
+      const host = document.createElement('div');
+      host.className = 'modal-host';
+      const roleLabel = opts.roleLabel || ROLE_LABELS[result.role] || result.role;
+      const forestName = opts.forestName || '';
+      host.innerHTML = `
+        <div class="modal" style="width: min(520px, 92vw);">
+          <div style="color: var(--ok); font-family: var(--font-ui); font-weight: 800; letter-spacing: .14em; text-transform: uppercase; font-size: 11px;">✓ ${escapeHtml(opts.title || 'משתמש הונפק')}</div>
+          <h3 style="margin: 6px 0 6px;">${escapeHtml(roleLabel)}${forestName ? ' · יער ' + escapeHtml(forestName) : ''}</h3>
+          <p style="color: var(--text-mid); margin: 0 0 14px; font-size: 13px;">העבר את פרטי ההתחברות לעובד. בכניסה הראשונה תיפתח לו תיבת onboarding.</p>
+          <div style="background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--r-md); padding: 12px 14px; margin-bottom: 8px; display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center;">
+            <span style="font-size: 11px; color: var(--text-low); min-width: 64px;">שם משתמש</span>
+            <code style="font-family: var(--font-mono); color: var(--accent); font-weight: 700; font-size: 16px;">${escapeHtml(result.tempUsername)}</code>
+            <button class="btn btn--sm" data-copy="${escapeHtml(result.tempUsername)}">העתק</button>
+          </div>
+          <div style="background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--r-md); padding: 12px 14px; display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center;">
+            <span style="font-size: 11px; color: var(--text-low); min-width: 64px;">סיסמה</span>
+            <code style="font-family: var(--font-mono); color: var(--warn); font-weight: 700; font-size: 18px; letter-spacing: .08em;">${escapeHtml(result.tempPassword)}</code>
+            <button class="btn btn--sm" data-copy="${escapeHtml(result.tempPassword)}">העתק</button>
+          </div>
+          <div style="display:flex; gap:10px; justify-content:flex-end; margin-top: 16px;">
+            <button class="btn btn--ghost" data-copy-both>📋 העתק שניהם</button>
+            <button class="btn btn--primary" data-close>סגור</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(host);
+      function copyText(t) {
+        if (navigator.clipboard) navigator.clipboard.writeText(t).then(() => Toast.show('הועתק ✓', { kind: 'ok' }));
+        else { const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); Toast.show('הועתק ✓', { kind: 'ok' }); } catch (e) {} ta.remove(); }
+      }
+      host.addEventListener('click', e => {
+        if (e.target.dataset.copy) copyText(e.target.dataset.copy);
+        else if (e.target.closest('[data-copy-both]')) copyText(`שם משתמש: ${result.tempUsername}\nסיסמה: ${result.tempPassword}`);
+        else if (e.target.closest('[data-close]') || e.target === host) host.remove();
+      });
+    }
+
     // Global SOS responder — every page reacts visually unless it's the "owner"
     function bindGlobalSOS(rolePolicy) {
       rolePolicy = rolePolicy || {};
@@ -1026,7 +1066,7 @@
 
     return {
       tabId,
-      header, bindHeader, mockBadge,
+      header, bindHeader, mockBadge, showCredentialModal,
       currentPersona, setPersona,
       bindGlobalSOS,
       showSOSBanner, showSOSLockdown, clearSOSUI,
@@ -1066,6 +1106,8 @@
       'sanitation':   'home.html',
       'safety':       'home.html',
       'camp-director':'home.html',
+      'provisions':   'economy.html',
+      'economy':      'economy.html',
     };
 
     function ensureCredsSeed() {
@@ -2074,6 +2116,10 @@
     const PROVISIONING_RULES = {
       'national':      { allowed: '*', scope: 'any-forest' },
       'kabat':         { allowed: '*', scope: 'own-forest' },
+      'hq-shift':      {
+        allowed: ['provisions', 'sanitation', 'safety', 'tribe', 'staff', 'camp-director'],
+        scope:   'own-forest',
+      },
       'camp-director': {
         allowed: ['camp-director', 'safety', 'sanitation', 'tribe', 'provisions', 'staff'],
         scope:   'own-forest',
@@ -2099,10 +2145,144 @@
     function explanation(byRole) {
       if (byRole === 'national') return 'מנהל ארצי — סמכות מוחלטת על כל המשתמשים בכל היערות בארץ.';
       if (byRole === 'kabat')    return 'קב"ט יער — סמכות מלאה על כל סוגי המשתמשים, אך רק בגזרת היער שלו.';
-      if (byRole === 'camp-director') return 'מנהל מחנה — חסום מהקמת משתמשי אבטחה ורפואה. רק הנהגה / צוות / מרכזי שבטים.';
+      if (byRole === 'hq-shift') return 'אחראי חמ"ל — הנפקת לוגיסטיקה (אקונומיה, תברואה, מרכזים), רק בגזרת היער שלו.';
+      if (byRole === 'camp-director') return 'מנהל מחנה — חסום מהקמת משתמשי אבטחה ורפואה. רק הנהגה / צוות / מרכזי שבטים / אקונומיה.';
       return 'אין הרשאה להקים משתמשים מסוג זה.';
     }
     return { canIssue, blockedRolesFor, explanation, SECURITY_ROLES, MEDICAL_ROLES };
+  })();
+
+  // ---------- Tenancy (strict per-forest data isolation) ----------
+
+  const Tenancy = (function () {
+    // The forest the current user is locked to. National = null (sees all).
+    function scope() {
+      const p = UI.currentPersona();
+      if (p.role === 'national') return null;
+      return p.forestId || ScoutDB.get('currentForest', null);
+    }
+    // Filter an array of records to the current user's forest.
+    function filter(records) {
+      const fid = scope();
+      if (fid === null) return records;            // national: unrestricted
+      return (records || []).filter(r => !r.forestId || r.forestId === fid);
+    }
+    // Guard: can the current user access a record? (national always yes)
+    function canAccess(record) {
+      const fid = scope();
+      if (fid === null) return true;
+      return !record || !record.forestId || record.forestId === fid;
+    }
+    // The forestId to stamp on records the current user creates.
+    function ownForest() {
+      const p = UI.currentPersona();
+      return p.forestId || ScoutDB.get('currentForest', null);
+    }
+    return { scope, filter, canAccess, ownForest };
+  })();
+
+  // ---------- Economy Manager (food/logistics/budget, forest-scoped) ----------
+
+  const Economy = (function () {
+    function scoped(key) { return Tenancy.filter(ScoutDB.get(key, []) || []); }
+
+    // ===== Module A: Suppliers =====
+    function suppliers() { return scoped('ecoSuppliers'); }
+    function addSupplier({ name, category, phone }) {
+      const s = {
+        id: 'sup-' + uuid().slice(0, 6),
+        name, category: category || 'כללי', phone: phone || null,
+        status: 'active', forestId: Tenancy.ownForest(),
+        addedBy: UI.currentPersona().name, ts: nowMs(),
+      };
+      ScoutDB.patch('ecoSuppliers', l => (l || []).concat([s]));
+      ScoutDB.appendAudit({ action: 'ECO-SUPPLIER-ADD', channel: 'comms', details: `ספק "${name}" אושר ביער` });
+      Bus.emit('economy:suppliers', s);
+      return s;
+    }
+    function requestSupplier({ name, category, phone }) {
+      const s = {
+        id: 'supreq-' + uuid().slice(0, 6),
+        name, category: category || 'כללי', phone: phone || null,
+        status: 'pending_approval', forestId: Tenancy.ownForest(),
+        requestedBy: UI.currentPersona().name, requestedByRole: UI.currentPersona().role,
+        ts: nowMs(),
+      };
+      ScoutDB.patch('ecoSuppliers', l => (l || []).concat([s]));
+      ScoutDB.appendAudit({ action: 'ECO-SUPPLIER-REQ', channel: 'comms', details: `בקשת ספק "${name}" מ-${s.requestedBy}` });
+      Bus.emit('economy:suppliers', s);
+      return s;
+    }
+    function resolveSupplier(id, decision) {
+      ScoutDB.patch('ecoSuppliers', l => (l || []).map(s =>
+        s.id === id ? Object.assign({}, s, {
+          status: decision === 'approved' ? 'active' : 'denied',
+          resolvedBy: UI.currentPersona().name, resolvedAt: nowMs(),
+        }) : s));
+      ScoutDB.appendAudit({ action: 'ECO-SUPPLIER-RESOLVE', channel: 'comms', details: `${id} → ${decision}` });
+      Bus.emit('economy:suppliers', { id, decision });
+    }
+
+    // ===== Module B: Expenses =====
+    function expenses() { return scoped('ecoExpenses'); }
+    function addExpense({ supplier, amount, date, desc, receiptImg }) {
+      const e = {
+        id: 'exp-' + uuid().slice(0, 6),
+        supplier, amount: parseFloat(amount) || 0,
+        date: date || new Date().toISOString().slice(0, 10),
+        desc: desc || '', receiptImg: receiptImg || null,
+        forestId: Tenancy.ownForest(), by: UI.currentPersona().name, ts: nowMs(),
+      };
+      ScoutDB.patch('ecoExpenses', l => (l || []).concat([e]));
+      ScoutDB.appendAudit({ action: 'ECO-EXPENSE', channel: 'comms', details: `${supplier}: ₪${e.amount}` });
+      Bus.emit('economy:expenses', e);
+      return e;
+    }
+
+    // ===== Module C: Weekly Menu =====
+    function menus() { return scoped('ecoMenus'); }
+    function setMenu({ day, tribe, meal, dish, notes }) {
+      const fid = Tenancy.ownForest();
+      const key = `${fid}|${day}|${tribe}|${meal}`;
+      const all = ScoutDB.get('ecoMenus', []) || [];
+      const idx = all.findIndex(m => m.key === key);
+      const rec = { id: idx >= 0 ? all[idx].id : 'menu-' + uuid().slice(0, 6), key, day, tribe, meal, dish, notes: notes || '', forestId: fid, ts: nowMs() };
+      if (idx >= 0) all[idx] = rec; else all.push(rec);  // overwrite if same slot
+      ScoutDB.set('ecoMenus', all);
+      Bus.emit('economy:menus', rec);
+      return rec;
+    }
+    function importMenuRows(rows) {
+      // rows: [{ day, tribe, meal, dish, notes }]
+      let n = 0;
+      rows.forEach(r => { if (r.day && r.tribe && r.meal) { setMenu(r); n++; } });
+      ScoutDB.appendAudit({ action: 'ECO-MENU-IMPORT', channel: 'comms', details: `${n} שורות תפריט יובאו` });
+      return n;
+    }
+
+    // ===== Module D: Digital delivery receipts =====
+    function deliveries() { return scoped('ecoDeliveries'); }
+    function recordDelivery({ tribe, meal, receiver, items, sigReceiver, sigEconomy }) {
+      const d = {
+        id: 'del-' + uuid().slice(0, 8),
+        forestId: Tenancy.ownForest(),
+        tribe, meal, receiver, items: items || '',
+        sigReceiver: sigReceiver || null, sigEconomy: sigEconomy || null,
+        economyName: UI.currentPersona().name, ts: nowMs(),
+      };
+      ScoutDB.patch('ecoDeliveries', l => (l || []).concat([d]));
+      ScoutDB.appendAudit({ action: 'ECO-DELIVERY', channel: 'comms', details: `מסירה לשבט ${tribe} (${meal}) — קיבל ${receiver}` });
+      // Sync a copy to the tribe's "received food" inbox
+      Bus.emit('economy:delivery', d);
+      return d;
+    }
+
+    return {
+      suppliers, addSupplier, requestSupplier, resolveSupplier,
+      expenses, addExpense,
+      menus, setMenu, importMenuRows,
+      deliveries, recordDelivery,
+    };
   })();
 
   // ---------- Debrief / Analytics aggregator ----------
@@ -2290,7 +2470,7 @@
   global.Scout = {
     ScoutDB, Bus, Audio, DMS, SOS, Geo, Toast, Modal, UI, Auth, Drone, Chat, Personnel,
     Gate, Checkout, ParentPickup, Incidents, HQPermissions, Roster, Debrief,
-    Forests, RoleProvisioning, System,
+    Forests, RoleProvisioning, System, Tenancy, Economy,
     util: { uuid, nowMs, fmtTime, fmtDate, pick, clamp, escapeHtml, getParam },
     FORESTS,
   };

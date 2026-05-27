@@ -879,6 +879,7 @@
             <h2 style="font-family: var(--font-ui); font-size: 16px;">📱 התקנים פעילים בשטח</h2>
             <span style="flex:1"></span>
             <button class="btn btn--sm btn--primary" id="btn-issue-user">+ הנפק משתמש חדש במערכת</button>
+            <button class="btn btn--sm" id="btn-issue-economy">🍽 פתח אחראי אקונומיה</button>
             <button class="btn btn--sm btn--ghost" id="btn-add-user" title="הנפקת משתמש חירום מהיר ללא תהליך onboarding">⚡ חירום</button>
           </div>
           <div id="devices-list"></div>
@@ -2036,6 +2037,15 @@
 
   // ===== New user issuance (full Onboarding flow) =====
   document.getElementById('btn-issue-user').addEventListener('click', openIssueUserModal);
+
+  // One-click: open an Economy Manager for THIS forest (auto forestId from token/persona)
+  document.getElementById('btn-issue-economy').addEventListener('click', () => {
+    const fid = persona.forestId || ScoutDB.get('currentForest', forestId);
+    const f = Scout.Forests.get(fid) || { name: '—' };
+    const tag = (f.tag) || String(fid || '').replace(/\D/g, '').slice(0, 3) || '100';
+    const r = Scout.Auth.issueTempUser('provisions', { forestId: fid, usernamePrefix: 'eco_' + tag });
+    UI.showCredentialModal(r, { roleLabel: 'מנהל אקונומיה', forestName: f.name, title: 'נפתח אחראי אקונומיה' });
+  });
 
   function openIssueUserModal() {
     // Step 1: pick role

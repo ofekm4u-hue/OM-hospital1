@@ -1,0 +1,528 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>שו"ב | מנהל אקונומיה</title>
+<link rel="stylesheet" href="shared/tokens.css">
+<style>
+  .page { padding: 14px; max-width: 1400px; margin: 0 auto; }
+  .tab-nav {
+    display: flex; gap: 4px; padding: 6px; margin-bottom: 14px;
+    background: var(--bg-panel); border: 1px solid var(--border); border-radius: var(--r-md);
+    overflow-x: auto;
+  }
+  .tab-btn {
+    flex: 1; min-width: 120px; padding: 11px 14px; background: transparent; border: 0;
+    color: var(--text-mid); font-family: var(--font-ui); font-weight: 600; font-size: 13px;
+    border-radius: var(--r-sm); cursor: pointer; transition: all var(--t-fast); white-space: nowrap;
+  }
+  .tab-btn:hover { background: var(--bg-elev); color: var(--text-hi); }
+  .tab-btn.is-active { background: var(--accent); color: #06121A; box-shadow: 0 4px 14px var(--accent-glow); }
+  .tab-pane { display: none; }
+  .tab-pane.is-active { display: block; animation: fade-in 240ms var(--ease); }
+  .pad { padding: 16px; }
+  .grid-2 { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 14px; }
+  @media (max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } }
+  .field { margin-bottom: 12px; }
+  .field label { display:block; font-family: var(--font-ui); font-size: 11px; font-weight: 700; color: var(--text-mid); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 5px; }
+  .sig-pad { width: 100%; height: 140px; background: #fff; border: 2px dashed var(--border-hi); border-radius: var(--r-sm); touch-action: none; cursor: crosshair; }
+  .sig-wrap { position: relative; }
+  .sig-clear { position: absolute; top: 6px; left: 6px; font-size: 11px; padding: 2px 8px; }
+  .menu-grid { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .menu-grid th, .menu-grid td { border: 1px solid var(--border); padding: 8px 10px; text-align: right; }
+  .menu-grid th { background: var(--bg-elev); font-family: var(--font-ui); }
+  .meal-pill { display:inline-block; padding: 2px 8px; border-radius: var(--r-pill); font-size: 11px; font-weight: 700; }
+  .meal-breakfast { background: rgba(255,181,71,.16); color: var(--warn); }
+  .meal-lunch     { background: rgba(45,216,129,.16); color: var(--ok); }
+  .meal-dinner    { background: rgba(91,141,239,.16); color: var(--info); }
+  .meal-night     { background: rgba(154,168,188,.16); color: var(--text-mid); }
+
+  /* Print sheet (hidden on screen, shown on print) */
+  #print-area { display: none; }
+  @media print {
+    body * { visibility: hidden; }
+    #print-area, #print-area * { visibility: visible; }
+    #print-area { display: block !important; position: absolute; inset: 0; padding: 0; background: #fff; color: #000; }
+    .print-sheet { page-break-after: always; padding: 30px 36px; color: #000; }
+    .print-sheet:last-child { page-break-after: auto; }
+    .print-sheet h1 { font-size: 26px; margin-bottom: 4px; }
+    .print-sheet h2 { font-size: 18px; margin: 14px 0 8px; }
+    .print-sheet table { width: 100%; border-collapse: collapse; }
+    .print-sheet th, .print-sheet td { border: 1px solid #333; padding: 8px 10px; text-align: right; }
+    .print-sheet th { background: #eee; }
+  }
+</style>
+</head>
+<body class="tactical-grid">
+  <div id="header"></div>
+
+  <div class="page">
+    <div id="forest-banner" style="background: rgba(45,216,129,0.1); border: 1px solid var(--ok); border-radius: var(--r-md); padding: 8px 14px; margin-bottom: 12px; font-family: var(--font-ui); font-weight: 700; display: flex; align-items: center; gap: 8px;">
+      🍽 <span>מנהל אקונומיה — יער <span data-forest-name>—</span></span>
+      <span style="flex:1"></span>
+      <span class="chip chip--ok" style="font-size: 11px;">🔒 נתונים מבודדים ליער שלך בלבד</span>
+    </div>
+
+    <nav class="tab-nav">
+      <button class="tab-btn is-active" data-tab="suppliers">🚚 ספקים</button>
+      <button class="tab-btn" data-tab="finances">💰 הוצאות ודוחות</button>
+      <button class="tab-btn" data-tab="menu">📋 תפריט שבועי</button>
+      <button class="tab-btn" data-tab="deliveries">✍ תעודות משלוח</button>
+    </nav>
+
+    <!-- Module A: Suppliers -->
+    <section class="tab-pane is-active" data-pane="suppliers">
+      <div class="grid-2">
+        <div class="panel pad">
+          <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+            <h2 style="font-family: var(--font-ui); font-size: 16px;">🚚 ספקי היער</h2>
+            <span style="flex:1"></span>
+            <button class="btn btn--sm btn--primary" id="btn-add-supplier">+ הוסף ספק חדש</button>
+          </div>
+          <div id="suppliers-list"></div>
+        </div>
+        <div class="panel pad">
+          <h2 style="font-family: var(--font-ui); font-size: 16px; margin-bottom: 12px;">📩 בקשות ספקים מהשטח</h2>
+          <p style="color: var(--text-mid); font-size: 12px; margin: 0 0 12px;">בקשות שבעלי תפקידים ביער שלחו לאישורך.</p>
+          <div id="supplier-requests"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Module B: Finances -->
+    <section class="tab-pane" data-pane="finances">
+      <div class="grid-2">
+        <div class="panel pad">
+          <h2 style="font-family: var(--font-ui); font-size: 16px; margin-bottom: 12px;">🧾 רישום הוצאה / קבלה</h2>
+          <form id="expense-form">
+            <div class="field"><label>ספק *</label><input class="input" name="supplier" required></div>
+            <div class="field"><label>סכום (₪) *</label><input class="input" name="amount" type="number" min="0" step="0.01" required></div>
+            <div class="field"><label>תאריך</label><input class="input" name="date" type="date"></div>
+            <div class="field"><label>תיאור הרכש</label><input class="input" name="desc" placeholder="ירקות, בשר, יבש..."></div>
+            <div class="field"><label>צילום קבלה (אופציונלי)</label><input class="input" name="receipt" type="file" accept="image/*"></div>
+            <button class="btn btn--primary btn--block">רשום הוצאה</button>
+          </form>
+        </div>
+        <div class="panel pad">
+          <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+            <h2 style="font-family: var(--font-ui); font-size: 16px;">📊 הוצאות היער</h2>
+            <span style="flex:1"></span>
+            <span class="chip chip--ok" id="expense-total">סה"כ: ₪0</span>
+            <button class="btn btn--sm" id="btn-report">🖨 הנפק דו"ח</button>
+          </div>
+          <div id="expenses-list" style="max-height: 420px; overflow-y: auto;"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Module C: Menu -->
+    <section class="tab-pane" data-pane="menu">
+      <div class="panel pad" style="margin-bottom: 12px;">
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap: wrap;">
+          <h2 style="font-family: var(--font-ui); font-size: 16px;">📋 תפריט שבועי</h2>
+          <span style="flex:1"></span>
+          <button class="btn btn--sm" id="btn-add-meal">+ הוסף מנה</button>
+          <label class="btn btn--sm" style="cursor:pointer;">📥 ייבא CSV<input type="file" id="csv-input" accept=".csv,.txt" hidden></label>
+          <button class="btn btn--sm" id="btn-print-menu">🖨 הדפסת תפריטים</button>
+        </div>
+      </div>
+      <div class="panel pad">
+        <div id="menu-table"></div>
+      </div>
+    </section>
+
+    <!-- Module D: Deliveries -->
+    <section class="tab-pane" data-pane="deliveries">
+      <div class="grid-2">
+        <div class="panel pad">
+          <h2 style="font-family: var(--font-ui); font-size: 16px; margin-bottom: 12px;">✍ טופס מסירת ארוחה</h2>
+          <form id="delivery-form">
+            <div class="field"><label>שבט *</label><select class="select" name="tribe" id="delivery-tribe" required></select></div>
+            <div class="field"><label>ארוחה *</label>
+              <select class="select" name="meal" required>
+                <option value="בוקר">ארוחת בוקר</option>
+                <option value="צהריים">ארוחת צהריים</option>
+                <option value="ערב">ארוחת ערב</option>
+                <option value="לילה">פריסת לילה</option>
+              </select>
+            </div>
+            <div class="field"><label>פירוט המנות / כמויות</label><input class="input" name="items" placeholder="20 מנות בשר, 3 ארגזי ירקות, 40 לחמים..."></div>
+            <div class="field"><label>שם נציג השבט (מקבל) *</label><input class="input" name="receiver" required></div>
+
+            <div class="field">
+              <label>חתימת נציג השבט (מקבל) *</label>
+              <div class="sig-wrap">
+                <canvas class="sig-pad" id="sig-receiver"></canvas>
+                <button type="button" class="btn btn--sm sig-clear" data-clear="sig-receiver">נקה</button>
+              </div>
+            </div>
+            <div class="field">
+              <label>חתימת אחראי האקונומיה *</label>
+              <div class="sig-wrap">
+                <canvas class="sig-pad" id="sig-economy"></canvas>
+                <button type="button" class="btn btn--sm sig-clear" data-clear="sig-economy">נקה</button>
+              </div>
+            </div>
+            <button class="btn btn--primary btn--block">שלח ואשר משלוח</button>
+          </form>
+        </div>
+        <div class="panel pad">
+          <h2 style="font-family: var(--font-ui); font-size: 16px; margin-bottom: 12px;">📜 היסטוריית משלוחים</h2>
+          <div id="deliveries-list" style="max-height: 560px; overflow-y: auto;"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div id="print-area"></div>
+
+<script src="shared/engine.js"></script>
+<script>
+(function () {
+  'use strict';
+  const { ScoutDB, Bus, UI, Toast, util, Auth, Economy, Tenancy } = Scout;
+
+  if (!Auth.requireLogin()) return;
+
+  document.getElementById('header').innerHTML = UI.header({ title: 'מנהל אקונומיה — ניהול מזון ולוגיסטיקה' });
+  UI.bindHeader(document.body);
+  UI.mockBadge('דמו פרזנטציה');
+
+  const persona = UI.currentPersona();
+  const forestId = persona.forestId || ScoutDB.get('currentForest', 'ben-shemen');
+  const forest = Scout.Forests.get(forestId) || { name: '—' };
+  document.querySelector('[data-forest-name]').textContent = forest.name;
+
+  // ===== Tabs =====
+  document.querySelectorAll('.tab-btn').forEach(t => t.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(x => x.classList.remove('is-active'));
+    t.classList.add('is-active');
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.toggle('is-active', p.dataset.pane === t.dataset.tab));
+    if (t.dataset.tab === 'deliveries') setTimeout(initSignaturePads, 50);
+  }));
+
+  // Tribes for this forest (for delivery + menu)
+  function forestTribes() {
+    return (ScoutDB.get('tribes', []) || []).filter(tr => tr.forestId === forestId);
+  }
+
+  // ===== Module A: Suppliers =====
+  function renderSuppliers() {
+    const all = Economy.suppliers();
+    const active = all.filter(s => s.status === 'active');
+    const pending = all.filter(s => s.status === 'pending_approval');
+
+    document.getElementById('suppliers-list').innerHTML = active.length === 0
+      ? '<div style="color: var(--text-low); padding: 16px; text-align:center;">אין ספקים מאושרים. הוסף ספק חדש.</div>'
+      : active.map(s => `
+        <div style="padding: 10px 12px; background: var(--bg-elev); border: 1px solid var(--border-soft); border-radius: var(--r-sm); margin-bottom: 6px; display: flex; align-items: center; gap: 10px;">
+          <div style="flex:1;">
+            <strong>${util.escapeHtml(s.name)}</strong>
+            <div style="font-size: 11px; color: var(--text-mid);">${util.escapeHtml(s.category)}${s.phone ? ' · ' + util.escapeHtml(s.phone) : ''}</div>
+          </div>
+          <span class="chip chip--ok">פעיל</span>
+        </div>`).join('');
+
+    document.getElementById('supplier-requests').innerHTML = pending.length === 0
+      ? '<div style="color: var(--text-low); padding: 16px; text-align:center;">אין בקשות ממתינות.</div>'
+      : pending.map(s => `
+        <div style="padding: 10px 12px; background: rgba(255,181,71,0.07); border: 1px solid rgba(255,181,71,0.3); border-radius: var(--r-sm); margin-bottom: 6px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <strong>${util.escapeHtml(s.name)}</strong>
+            <span class="chip chip--warn" style="font-size: 10px;">ממתין לאישור</span>
+          </div>
+          <div style="font-size: 11px; color: var(--text-mid); margin: 4px 0;">${util.escapeHtml(s.category)}${s.phone ? ' · ' + util.escapeHtml(s.phone) : ''} · מבקש: ${util.escapeHtml(s.requestedBy || '')}</div>
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+            <button class="btn btn--sm btn--ok" data-sup-approve="${s.id}">אשר</button>
+            <button class="btn btn--sm btn--danger" data-sup-deny="${s.id}">דחה</button>
+          </div>
+        </div>`).join('');
+  }
+  document.getElementById('btn-add-supplier').addEventListener('click', () => {
+    const name = prompt('שם הספק:'); if (!name) return;
+    const category = prompt('קטגוריה (ירקות / בשר / יבש / קרח...):', 'כללי') || 'כללי';
+    const phone = prompt('טלפון:', '') || null;
+    Economy.addSupplier({ name, category, phone });
+    Toast.show('הספק נוסף ואושר ביער.', { kind: 'ok' });
+    renderSuppliers();
+  });
+  document.addEventListener('click', e => {
+    if (e.target.dataset.supApprove) { Economy.resolveSupplier(e.target.dataset.supApprove, 'approved'); Toast.show('הספק אושר.', { kind: 'ok' }); renderSuppliers(); }
+    if (e.target.dataset.supDeny) { Economy.resolveSupplier(e.target.dataset.supDeny, 'denied'); Toast.show('הבקשה נדחתה.', { kind: 'warn' }); renderSuppliers(); }
+  });
+
+  // ===== Module B: Finances =====
+  function renderExpenses() {
+    const list = Economy.expenses().slice().sort((a, b) => b.ts - a.ts);
+    const total = list.reduce((s, e) => s + (e.amount || 0), 0);
+    document.getElementById('expense-total').textContent = 'סה"כ: ₪' + total.toLocaleString('he-IL');
+    document.getElementById('expenses-list').innerHTML = list.length === 0
+      ? '<div style="color: var(--text-low); padding: 16px; text-align:center;">אין הוצאות רשומות.</div>'
+      : list.map(e => `
+        <div style="padding: 10px 12px; background: var(--bg-elev); border-radius: var(--r-sm); margin-bottom: 6px; display:flex; align-items:center; gap:10px;">
+          <div style="flex:1;">
+            <strong>${util.escapeHtml(e.supplier)}</strong>
+            <div style="font-size: 11px; color: var(--text-mid);">${util.escapeHtml(e.desc || '')} · ${util.escapeHtml(e.date)}</div>
+          </div>
+          ${e.receiptImg ? '<span title="צילום קבלה מצורף">📎</span>' : ''}
+          <strong style="color: var(--ok); font-variant-numeric: tabular-nums;">₪${(e.amount || 0).toLocaleString('he-IL')}</strong>
+        </div>`).join('');
+  }
+  document.getElementById('expense-form').addEventListener('submit', e => {
+    e.preventDefault();
+    const f = e.target;
+    const file = f.receipt.files[0];
+    const finish = (img) => {
+      Economy.addExpense({ supplier: f.supplier.value.trim(), amount: f.amount.value, date: f.date.value, desc: f.desc.value.trim(), receiptImg: img });
+      Toast.show('ההוצאה נרשמה.', { kind: 'ok' });
+      f.reset();
+      renderExpenses();
+    };
+    if (file) { const r = new FileReader(); r.onload = () => finish(r.result); r.readAsDataURL(file); }
+    else finish(null);
+  });
+  document.getElementById('btn-report').addEventListener('click', () => {
+    const list = Economy.expenses().slice().sort((a, b) => b.ts - a.ts);
+    const total = list.reduce((s, e) => s + (e.amount || 0), 0);
+    const html = `
+      <div class="print-sheet">
+        <h1>דו"ח אקונומיה — ${util.escapeHtml(forest.name)}</h1>
+        <div>הופק: ${util.fmtDate()} ${util.fmtTime()} · ${util.escapeHtml(persona.name)}</div>
+        <h2>ריכוז הוצאות</h2>
+        <table>
+          <thead><tr><th>תאריך</th><th>ספק</th><th>תיאור</th><th>סכום</th></tr></thead>
+          <tbody>
+            ${list.map(e => `<tr><td>${util.escapeHtml(e.date)}</td><td>${util.escapeHtml(e.supplier)}</td><td>${util.escapeHtml(e.desc || '')}</td><td>₪${(e.amount||0).toLocaleString('he-IL')}</td></tr>`).join('')}
+            <tr><th colspan="3">סה"כ</th><th>₪${total.toLocaleString('he-IL')}</th></tr>
+          </tbody>
+        </table>
+      </div>`;
+    printHtml(html);
+  });
+
+  // ===== Module C: Menu =====
+  const MEALS = ['בוקר', 'צהריים', 'ערב', 'לילה'];
+  const DAYS = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+  const mealClass = { 'בוקר': 'meal-breakfast', 'צהריים': 'meal-lunch', 'ערב': 'meal-dinner', 'לילה': 'meal-night' };
+  function renderMenu() {
+    const menus = Economy.menus();
+    const tribes = forestTribes();
+    if (tribes.length === 0) {
+      document.getElementById('menu-table').innerHTML = '<div style="color: var(--text-low); padding: 16px; text-align:center;">אין שבטים ביער זה.</div>';
+      return;
+    }
+    // Show a grid: rows = day×meal, columns = tribes
+    let html = '<table class="menu-grid"><thead><tr><th>יום / ארוחה</th>' + tribes.map(t => `<th>שבט ${util.escapeHtml(t.name)}</th>`).join('') + '</tr></thead><tbody>';
+    DAYS.forEach(day => {
+      MEALS.forEach(meal => {
+        const cells = tribes.map(t => {
+          const m = menus.find(x => x.day === day && x.tribe === t.name && x.meal === meal);
+          return `<td>${m ? util.escapeHtml(m.dish) + (m.notes ? '<br><span style="font-size:10px;color:var(--text-low)">' + util.escapeHtml(m.notes) + '</span>' : '') : '<span style="color:var(--text-low)">—</span>'}</td>`;
+        }).join('');
+        html += `<tr><td><strong>${day}</strong> <span class="meal-pill ${mealClass[meal]}">${meal}</span></td>${cells}</tr>`;
+      });
+    });
+    html += '</tbody></table>';
+    document.getElementById('menu-table').innerHTML = html;
+  }
+  document.getElementById('btn-add-meal').addEventListener('click', () => {
+    const tribes = forestTribes();
+    if (!tribes.length) { Toast.show('אין שבטים ביער.', { kind: 'warn' }); return; }
+    const day = prompt('יום (ראשון/שני/...):', 'ראשון'); if (!day) return;
+    const tribe = prompt('שבט (' + tribes.map(t => t.name).join('/') + '):', tribes[0].name); if (!tribe) return;
+    const meal = prompt('ארוחה (בוקר/צהריים/ערב/לילה):', 'צהריים'); if (!meal) return;
+    const dish = prompt('המנה:'); if (!dish) return;
+    const notes = prompt('הערות לוגיסטיות (אופציונלי):', '') || '';
+    Economy.setMenu({ day, tribe, meal, dish, notes });
+    Toast.show('המנה נוספה לתפריט.', { kind: 'ok' });
+    renderMenu();
+  });
+  document.getElementById('csv-input').addEventListener('change', e => {
+    const file = e.target.files[0]; if (!file) return;
+    const r = new FileReader();
+    r.onload = () => {
+      const lines = String(r.result).split(/\r?\n/).filter(l => l.trim());
+      // Expect header: day,tribe,meal,dish,notes
+      const rows = [];
+      lines.slice(1).forEach(line => {
+        const parts = line.split(',').map(s => s.trim());
+        if (parts.length >= 4) rows.push({ day: parts[0], tribe: parts[1], meal: parts[2], dish: parts[3], notes: parts[4] || '' });
+      });
+      const n = Economy.importMenuRows(rows);
+      Toast.show(`יובאו ${n} שורות תפריט (דרסו קיימות).`, { kind: 'ok' });
+      renderMenu();
+    };
+    r.readAsText(file);
+    e.target.value = '';
+  });
+  document.getElementById('btn-print-menu').addEventListener('click', openPrintMenuModal);
+
+  function openPrintMenuModal() {
+    const tribes = forestTribes();
+    const host = document.createElement('div');
+    host.className = 'modal-host';
+    host.innerHTML = `
+      <div class="modal" style="width: min(520px, 92vw);">
+        <h3>🖨 הדפסת תפריטים</h3>
+        <p style="color: var(--text-mid); margin: 0 0 14px; font-size: 13px;">בחר מצב הדפסה:</p>
+        <div style="display: grid; gap: 8px;">
+          <button class="btn btn--lg" data-print-mode="tribe">📄 הדפס לפי שבט (שבט+יום+ארוחה)</button>
+          <button class="btn btn--lg" data-print-mode="meal">📑 הדפס לפי ארוחה (דף נפרד לכל שבט)</button>
+          <button class="btn btn--lg" data-print-mode="daily">🗓 הדפס טבלה יומית (כל השבטים)</button>
+        </div>
+        <div style="margin-top: 14px; display:flex; justify-content:flex-end;">
+          <button class="btn btn--ghost" data-cancel>סגור</button>
+        </div>
+      </div>`;
+    document.body.appendChild(host);
+    host.querySelector('[data-cancel]').addEventListener('click', () => host.remove());
+    host.addEventListener('click', e => {
+      const btn = e.target.closest('[data-print-mode]'); if (!btn) { if (e.target === host) host.remove(); return; }
+      const mode = btn.dataset.printMode;
+      host.remove();
+      const day = prompt('יום (ראשון/שני/...):', 'ראשון'); if (!day) return;
+      const menus = Economy.menus();
+      if (mode === 'meal') {
+        const meal = prompt('ארוחה (בוקר/צהריים/ערב/לילה):', 'בוקר'); if (!meal) return;
+        // One sheet per tribe (page-break)
+        const sheets = tribes.map(t => {
+          const m = menus.find(x => x.day === day && x.tribe === t.name && x.meal === meal);
+          return `<div class="print-sheet">
+            <h1>שבט ${util.escapeHtml(t.name)}</h1>
+            <h2>${util.escapeHtml(day)} · ${util.escapeHtml(meal)}</h2>
+            <div style="font-size: 20px; margin-top: 12px;">${m ? util.escapeHtml(m.dish) : '— אין מנה —'}</div>
+            ${m && m.notes ? '<div style="margin-top:8px; color:#555;">הערות: ' + util.escapeHtml(m.notes) + '</div>' : ''}
+            <div style="margin-top: 30px; color:#888; font-size: 12px;">${util.escapeHtml(forest.name)} · ${util.fmtDate()}</div>
+          </div>`;
+        }).join('');
+        printHtml(sheets);
+      } else if (mode === 'tribe') {
+        const tribe = prompt('שבט:', tribes[0] && tribes[0].name); if (!tribe) return;
+        const meal = prompt('ארוחה:', 'צהריים'); if (!meal) return;
+        const m = menus.find(x => x.day === day && x.tribe === tribe && x.meal === meal);
+        printHtml(`<div class="print-sheet">
+          <h1>שבט ${util.escapeHtml(tribe)}</h1>
+          <h2>${util.escapeHtml(day)} · ${util.escapeHtml(meal)}</h2>
+          <div style="font-size: 20px;">${m ? util.escapeHtml(m.dish) : '— אין מנה —'}</div>
+          ${m && m.notes ? '<div style="margin-top:8px;color:#555;">' + util.escapeHtml(m.notes) + '</div>' : ''}
+        </div>`);
+      } else {
+        // daily table
+        let rows = '';
+        MEALS.forEach(meal => {
+          const cells = tribes.map(t => {
+            const m = menus.find(x => x.day === day && x.tribe === t.name && x.meal === meal);
+            return `<td>${m ? util.escapeHtml(m.dish) : '—'}</td>`;
+          }).join('');
+          rows += `<tr><th>${meal}</th>${cells}</tr>`;
+        });
+        printHtml(`<div class="print-sheet">
+          <h1>תפריט יומי — ${util.escapeHtml(day)}</h1>
+          <h2>${util.escapeHtml(forest.name)}</h2>
+          <table><thead><tr><th>ארוחה</th>${tribes.map(t => '<th>שבט ' + util.escapeHtml(t.name) + '</th>').join('')}</tr></thead><tbody>${rows}</tbody></table>
+        </div>`);
+      }
+    });
+  }
+
+  function printHtml(html) {
+    document.getElementById('print-area').innerHTML = html;
+    window.print();
+  }
+
+  // ===== Module D: Deliveries + signature pads =====
+  const sigState = {};
+  function initSignaturePads() {
+    ['sig-receiver', 'sig-economy'].forEach(id => {
+      const canvas = document.getElementById(id);
+      if (!canvas || canvas._wired) return;
+      // Size canvas to its display size
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width || 300;
+      canvas.height = 140;
+      const ctx = canvas.getContext('2d');
+      ctx.strokeStyle = '#111'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      let drawing = false, last = null;
+      sigState[id] = { hasInk: false };
+      function pos(ev) {
+        const r = canvas.getBoundingClientRect();
+        const p = ev.touches ? ev.touches[0] : ev;
+        return { x: p.clientX - r.left, y: p.clientY - r.top };
+      }
+      function start(ev) { ev.preventDefault(); drawing = true; last = pos(ev); }
+      function move(ev) { if (!drawing) return; ev.preventDefault(); const p = pos(ev); ctx.beginPath(); ctx.moveTo(last.x, last.y); ctx.lineTo(p.x, p.y); ctx.stroke(); last = p; sigState[id].hasInk = true; }
+      function end() { drawing = false; }
+      canvas.addEventListener('pointerdown', start);
+      canvas.addEventListener('pointermove', move);
+      canvas.addEventListener('pointerup', end);
+      canvas.addEventListener('pointerleave', end);
+      canvas._wired = true;
+      canvas._ctx = ctx;
+    });
+  }
+  document.addEventListener('click', e => {
+    const id = e.target.dataset.clear; if (!id) return;
+    const canvas = document.getElementById(id);
+    if (canvas && canvas._ctx) { canvas._ctx.clearRect(0, 0, canvas.width, canvas.height); if (sigState[id]) sigState[id].hasInk = false; }
+  });
+
+  function renderDeliveries() {
+    const list = Economy.deliveries().slice().sort((a, b) => b.ts - a.ts);
+    document.getElementById('deliveries-list').innerHTML = list.length === 0
+      ? '<div style="color: var(--text-low); padding: 16px; text-align:center;">אין משלוחים עדיין.</div>'
+      : list.map(d => `
+        <div style="padding: 10px 12px; background: var(--bg-elev); border-radius: var(--r-sm); margin-bottom: 6px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <strong>שבט ${util.escapeHtml(d.tribe)}</strong>
+            <span class="chip" style="font-size:10px;">${util.escapeHtml(d.meal)}</span>
+            <span style="flex:1"></span>
+            <span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-low);">${util.fmtTime(d.ts)}</span>
+          </div>
+          <div style="font-size: 11px; color: var(--text-mid); margin: 4px 0;">${util.escapeHtml(d.items || '')} · קיבל: ${util.escapeHtml(d.receiver)}</div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            ${d.sigReceiver ? `<img src="${d.sigReceiver}" alt="חתימת מקבל" style="height: 36px; background:#fff; border-radius: 4px;">` : ''}
+            ${d.sigEconomy ? `<img src="${d.sigEconomy}" alt="חתימת אקונום" style="height: 36px; background:#fff; border-radius: 4px;">` : ''}
+            <span class="chip chip--ok" style="font-size: 10px; margin-right:auto;">✓ נמסר וחתום</span>
+          </div>
+        </div>`).join('');
+  }
+  document.getElementById('delivery-form').addEventListener('submit', e => {
+    e.preventDefault();
+    const f = e.target;
+    if (!sigState['sig-receiver'] || !sigState['sig-receiver'].hasInk) { Toast.show('נדרשת חתימת נציג השבט.', { kind: 'warn' }); return; }
+    if (!sigState['sig-economy'] || !sigState['sig-economy'].hasInk) { Toast.show('נדרשת חתימת אחראי האקונומיה.', { kind: 'warn' }); return; }
+    const d = Economy.recordDelivery({
+      tribe: f.tribe.value, meal: f.meal.value, receiver: f.receiver.value.trim(),
+      items: f.items.value.trim(),
+      sigReceiver: document.getElementById('sig-receiver').toDataURL('image/png'),
+      sigEconomy: document.getElementById('sig-economy').toDataURL('image/png'),
+    });
+    Toast.show('המשלוח נשלח וחתום. עותק נשלח לאחראי המטבח של השבט.', { kind: 'ok' });
+    Scout.Audio.play('blip');
+    f.reset();
+    ['sig-receiver', 'sig-economy'].forEach(id => { const c = document.getElementById(id); if (c && c._ctx) { c._ctx.clearRect(0,0,c.width,c.height); sigState[id].hasInk = false; } });
+    renderDeliveries();
+  });
+
+  function populateDeliveryTribes() {
+    document.getElementById('delivery-tribe').innerHTML = forestTribes().map(t => `<option value="${util.escapeHtml(t.name)}">שבט ${util.escapeHtml(t.name)}</option>`).join('');
+  }
+
+  // ===== Bus wiring =====
+  Bus.on('economy:suppliers', renderSuppliers);
+  Bus.on('economy:expenses', renderExpenses);
+  Bus.on('economy:menus', renderMenu);
+  Bus.on('economy:delivery', renderDeliveries);
+
+  // ===== Initial =====
+  renderSuppliers();
+  renderExpenses();
+  renderMenu();
+  populateDeliveryTribes();
+  renderDeliveries();
+  initSignaturePads();
+})();
+</script>
+</body>
+</html>

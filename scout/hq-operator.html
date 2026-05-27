@@ -349,6 +349,12 @@
         <button class="btn btn--primary btn--block" id="btn-approve-checkout">+ אשר יציאת חניך</button>
         <div style="font-size: 11px; color: var(--text-low); margin-top: 6px; text-align: center;">הוצא טופס נייר חתום והכוון לשער</div>
       </div>
+
+      <div class="panel" style="padding: 14px;">
+        <div class="section-title">🍽 לוגיסטיקה</div>
+        <button class="btn btn--block" id="btn-issue-economy">🍽 פתח אחראי אקונומיה</button>
+        <div style="font-size: 11px; color: var(--text-low); margin-top: 6px; text-align: center;">משתמש משויך אוטומטית ליער זה</div>
+      </div>
     </aside>
     </div>
   </section>
@@ -1000,6 +1006,19 @@
   });
 
   // ===== Approve checkout (HQ-initiated) =====
+  // One-click: open Economy Manager for THIS forest (hq-shift / hq-op / national)
+  const _ecoBtn = document.getElementById('btn-issue-economy');
+  if (_ecoBtn) _ecoBtn.addEventListener('click', () => {
+    if (!Scout.RoleProvisioning.canIssue(persona.role, 'provisions')) {
+      Toast.show('🔒 אין לך הרשאה לפתוח אחראי אקונומיה.', { kind: 'warn' });
+      return;
+    }
+    const f = Scout.Forests.get(forestId) || { name: '—' };
+    const tag = f.tag || String(forestId || '').replace(/\D/g, '').slice(0, 3) || '100';
+    const r = Scout.Auth.issueTempUser('provisions', { forestId, usernamePrefix: 'eco_' + tag });
+    UI.showCredentialModal(r, { roleLabel: 'מנהל אקונומיה', forestName: f.name, title: 'נפתח אחראי אקונומיה' });
+  });
+
   document.getElementById('btn-approve-checkout').addEventListener('click', () => {
     const tribes = ScoutDB.get('tribes', []).filter(t => t.forestId === forestId);
     const tribeIds = tribes.map(t => t.id);
