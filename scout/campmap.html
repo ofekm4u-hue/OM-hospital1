@@ -3,10 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>שו"ב | עורך מפת מחנה</title>
+<title>שו"ב | עורך מפת מחנה אינטראקטיבי</title>
 <link rel="stylesheet" href="shared/tokens.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css">
 <style>
-  .page { padding: 14px; max-width: 1400px; margin: 0 auto; }
+  .page { padding: 12px; max-width: 1500px; margin: 0 auto; }
 
   .ctx-bar {
     display: flex; align-items: center; gap: 10px;
@@ -14,7 +16,7 @@
     background: var(--bg-elev);
     border: 1px solid var(--border);
     border-radius: var(--r-md);
-    margin-bottom: 12px;
+    margin-bottom: 10px;
     font-size: 13px;
     flex-wrap: wrap;
   }
@@ -41,188 +43,221 @@
   .layout {
     display: grid;
     grid-template-columns: 1fr minmax(280px, 320px);
-    gap: 12px;
+    gap: 10px;
   }
   @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
 
-  .map-wrap {
-    position: relative;
-    background:
-      linear-gradient(180deg, #0d1620 0%, #122131 100%);
+  #map {
+    height: 74vh;
+    min-height: 540px;
     border: 1px solid var(--border);
     border-radius: var(--r-md);
-    overflow: hidden;
-    height: 70vh;
-    min-height: 520px;
+    background: #0d1620;
   }
-  .map-wrap.is-readonly { cursor: default; }
-  .map-wrap.is-editable { cursor: crosshair; }
-  .map-grid {
-    position: absolute; inset: 0;
-    background-image:
-      linear-gradient(rgba(77,208,225,0.05) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(77,208,225,0.05) 1px, transparent 1px);
-    background-size: 40px 40px;
-    pointer-events: none;
+  /* CRS.Simple has no real tiles — use a CSS-painted grid for spatial cues */
+  #map .leaflet-tile-pane { display: none; }
+  #map.leaflet-container {
+    background:
+      linear-gradient(rgba(77,208,225,0.04) 1px, transparent 1px) 0 0 / 80px 80px,
+      linear-gradient(90deg, rgba(77,208,225,0.04) 1px, transparent 1px) 0 0 / 80px 80px,
+      linear-gradient(180deg, #0d1620 0%, #122131 100%);
   }
-  .legend {
-    position: absolute;
-    top: 10px; right: 10px;
-    background: rgba(10,14,20,0.85);
-    border: 1px solid var(--border);
-    border-radius: var(--r-sm);
-    padding: 8px 12px;
-    font-size: 11px;
-    color: var(--text-mid);
-    pointer-events: none;
-    max-width: 60%;
+  /* Override draw toolbar to vertical/right side, Hebrew-friendly */
+  .leaflet-draw-toolbar a {
+    background-color: var(--bg-elev) !important;
+    border-color: var(--border) !important;
   }
-  .map-empty {
-    position: absolute; inset: 0;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    color: var(--text-mid);
-    pointer-events: none;
-    text-align: center;
-    padding: 20px;
+  .leaflet-draw-toolbar a:hover {
+    background-color: rgba(77,208,225,0.18) !important;
   }
-  .map-empty .ico { font-size: 40px; }
-
-  .tribe-pin {
-    position: absolute;
-    transform: translate(-50%, -50%);
+  .leaflet-bar a {
+    color: var(--text-hi) !important;
+  }
+  /* Emoji-pin marker */
+  .emoji-pin {
     background: var(--bg-elev);
     border: 2px solid var(--accent);
-    border-radius: var(--r-md);
-    padding: 6px 10px;
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--text-hi);
-    box-shadow: 0 4px 10px rgba(0,0,0,0.4);
-    cursor: grab;
-    user-select: none;
-    touch-action: none;
-    transition: transform .12s, box-shadow .12s;
-  }
-  .tribe-pin.dragging { cursor: grabbing; transform: translate(-50%, -50%) scale(1.08); box-shadow: 0 10px 24px rgba(0,0,0,0.55); z-index: 10; }
-  .tribe-pin .x {
-    position: absolute;
-    top: -8px; left: -8px;
-    width: 18px; height: 18px;
     border-radius: 50%;
-    background: var(--danger);
-    color: #fff;
-    border: 2px solid var(--bg-deep);
-    font-size: 10px; line-height: 14px;
-    text-align: center;
+    width: 38px !important;
+    height: 38px !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
     cursor: pointer;
-    display: none;
+    margin-left: -19px !important;
+    margin-top: -19px !important;
   }
-  .tribe-pin:hover .x { display: block; }
+  .emoji-pin .lbl {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-top: 4px;
+    background: var(--bg-deep);
+    color: var(--text-hi);
+    border: 1px solid var(--border);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+    pointer-events: none;
+  }
 
   .side {
     background: var(--bg-panel);
     border: 1px solid var(--border);
     border-radius: var(--r-md);
-    padding: 14px;
-    max-height: 70vh;
+    padding: 12px;
+    max-height: 74vh;
     overflow-y: auto;
   }
   .side h4 {
-    margin: 0 0 8px;
+    margin: 14px 0 6px;
     font-family: var(--font-ui);
-    font-size: 12px;
+    font-size: 11px;
     color: var(--text-mid);
     letter-spacing: .12em;
     text-transform: uppercase;
   }
+  .side h4:first-child { margin-top: 0; }
 
-  .tribe-list {
-    display: flex; flex-direction: column; gap: 6px;
-    margin-bottom: 14px;
-  }
-  .tribe-row {
+  .layer-toggle {
     display: flex; align-items: center; gap: 8px;
-    padding: 8px 10px;
-    background: var(--bg-elev);
-    border: 1px solid var(--border);
+    padding: 6px 8px;
     border-radius: var(--r-sm);
-    font-size: 13px;
+    cursor: pointer;
+    margin-bottom: 4px;
+    user-select: none;
+    transition: background .12s;
   }
-  .tribe-row .swatch {
-    width: 14px; height: 14px; border-radius: 4px;
+  .layer-toggle:hover { background: var(--bg-elev); }
+  .layer-toggle input { width: 16px; height: 16px; cursor: pointer; }
+  .layer-toggle .swatch {
+    width: 12px; height: 12px;
+    border-radius: 3px;
     border: 1px solid var(--border);
+    flex-shrink: 0;
   }
-  .tribe-row .name { flex: 1; }
-  .tribe-row .status {
+  .layer-toggle .name {
+    flex: 1;
+    font-size: 12px;
+    color: var(--text-hi);
+  }
+  .layer-toggle .count {
     font-size: 10px;
-    padding: 2px 6px;
-    border-radius: 999px;
     color: var(--text-mid);
     background: var(--bg-deep);
+    padding: 2px 6px;
+    border-radius: 999px;
   }
-  .tribe-row .status.placed { color: var(--ok); background: rgba(45,216,129,0.10); }
 
   .help-block {
     background: rgba(91,141,239,0.06);
     border: 1px solid rgba(91,141,239,0.3);
     border-radius: var(--r-sm);
     padding: 10px 12px;
-    font-size: 12px;
+    font-size: 11px;
     color: var(--text-mid);
-    margin-bottom: 12px;
+    margin-bottom: 10px;
     line-height: 1.6;
   }
   .help-block strong { color: var(--text-hi); }
 
-  .meta {
+  .save-status {
     font-size: 11px;
     color: var(--text-mid);
+    padding: 6px 10px;
+    margin-top: 12px;
     border-top: 1px solid var(--border);
     padding-top: 10px;
-    margin-top: 10px;
   }
+
+  /* Properties modal */
+  .props-form .field { margin-bottom: 10px; }
+  .props-form label {
+    display: block;
+    font-family: var(--font-ui);
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-mid);
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    margin-bottom: 4px;
+  }
+  .emoji-picker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+  }
+  .emoji-picker button {
+    width: 36px; height: 36px;
+    border-radius: var(--r-sm);
+    border: 1px solid transparent;
+    background: var(--bg-deep);
+    cursor: pointer;
+    font-size: 18px;
+    padding: 0;
+    transition: all .1s;
+  }
+  .emoji-picker button:hover { border-color: var(--accent); transform: scale(1.08); }
+  .emoji-picker button.on {
+    border-color: var(--accent);
+    background: rgba(77,208,225,0.18);
+  }
+  .color-picker {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .color-picker button {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    cursor: pointer;
+    padding: 0;
+  }
+  .color-picker button.on { border-color: #fff; transform: scale(1.12); box-shadow: 0 0 0 2px var(--bg-deep), 0 0 0 4px var(--accent); }
 </style>
 </head>
 <body>
 <div id="header"></div>
 <main class="page">
 
-  <div class="ctx-bar" id="ctx-bar">
-    <!-- Filled by JS -->
-  </div>
+  <div class="ctx-bar" id="ctx-bar"><!-- Filled by JS --></div>
 
   <div class="layout">
     <div>
-      <div class="map-wrap" id="map">
-        <div class="map-grid"></div>
-        <div class="legend" id="legend">לחץ על שבט מהרשימה ואז לחץ על המפה למיקום ראשוני. גרור פינים להזזה. ריחוף מעל פין מציג כפתור ✕ למחיקה.</div>
-        <div class="map-empty" id="map-empty">
-          <div class="ico">🗺</div>
-          <div style="font-weight:700; margin-top:6px;">מפת המחנה ריקה</div>
-          <div style="font-size:11px; margin-top:4px;">בחר שבט מהרשימה ולחץ על המפה כדי למקם.</div>
-        </div>
-      </div>
+      <div id="map"></div>
     </div>
 
     <aside class="side">
       <div class="help-block" id="help-block"></div>
 
-      <h4 id="tribes-heading">שבטים בהנהגה זו</h4>
-      <div class="tribe-list" id="tribe-list"></div>
+      <h4>שכבות תצוגה (Legend)</h4>
+      <div id="layer-toggles"></div>
 
       <h4>פעולות</h4>
-      <div style="display:flex; flex-direction:column; gap:8px;">
-        <button class="btn" id="btn-clear" style="border-color: var(--danger); color: var(--danger);">🗑 נקה את כל המפה</button>
-        <button class="btn btn--ghost" id="btn-back">← חזרה</button>
+      <div style="display:flex; flex-direction:column; gap:6px;">
+        <button class="btn btn--sm" id="btn-fit">📐 מקד תצוגה</button>
+        <button class="btn btn--sm" style="border-color: var(--danger); color: var(--danger);" id="btn-clear">🗑 נקה את כל המפה</button>
+        <button class="btn btn--sm btn--ghost" id="btn-back">← חזרה</button>
       </div>
 
-      <div class="meta" id="meta">לא עודכן עדיין.</div>
+      <div class="save-status" id="save-status">לא עודכן עדיין.</div>
     </aside>
   </div>
 
 </main>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
 <script src="shared/engine.js"></script>
 <script>
 (function () {
@@ -231,16 +266,15 @@
 
   if (!Auth.requireLogin()) return;
 
-  document.getElementById('header').innerHTML = UI.header({ title: 'עורך מפת מחנה' });
+  document.getElementById('header').innerHTML = UI.header({ title: 'עורך מפת מחנה אינטראקטיבי' });
   UI.bindHeader(document.body);
 
   const persona = UI.currentPersona();
   const isNational = persona.role === 'national';
   const isCampDirector = persona.role === 'camp-director';
+  const canEdit = isNational || isCampDirector;
 
-  // Determine forest+leadership context
-  // National: from URL params (or all forests selector). Camp-director: locked to own.
-  // Everyone else: read-only on own forest+leadership.
+  // Forest+leadership context
   let forestId, leadershipId;
   if (isNational) {
     forestId = util.getParam('forest') || ScoutDB.get('currentForest', null);
@@ -249,11 +283,9 @@
     forestId = Tenancy.ownForest();
     leadershipId = Tenancy.ownLeadership();
   }
-
-  const canEdit = (isNational || isCampDirector);
   const ctx = () => ({ forestId, leadershipId });
 
-  // ===== Render context bar (with selectors for national) =====
+  // ===== Render context bar =====
   function renderCtxBar() {
     const bar = document.getElementById('ctx-bar');
     const forests = Forests.list();
@@ -263,7 +295,7 @@
 
     if (isNational) {
       bar.innerHTML = `
-        <span style="color: var(--text-mid); font-size: 11px; font-family: var(--font-ui); text-transform: uppercase; letter-spacing: .1em;">מנהל ארצי — בחירת גיזרה:</span>
+        <span style="color: var(--text-mid); font-size: 11px; font-family: var(--font-ui); text-transform: uppercase; letter-spacing: .1em;">מנהל ארצי — גיזרה:</span>
         <span class="pill">🌲 יער</span>
         <select id="sel-forest">
           <option value="" ${!forestId ? 'selected' : ''}>— בחר יער —</option>
@@ -274,7 +306,7 @@
           <option value="" ${!leadershipId ? 'selected' : ''}>— בחר הנהגה —</option>
           ${leads.map(l => `<option value="${l.id}" ${leadershipId === l.id ? 'selected' : ''}>${util.escapeHtml(l.name)}${l.status === 'closed' ? ' (סגור)' : ''}</option>`).join('')}
         </select>
-        <span style="margin-right:auto; color: var(--ok); font-size: 11px;">✏ הרשאת עריכה — מנהל ארצי</span>
+        <span style="margin-right:auto; color: var(--ok); font-size: 11px;">✏ עורך — הרשאה מלאה</span>
       `;
       document.getElementById('sel-forest').addEventListener('change', e => {
         forestId = e.target.value || null;
@@ -300,216 +332,410 @@
         <span class="pill">🌲 ${forest ? util.escapeHtml(forest.name) : 'יער לא משויך'}</span>
         <span class="pill">📅 ${lead ? util.escapeHtml(lead.name) : 'הנהגה לא משויכת'}</span>
         <span style="margin-right:auto; color: ${canEdit ? 'var(--ok)' : 'var(--text-mid)'}; font-size: 11px;">
-          ${canEdit ? '✏ הרשאת עריכה — מנהל מחנה' : '👁 צפייה בלבד — סנכרון חי'}
+          ${canEdit ? '✏ עורך — מנהל מחנה' : '👁 צפייה בלבד'}
         </span>
       `;
     }
   }
 
-  // ===== Render side panel =====
-  let selectedTribeId = null;
+  // ===== Side panel: help + layer toggles =====
+  const CATS = CampMap.CATEGORIES;
+  const layerVisibility = {};
+  CATS.forEach(c => { layerVisibility[c.id] = true; });
 
   function renderSidePanel() {
-    const help = document.getElementById('help-block');
-    if (!forestId || !leadershipId) {
-      help.innerHTML = `<strong>בחר יער + הנהגה</strong> כדי להציג את שבטיהם ולערוך את מיקומיהם על המפה.`;
-      document.getElementById('tribe-list').innerHTML = '<div style="color: var(--text-mid); font-size: 12px; padding: 8px;">— בחר גיזרה —</div>';
-      return;
-    }
+    document.getElementById('help-block').innerHTML = !forestId || !leadershipId
+      ? `<strong>בחר יער + הנהגה</strong> כדי להתחיל לערוך את המפה.`
+      : (canEdit
+        ? `<strong>אופן השימוש:</strong><br>1. בחר כלי שרטוט מהסרגל בצד שמאל-עליון של המפה (📍 נקודה, ─ קו, ⬛ שטח).<br>2. שרטט על המפה — תפתח חלונית מאפיינים.<br>3. הזן שם, בחר קטגוריה, אימוג'י וצבע.<br>4. כל שינוי נשמר אוטומטית ומסונכרן לכל הצוות.`
+        : `<strong>צפייה בלבד.</strong> כבה/הדלק שכבות לפי תפקידך. שינויים מצוות העריכה מסונכרנים אצלך בזמן אמת.`);
+
+    const map = forestId && leadershipId ? CampMap.load(forestId, leadershipId) : { elements: [] };
+    const elementsByCat = {};
+    CATS.forEach(c => { elementsByCat[c.id] = 0; });
+    (map.elements || []).forEach(el => {
+      const c = (el.properties && el.properties.category) || 'other';
+      elementsByCat[c] = (elementsByCat[c] || 0) + 1;
+    });
+
+    document.getElementById('layer-toggles').innerHTML = CATS.map(c => `
+      <label class="layer-toggle">
+        <input type="checkbox" data-layer="${c.id}" ${layerVisibility[c.id] ? 'checked' : ''}>
+        <span class="swatch" style="background:${c.color}"></span>
+        <span class="name">${util.escapeHtml(c.label)}</span>
+        <span class="count">${elementsByCat[c.id] || 0}</span>
+      </label>
+    `).join('');
+
+    document.querySelectorAll('input[data-layer]').forEach(inp => {
+      inp.addEventListener('change', () => {
+        layerVisibility[inp.dataset.layer] = inp.checked;
+        renderElements();
+      });
+    });
+
+    const m = forestId && leadershipId ? CampMap.load(forestId, leadershipId) : null;
+    document.getElementById('save-status').textContent = m && m.updatedAt
+      ? `עודכן ${util.fmtTime(m.updatedAt)} ע"י ${m.updatedBy || '—'} · ${(m.elements || []).length} אובייקטים`
+      : '—';
+  }
+
+  // ===== Leaflet map (CRS.Simple — Cartesian 1000×1000 grid) =====
+  const BOUNDS = [[0, 0], [1000, 1000]];
+  let lmap, drawnItems, drawControl;
+
+  function initMap() {
+    lmap = L.map('map', {
+      crs: L.CRS.Simple,
+      minZoom: -2, maxZoom: 4,
+      zoomSnap: 0.25,
+      attributionControl: false,
+    });
+    lmap.fitBounds(BOUNDS);
+    L.rectangle(BOUNDS, { color: '#2A3340', weight: 1, fill: false, dashArray: '4 4' }).addTo(lmap);
+
+    drawnItems = new L.FeatureGroup().addTo(lmap);
+
     if (canEdit) {
-      help.innerHTML = `
-        <strong>אופן השימוש:</strong>
-        <br>1. בחר שבט מהרשימה למטה.
-        <br>2. לחץ במקום הרצוי על המפה כדי למקם.
-        <br>3. גרור פין כדי להזיז. רחף עליו ולחץ ✕ למחיקה.
-        <br>4. כל שינוי נשמר אוטומטית ומסונכרן לכל הצוות.
-      `;
-    } else {
-      help.innerHTML = `<strong>צפייה בלבד.</strong> מנהל המחנה הוא היחיד שיכול לערוך את מיקומי השבטים. שינויים מסונכרנים אצלך בזמן אמת.`;
-    }
+      drawControl = new L.Control.Draw({
+        position: 'topleft',
+        edit: { featureGroup: drawnItems, remove: true },
+        draw: {
+          marker:    { icon: defaultEmojiIcon('📍', '#4DD0E1') },
+          polyline:  { shapeOptions: { color: '#4DD0E1', weight: 4 } },
+          polygon:   { allowIntersection: false, shapeOptions: { color: '#4DD0E1', weight: 2, fillOpacity: 0.25 } },
+          rectangle: { shapeOptions: { color: '#4DD0E1', weight: 2, fillOpacity: 0.25 } },
+          circle: false,
+          circlemarker: false,
+        },
+      });
+      lmap.addControl(drawControl);
 
-    // Tribes that belong to this forest (legacy tribes from seed are forest-scoped)
-    const tribes = (ScoutDB.get('tribes', []) || []).filter(t => t.forestId === forestId);
-    const map = CampMap.load(forestId, leadershipId);
-    const placedById = new Map((map.tribes || []).map(t => [t.id, t]));
-
-    const colors = ['#4DD0E1', '#2DD881', '#FFB547', '#FF4757', '#5B8DEF', '#C792EA', '#F78C6C', '#80D8FF'];
-
-    document.getElementById('tribes-heading').textContent = `שבטים ביער זה (${tribes.length})`;
-
-    document.getElementById('tribe-list').innerHTML = tribes.length ? tribes.map((t, i) => {
-      const placed = placedById.get(t.id);
-      const color = (placed && placed.color) || colors[i % colors.length];
-      const isSelected = selectedTribeId === t.id;
-      return `
-        <div class="tribe-row" data-tribe="${t.id}" data-name="${util.escapeHtml(t.name)}" data-color="${color}" style="${isSelected ? 'border-color: var(--accent); background: rgba(77,208,225,0.10);' : ''} ${canEdit ? 'cursor:pointer;' : ''}">
-          <span class="swatch" style="background:${color};"></span>
-          <span class="name">${util.escapeHtml(t.name)}</span>
-          <span class="status ${placed ? 'placed' : ''}">${placed ? 'במפה' : 'לא במפה'}</span>
-        </div>
-      `;
-    }).join('') : '<div style="color: var(--text-mid); font-size: 12px; padding: 8px;">אין שבטים ביער זה.</div>';
-
-    if (canEdit) {
-      document.querySelectorAll('.tribe-row').forEach(row => {
-        row.addEventListener('click', () => {
-          selectedTribeId = row.dataset.tribe;
-          renderSidePanel();
-          Toast.show(`נבחר: ${row.dataset.name}. לחץ על המפה למיקום.`, { kind: 'info', duration: 2200 });
+      lmap.on(L.Draw.Event.CREATED, ev => {
+        const layer = ev.layer;
+        const type = ev.layerType;          // 'marker' | 'polyline' | 'polygon' | 'rectangle'
+        openPropsModal({ layer, type, isNew: true });
+      });
+      lmap.on(L.Draw.Event.EDITED, ev => {
+        ev.layers.eachLayer(layer => {
+          const el = layer._scoutEl;
+          if (!el) return;
+          const updated = Object.assign({}, el, { coordinates: extractCoords(layer, el.type) });
+          CampMap.upsertElement(updated, ctx());
         });
+      });
+      lmap.on(L.Draw.Event.DELETED, ev => {
+        ev.layers.eachLayer(layer => {
+          if (layer._scoutEl) CampMap.removeElement(layer._scoutEl.id, ctx());
+        });
+        renderSidePanel();
       });
     }
   }
 
-  // ===== Render map =====
-  function renderMap() {
-    const stage = document.getElementById('map');
-    stage.classList.toggle('is-editable', canEdit && !!(forestId && leadershipId));
-    stage.classList.toggle('is-readonly', !(canEdit && forestId && leadershipId));
+  function defaultEmojiIcon(emoji, color) {
+    return L.divIcon({
+      className: '',
+      iconSize: [38, 38],
+      html: `<div class="emoji-pin" style="border-color:${color || '#4DD0E1'};">${emoji || '📍'}</div>`,
+    });
+  }
+  function labeledEmojiIcon(emoji, color, name) {
+    return L.divIcon({
+      className: '',
+      iconSize: [38, 38],
+      html: `<div class="emoji-pin" style="border-color:${color || '#4DD0E1'};">${emoji || '📍'}${name ? '<span class="lbl">' + util.escapeHtml(name) + '</span>' : ''}</div>`,
+    });
+  }
 
-    if (!forestId || !leadershipId) {
-      document.getElementById('map-empty').style.display = 'flex';
-      document.getElementById('map-empty').innerHTML = `<div class="ico">🗺</div><div style="font-weight:700; margin-top:6px;">בחר יער + הנהגה</div><div style="font-size:11px; margin-top:4px;">המפה מבודדת לכל הנהגה בנפרד.</div>`;
-      stage.querySelectorAll('.tribe-pin').forEach(p => p.remove());
-      document.getElementById('meta').textContent = '—';
-      return;
+  function extractCoords(layer, type) {
+    if (type === 'marker') {
+      const ll = layer.getLatLng();
+      return [ll.lat, ll.lng];
     }
+    if (type === 'polyline') {
+      return layer.getLatLngs().map(p => [p.lat, p.lng]);
+    }
+    if (type === 'polygon' || type === 'rectangle') {
+      const rings = layer.getLatLngs();
+      const ring = Array.isArray(rings[0]) ? rings[0] : rings;
+      return [ring.map(p => [p.lat, p.lng])];
+    }
+    return null;
+  }
 
+  function styleFor(props) {
+    return {
+      color: props.color || '#4DD0E1',
+      weight: 3,
+      fillColor: props.color || '#4DD0E1',
+      fillOpacity: 0.22,
+    };
+  }
+
+  function elementToLayer(el) {
+    const p = el.properties || {};
+    if (el.type === 'marker') {
+      const [lat, lng] = el.coordinates;
+      const m = L.marker([lat, lng], { icon: labeledEmojiIcon(p.emoji || '📍', p.color, p.name) });
+      return m;
+    }
+    if (el.type === 'polyline') {
+      return L.polyline(el.coordinates, styleFor(p));
+    }
+    if (el.type === 'polygon') {
+      return L.polygon(el.coordinates, styleFor(p));
+    }
+    return null;
+  }
+
+  // ===== Render elements onto the map =====
+  function renderElements() {
+    if (!drawnItems) return;
+    drawnItems.clearLayers();
+    if (!forestId || !leadershipId) return;
     const map = CampMap.load(forestId, leadershipId);
-    document.getElementById('map-empty').style.display = (map.tribes || []).length === 0 ? 'flex' : 'none';
-    if ((map.tribes || []).length === 0) {
-      document.getElementById('map-empty').innerHTML = `<div class="ico">🗺</div><div style="font-weight:700; margin-top:6px;">המפה ריקה</div><div style="font-size:11px; margin-top:4px;">${canEdit ? 'בחר שבט מהרשימה ולחץ על המפה כדי למקם.' : 'מנהל המחנה טרם הציב שבטים.'}</div>`;
-    }
 
-    // Remove existing pins
-    stage.querySelectorAll('.tribe-pin').forEach(p => p.remove());
-
-    // Render pins
-    (map.tribes || []).forEach(t => {
-      const pin = document.createElement('div');
-      pin.className = 'tribe-pin';
-      pin.style.left = t.x + '%';
-      pin.style.top = t.y + '%';
-      pin.style.borderColor = t.color || 'var(--accent)';
-      pin.innerHTML = `${util.escapeHtml(t.name)}${canEdit ? '<span class="x" data-x="' + t.id + '">✕</span>' : ''}`;
-      pin.dataset.tribe = t.id;
-      pin.dataset.color = t.color || '#4DD0E1';
-      stage.appendChild(pin);
+    (map.elements || []).forEach(el => {
+      const cat = (el.properties && el.properties.category) || 'other';
+      if (!layerVisibility[cat]) return;
+      const layer = elementToLayer(el);
+      if (!layer) return;
+      layer._scoutEl = el;
+      // Popup with read/edit options
+      const p = el.properties || {};
+      const popupHTML = `
+        <div style="min-width: 180px; font-family: var(--font-ui), system-ui;">
+          <div style="font-weight: 700; font-size: 13px; color: #111; margin-bottom: 4px;">
+            ${p.emoji || ''} ${util.escapeHtml(p.name || '—')}
+          </div>
+          <div style="font-size: 11px; color: #555; margin-bottom: 6px;">
+            ${util.escapeHtml((CATS.find(c => c.id === cat) || {}).label || cat)}
+          </div>
+          ${canEdit ? `
+            <button style="margin-left: 4px; padding: 4px 8px; background: #4DD0E1; border: 0; color: #000; border-radius: 4px; cursor: pointer; font-size: 11px;" data-prop-edit="${el.id}">✏ ערוך</button>
+            <button style="padding: 4px 8px; background: #FF4757; border: 0; color: #fff; border-radius: 4px; cursor: pointer; font-size: 11px;" data-prop-del="${el.id}">🗑 מחק</button>
+          ` : ''}
+        </div>
+      `;
+      layer.bindPopup(popupHTML);
+      drawnItems.addLayer(layer);
     });
 
-    document.getElementById('meta').textContent = map.updatedAt
-      ? `עודכן ${util.fmtTime(map.updatedAt)} ע"י ${util.escapeHtml(map.updatedBy || '—')} · ${(map.tribes || []).length} שבטים`
-      : 'לא עודכן עדיין.';
+    // Popup buttons
+    lmap.on('popupopen', e => {
+      const container = e.popup._contentNode;
+      if (!container) return;
+      container.querySelectorAll('[data-prop-edit]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.dataset.propEdit;
+          const el = (CampMap.load(forestId, leadershipId).elements || []).find(x => x.id === id);
+          if (!el) return;
+          lmap.closePopup();
+          const layer = findLayerForId(id);
+          openPropsModal({ layer, type: el.type, isNew: false, existing: el });
+        });
+      });
+      container.querySelectorAll('[data-prop-del]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (!confirm('למחוק את האלמנט מהמפה?')) return;
+          const id = btn.dataset.propDel;
+          CampMap.removeElement(id, ctx());
+          renderElements();
+          renderSidePanel();
+        });
+      });
+    });
   }
 
-  // ===== Map interactions: click-to-place, drag-to-move, click-X-to-delete =====
-  const stage = document.getElementById('map');
-
-  function getRelPos(e) {
-    const r = stage.getBoundingClientRect();
-    const x = ((e.clientX - r.left) / r.width) * 100;
-    const y = ((e.clientY - r.top) / r.height) * 100;
-    return [Math.max(2, Math.min(98, x)), Math.max(3, Math.min(97, y))];
+  function findLayerForId(id) {
+    let result = null;
+    drawnItems.eachLayer(layer => { if (layer._scoutEl && layer._scoutEl.id === id) result = layer; });
+    return result;
   }
 
-  // Click on empty map → place selected tribe
-  stage.addEventListener('click', e => {
-    if (!canEdit || !forestId || !leadershipId) return;
-    if (e.target.closest('.tribe-pin')) return; // ignore clicks on pins
-    if (!selectedTribeId) {
-      Toast.show('בחר שבט מהרשימה לפני המיקום', { kind: 'warn' });
-      return;
+  // ===== Properties modal =====
+  function openPropsModal({ layer, type, isNew, existing }) {
+    const cur = existing || { properties: {} };
+    const props = cur.properties || {};
+    const initialCat = props.category || (type === 'marker' ? 'tribes' : 'medical-security');
+    const cat = CATS.find(c => c.id === initialCat) || CATS[0];
+
+    const host = document.createElement('div');
+    host.className = 'modal-host';
+    host.innerHTML = `
+      <form class="modal props-form" style="width: min(520px, 94vw); max-height: 92vh; overflow-y: auto;">
+        <div style="color: var(--accent); font-family: var(--font-ui); font-weight: 800; letter-spacing: .14em; text-transform: uppercase; font-size: 11px;">${isNew ? '+ ' : '✏ '} ${type === 'marker' ? 'נקודת עניין' : (type === 'polyline' ? 'קו' : 'שטח')}</div>
+        <h3 style="margin: 6px 0 12px;">הגדרת מאפייני אלמנט</h3>
+
+        <div class="field">
+          <label>שם / כותרת *</label>
+          <input class="input" name="name" required value="${util.escapeHtml(props.name || '')}" placeholder='לדוגמה: "מטבח שבט אלון", "אידרנט 4"'>
+        </div>
+
+        <div class="field">
+          <label>קטגוריה (Layer Type) *</label>
+          <select class="select" name="category">
+            ${CATS.map(c => `<option value="${c.id}" ${c.id === initialCat ? 'selected' : ''}>${util.escapeHtml(c.label)}</option>`).join('')}
+          </select>
+        </div>
+
+        ${type === 'marker' ? `
+          <div class="field">
+            <label>אימוג'י / אייקון</label>
+            <div class="emoji-picker" id="emoji-picker"></div>
+            <input type="hidden" name="emoji" value="${props.emoji || cat.emojis[0]}">
+          </div>
+        ` : ''}
+
+        <div class="field">
+          <label>צבע</label>
+          <div class="color-picker" id="color-picker"></div>
+          <input type="hidden" name="color" value="${props.color || cat.color}">
+        </div>
+
+        <div style="display:flex; gap:10px; justify-content:flex-end; margin-top: 14px;">
+          <button type="button" class="btn btn--ghost" data-cancel>${isNew ? 'בטל' : 'סגור'}</button>
+          ${!isNew ? '<button type="button" class="btn" style="border-color: var(--danger); color: var(--danger);" data-delete>🗑 מחק</button>' : ''}
+          <button type="submit" class="btn btn--primary">${isNew ? '💾 שמור' : '💾 עדכן'}</button>
+        </div>
+      </form>
+    `;
+    document.body.appendChild(host);
+    const form = host.querySelector('form');
+
+    function refreshPickers() {
+      const catId = form.category.value;
+      const c = CATS.find(x => x.id === catId) || CATS[0];
+      const currentEmoji = form.emoji ? form.emoji.value : null;
+      const currentColor = form.color.value;
+
+      const ep = host.querySelector('#emoji-picker');
+      if (ep) {
+        ep.innerHTML = c.emojis.map(e => `<button type="button" data-emoji="${e}" class="${e === currentEmoji ? 'on' : ''}">${e}</button>`).join('');
+        ep.addEventListener('click', e => {
+          const btn = e.target.closest('button[data-emoji]');
+          if (!btn) return;
+          form.emoji.value = btn.dataset.emoji;
+          ep.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === btn));
+        }, { once: false });
+      }
+
+      const colors = [c.color, '#4DD0E1', '#2DD881', '#FFB547', '#FF4757', '#5B8DEF', '#C792EA', '#FF9F43', '#E0E0E0'];
+      const cp = host.querySelector('#color-picker');
+      cp.innerHTML = Array.from(new Set(colors)).map(col => `<button type="button" data-color="${col}" class="${col === currentColor ? 'on' : ''}" style="background:${col};"></button>`).join('');
+      cp.addEventListener('click', e => {
+        const btn = e.target.closest('button[data-color]');
+        if (!btn) return;
+        form.color.value = btn.dataset.color;
+        cp.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === btn));
+      });
     }
-    const t = (ScoutDB.get('tribes', []) || []).find(x => x.id === selectedTribeId);
-    if (!t) return;
-    const row = document.querySelector(`.tribe-row[data-tribe="${selectedTribeId}"]`);
-    const color = row ? row.dataset.color : '#4DD0E1';
-    const [x, y] = getRelPos(e);
-    const r = CampMap.placeTribe(t.id, t.name, x, y, color, ctx());
-    if (!r.ok) { Toast.show(r.error, { kind: 'danger' }); return; }
-    Toast.show(`✓ ${t.name} מוקם`, { kind: 'ok', duration: 1500 });
-    selectedTribeId = null;
-    renderSidePanel();
-    renderMap();
-  });
+    refreshPickers();
+    form.category.addEventListener('change', () => {
+      // Update default color/emoji when category changes
+      const c = CATS.find(x => x.id === form.category.value) || CATS[0];
+      if (form.emoji && !c.emojis.includes(form.emoji.value)) form.emoji.value = c.emojis[0];
+      form.color.value = c.color;
+      refreshPickers();
+    });
 
-  // Drag pins
-  let dragState = null;
-  stage.addEventListener('pointerdown', e => {
-    if (!canEdit) return;
-    const pin = e.target.closest('.tribe-pin');
-    if (!pin) return;
-    if (e.target.closest('.x')) return; // delete X handled elsewhere
-    e.preventDefault();
-    pin.setPointerCapture(e.pointerId);
-    pin.classList.add('dragging');
-    dragState = { pin, tribeId: pin.dataset.tribe, color: pin.dataset.color, name: pin.textContent.replace('✕', '').trim() };
-  });
-  stage.addEventListener('pointermove', e => {
-    if (!dragState) return;
-    e.preventDefault();
-    const [x, y] = getRelPos(e);
-    dragState.pin.style.left = x + '%';
-    dragState.pin.style.top = y + '%';
-    dragState.lastX = x; dragState.lastY = y;
-  });
-  function endDrag(e) {
-    if (!dragState) return;
-    dragState.pin.classList.remove('dragging');
-    if (dragState.lastX != null) {
-      const r = CampMap.placeTribe(dragState.tribeId, dragState.name, dragState.lastX, dragState.lastY, dragState.color, ctx());
-      if (!r.ok) Toast.show(r.error, { kind: 'danger' });
+    host.querySelector('[data-cancel]').addEventListener('click', () => {
+      if (isNew && layer) {
+        // Drop the layer the user just drew
+        if (drawnItems.hasLayer(layer)) drawnItems.removeLayer(layer);
+      }
+      host.remove();
+    });
+    host.addEventListener('click', e => {
+      if (e.target === host) {
+        if (isNew && layer && drawnItems.hasLayer(layer)) drawnItems.removeLayer(layer);
+        host.remove();
+      }
+    });
+    const delBtn = host.querySelector('[data-delete]');
+    if (delBtn) {
+      delBtn.addEventListener('click', () => {
+        if (!confirm('למחוק את האלמנט?')) return;
+        CampMap.removeElement(existing.id, ctx());
+        host.remove();
+        renderElements();
+        renderSidePanel();
+      });
     }
-    try { dragState.pin.releasePointerCapture(e.pointerId); } catch (_) {}
-    dragState = null;
+
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const name = form.name.value.trim();
+      if (!name) { Toast.show('יש להזין שם', { kind: 'warn' }); return; }
+      const category = form.category.value;
+      const color = form.color.value;
+      const emoji = form.emoji ? form.emoji.value : null;
+
+      const coordinates = isNew
+        ? extractCoords(layer, type === 'rectangle' ? 'polygon' : type)
+        : cur.coordinates;
+      const normalizedType = type === 'rectangle' ? 'polygon' : type;
+
+      const element = {
+        id: existing ? existing.id : undefined,
+        type: normalizedType,
+        coordinates,
+        properties: { name, category, color, emoji },
+      };
+      const r = CampMap.upsertElement(element, ctx());
+      if (!r.ok) { Toast.show(r.error, { kind: 'danger' }); return; }
+      // Remove the temporary layer Leaflet.draw added — we re-render from data
+      if (isNew && layer && drawnItems.hasLayer(layer)) drawnItems.removeLayer(layer);
+      host.remove();
+      Toast.show(isNew ? '✓ נשמר במפה' : '✓ עודכן', { kind: 'ok', duration: 1500 });
+      renderElements();
+      renderSidePanel();
+    });
+
+    setTimeout(() => form.name.focus(), 50);
   }
-  stage.addEventListener('pointerup', endDrag);
-  stage.addEventListener('pointercancel', endDrag);
 
-  // Click ✕ → remove
-  stage.addEventListener('click', e => {
-    if (!canEdit) return;
-    const x = e.target.closest('.x');
-    if (!x) return;
-    e.stopPropagation();
-    const tribeId = x.dataset.x;
-    const r = CampMap.removeTribe(tribeId, ctx());
-    if (!r.ok) { Toast.show(r.error, { kind: 'danger' }); return; }
-    Toast.show('הוסר מהמפה', { kind: 'ok', duration: 1500 });
-    renderSidePanel();
-    renderMap();
-  }, true);
-
-  // Clear all
+  // ===== Side buttons =====
+  document.getElementById('btn-fit').addEventListener('click', () => {
+    if (drawnItems && drawnItems.getLayers().length > 0) {
+      lmap.fitBounds(drawnItems.getBounds(), { padding: [40, 40] });
+    } else {
+      lmap.fitBounds(BOUNDS);
+    }
+  });
   document.getElementById('btn-clear').addEventListener('click', () => {
     if (!canEdit) { Toast.show('אין הרשאת עריכה', { kind: 'danger' }); return; }
     if (!forestId || !leadershipId) { Toast.show('בחר יער + הנהגה', { kind: 'warn' }); return; }
-    if (!confirm('לנקות את כל מיקומי השבטים במפה? פעולה זו לא הפיכה.')) return;
-    const r = CampMap.save({ tribes: [], forestId, leadershipId });
+    if (!confirm('לנקות את כל האובייקטים במפה? פעולה זו לא הפיכה.')) return;
+    const r = CampMap.save({ elements: [], tribes: [], forestId, leadershipId });
     if (!r.ok) { Toast.show(r.error, { kind: 'danger' }); return; }
     Toast.show('המפה נוקתה', { kind: 'ok' });
+    renderElements();
     renderSidePanel();
-    renderMap();
   });
-
   document.getElementById('btn-back').addEventListener('click', () => {
     location.href = isNational ? 'home.html' : Auth.routeForRole(persona.role);
   });
 
-  // Live sync: refresh when another tab updates THIS map
+  // Live sync from other tabs
   Bus.on('campmap:updated', ev => {
     if (ev.forestId === forestId && ev.leadershipId === leadershipId) {
+      renderElements();
       renderSidePanel();
-      renderMap();
     }
   });
 
   function renderAll() {
     renderCtxBar();
     renderSidePanel();
-    renderMap();
+    renderElements();
   }
+
+  initMap();
   renderAll();
+  // Leaflet sometimes needs a nudge to compute its size after layout settles
+  setTimeout(() => lmap.invalidateSize(), 100);
 })();
 </script>
 </body>
