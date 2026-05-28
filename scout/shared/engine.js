@@ -8,7 +8,7 @@
   // ---------- Constants ----------
 
   const NS = 'scout:';
-  const SCHEMA_VERSION = 6;
+  const SCHEMA_VERSION = 7;
 
   const FORESTS = [
     { id: 'ben-shemen',   name: 'יער בן שמן',     lat: 31.957, lng: 34.951, region: 'מרכז',  hanichim: 412, staff: 78, status: 'ok' },
@@ -2495,32 +2495,61 @@
   // ---------- Real-time Camp Map (sync per forest+leadership) ----------
 
   const CampMap = (function () {
-    // Storage shape per (forestId, leadershipId): { tribes: [{id,name,x,y,color}], updatedAt, updatedBy }
+    // Storage shape per (forestId, leadershipId):
+    //   { elements: [{id, type, coordinates, properties}], tribes: [...legacy...], updatedAt, updatedBy }
+    //
+    // Element shape (GeoJSON-ish, CRS.Simple XY):
+    //   type:        'marker' | 'polyline' | 'polygon'
+    //   coordinates: marker [x,y]   |  polyline [[x,y],...]   |  polygon [[[x,y],...]]
+    //   properties:  { name, category, emoji, color, icon? }
+
+    // Category palette — emojis, default color, label
+    const CATEGORIES = [
+      { id: 'water',            label: 'מים וכיבוי אש',     color: '#4FC3F7', emojis: ['🚒', '🚰', '💧', '🔥', '⛲', '🧯'] },
+      { id: 'sanitation',       label: 'סניטציה ותברואה',   color: '#FFB547', emojis: ['🚽', '🚿', '🗑', '🦟', '🧴', '🧻'] },
+      { id: 'medical-security', label: 'רפואה וביטחון',     color: '#FF4757', emojis: ['🩺', '🏥', '🛡', '🚧', '👮', '🚨', '⛑'] },
+      { id: 'logistics',        label: 'לוגיסטיקה ואקונומיה', color: '#2DD881', emojis: ['📦', '🍽', '🚚', '🏪', '⚡', '🔋'] },
+      { id: 'tribes',           label: 'שבטים',             color: '#4DD0E1', emojis: ['⛺', '🏕', '🛏', '✨', '🏔', '🌳'] },
+      { id: 'other',            label: 'אחר',              color: '#C792EA', emojis: ['📍', '⭐', '⚠', '❗', '🎯', '🔔'] },
+    ];
+
     function key(fid, lid) { return 'campMap:' + (fid || 'noforest') + ':' + (lid || 'nolead'); }
     function load(fid, lid) {
       fid = fid || Tenancy.ownForest();
       lid = lid || Tenancy.ownLeadership();
       const m = ScoutDB.get(key(fid, lid), null);
-      return m || { tribes: [], updatedAt: 0, updatedBy: null, forestId: fid, leadershipId: lid };
+      if (m) {
+        if (!m.elements) m.elements = [];
+        if (!m.tribes) m.tribes = [];
+        return m;
+      }
+      return { elements: [], tribes: [], updatedAt: 0, updatedBy: null, forestId: fid, leadershipId: lid };
     }
     function canEdit() {
       const p = UI.currentPersona();
-      // Only the camp director of the matching forest+leadership can edit
+      // Camp director + national can edit
       return p.role === 'camp-director' || p.role === 'national';
     }
     function save(map) {
       const fid = map.forestId || Tenancy.ownForest();
       const lid = map.leadershipId || Tenancy.ownLeadership();
-      if (!canEdit()) return { ok: false, error: 'אין הרשאת עריכה (רק מנהל מחנה)' };
+      if (!canEdit()) return { ok: false, error: 'אין הרשאת עריכה (רק מנהל מחנה / ארצי)' };
       const next = Object.assign({}, map, {
         forestId: fid, leadershipId: lid,
+        elements: map.elements || [],
+        tribes: map.tribes || [],
         updatedAt: nowMs(), updatedBy: UI.currentPersona().name,
       });
       ScoutDB.set(key(fid, lid), next);
-      ScoutDB.appendAudit({ action: 'CAMPMAP-SAVE', channel: 'comms', details: `מפת מחנה עודכנה (${(next.tribes || []).length} שבטים)` });
+      ScoutDB.appendAudit({
+        action: 'CAMPMAP-SAVE', channel: 'comms',
+        details: `מפת מחנה עודכנה (${(next.elements || []).length} אובייקטים, ${(next.tribes || []).length} שבטים legacy)`,
+      });
       Bus.emit('campmap:updated', { forestId: fid, leadershipId: lid, by: next.updatedBy });
       return { ok: true, map: next };
     }
+
+    // Legacy tribe pins (kept for backwards compatibility)
     function placeTribe(tribeId, name, x, y, color, ctx) {
       ctx = ctx || {};
       const fid = ctx.forestId || Tenancy.ownForest();
@@ -2540,7 +2569,43 @@
       const m = load(fid, lid);
       return save(Object.assign({}, m, { tribes: (m.tribes || []).filter(t => t.id !== tribeId), forestId: fid, leadershipId: lid }));
     }
-    return { load, save, placeTribe, removeTribe, canEdit };
+
+    // New rich-element API (markers / polylines / polygons with properties)
+    function upsertElement(element, ctx) {
+      if (!element || !element.type || !element.coordinates) return { ok: false, error: 'אלמנט לא תקין' };
+      ctx = ctx || {};
+      const fid = ctx.forestId || Tenancy.ownForest();
+      const lid = ctx.leadershipId || Tenancy.ownLeadership();
+      const m = load(fid, lid);
+      const arr = (m.elements || []).slice();
+      const el = Object.assign({}, element, {
+        id: element.id || ('el-' + uuid().slice(0, 8)),
+        properties: Object.assign({ category: 'other', color: '#4DD0E1' }, element.properties || {}),
+        ts: element.ts || nowMs(),
+        updatedBy: UI.currentPersona().name,
+      });
+      const idx = arr.findIndex(x => x.id === el.id);
+      if (idx >= 0) arr[idx] = el; else arr.push(el);
+      const r = save(Object.assign({}, m, { elements: arr, forestId: fid, leadershipId: lid }));
+      return r.ok ? Object.assign(r, { element: el }) : r;
+    }
+    function removeElement(id, ctx) {
+      ctx = ctx || {};
+      const fid = ctx.forestId || Tenancy.ownForest();
+      const lid = ctx.leadershipId || Tenancy.ownLeadership();
+      const m = load(fid, lid);
+      return save(Object.assign({}, m, {
+        elements: (m.elements || []).filter(x => x.id !== id),
+        forestId: fid, leadershipId: lid,
+      }));
+    }
+
+    return {
+      CATEGORIES,
+      load, save, canEdit,
+      placeTribe, removeTribe,           // legacy tribe pins
+      upsertElement, removeElement,      // new rich-element API
+    };
   })();
 
   // ---------- Debrief / Analytics aggregator ----------
