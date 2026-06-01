@@ -2,6 +2,8 @@
 // המפתח נשמר ב-localStorage בדפדפן של המשתמש בלבד; לעולם לא נשלח לשום מקום חוץ
 // מ-api.anthropic.com, ולא נכתב לקוד או לריפו.
 
+import { isMuted, setMuted } from './audio.js';
+
 const LS_KEY = 'airport_sim_claude_key';
 
 export function getApiKey() {
@@ -35,8 +37,13 @@ export function openSettings(onClose) {
       <div class="text-xs text-slate-400 leading-relaxed bg-slate-900/60 rounded-lg p-3 mb-4">
         🔒 המפתח נשמר <b>מקומית בדפדפן שלך בלבד</b> ולא נשלח לשום שרת חוץ מ-Anthropic.
         אל תזין מפתח במחשב ציבורי. <br/>
-        ללא מפתח — הנוסעים עונים באמצעות <b>מנוע השיחה הפנימי</b> של המשחק (עובד אופליין).
+        ללא מפתח — הנוסעים עונים באמצעות <b>מנוע השיחה הפנימי</b> של המשחק (עובד אופליין, חינם).
       </div>
+
+      <label class="flex items-center gap-2 text-sm text-slate-300 mb-4 cursor-pointer">
+        <input id="set-sound" type="checkbox" ${isMuted() ? '' : 'checked'} />
+        🔊 אפקטים קוליים וכריזות בקול (TTS עברית)
+      </label>
 
       <div class="flex gap-2 justify-start">
         <button id="set-save" class="btn-primary">שמור</button>
@@ -50,8 +57,10 @@ export function openSettings(onClose) {
 
   const close = () => { overlay.remove(); onClose && onClose(); };
 
+  overlay.querySelector('#set-sound').addEventListener('change', (e) => setMuted(!e.target.checked));
   overlay.querySelector('#set-save').addEventListener('click', () => {
     setApiKey(overlay.querySelector('#set-key').value);
+    setMuted(!overlay.querySelector('#set-sound').checked);
     close();
   });
   overlay.querySelector('#set-clear').addEventListener('click', () => {

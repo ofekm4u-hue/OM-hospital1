@@ -2,6 +2,7 @@
 // של תג כבודה וכרטיס טיסה. אין כאן לוגיקת משחק — רק תצוגה.
 
 import { state, formatClock } from './state.js';
+import { sfx } from './audio.js';
 
 // הודעה צפה קצרה. type: 'info' | 'ok' | 'warn' | 'err'
 export function toast(text, type = 'info') {
@@ -11,6 +12,7 @@ export function toast(text, type = 'info') {
     warn: 'bg-amber-600 border-amber-300',
     err: 'bg-red-700 border-red-400',
   };
+  sfx(type === 'ok' ? 'ok' : type === 'err' ? 'err' : type === 'warn' ? 'warn' : 'click');
   const el = document.createElement('div');
   el.className = `toast ${colors[type] || colors.info}`;
   el.textContent = text;
@@ -59,6 +61,7 @@ export function printSlip(kind, html, dropTargetSelector, onDropDone) {
   const tray = document.getElementById('printer-tray');
   if (!tray) return;
   tray.appendChild(slip);
+  sfx('print');
   requestAnimationFrame(() => slip.classList.add('ejected'));
 
   slip.addEventListener('dragstart', (e) => {
