@@ -3,12 +3,15 @@
 // ומאחרים. בסיום עוברים למסך הסיכום.
 
 import { state, adjustReputation, adjustQueue, addFee, addFine } from './state.js';
+import { announce } from './audio.js';
 import { renderStatusBar, statusBarHtml, toast, escapeHtml } from './ui.js';
 import { createAvatarSVG, applyStress } from './avatar.js';
 import { generatePassenger } from './passenger.js';
 import { openSettings } from './settings.js';
 import { showDebrief } from './main.js';
-import { RULES, flightByCode } from './data.js';
+import { RULES, flightByCode, destByCode } from './data.js';
+
+function destName() { const d = destByCode(gateFlight.dest); return d ? d.city : ''; }
 
 let gateQueue = [];
 let boarded = 0;
@@ -54,6 +57,7 @@ function openBoarding() {
   document.getElementById('g-status').className = 'text-emerald-300';
   document.getElementById('board-open').disabled = true;
   ['anno-board', 'anno-final', 'g-scan', 'board-close'].forEach((id) => { document.getElementById(id).disabled = false; });
+  announce(`הבורדינג לטיסה ${gateFlight.code} ליעד ${destName()} נפתח כעת.`);
   toast('🟢 הבורדינג נפתח — אפשר להתחיל לסרוק כרטיסים', 'ok');
 }
 
@@ -112,13 +116,16 @@ function renderGateScreen() {
   document.getElementById('sb-settings').addEventListener('click', () => openSettings());
   document.getElementById('board-open').addEventListener('click', openBoarding);
   document.getElementById('board-close').addEventListener('click', closeBoarding);
-  document.getElementById('anno-board').addEventListener('click', () =>
-    toast(`📢 "טיסה ${gateFlight.code} ל${gateFlight.dest === 'BKK' ? 'בנגקוק' : ''}, מתחילים בעלייה למטוס. נא להכין דרכונים"`, 'info'));
+  document.getElementById('anno-board').addEventListener('click', () => {
+    const msg = `טיסה ${gateFlight.code} ליעד ${destName()}, מתחילים בעלייה למטוס. נא להכין כרטיסי עלייה ודרכונים.`;
+    announce(msg); toast(`📢 ${msg}`, 'info');
+  });
   document.getElementById('anno-final').addEventListener('click', () => {
     boardingState = 'final';
     document.getElementById('g-status').textContent = 'קריאה אחרונה';
     adjustQueue(-5);
-    toast('📢 "קריאה אחרונה לנוסעים המאחרים — שערי הטיסה ייסגרו בקרוב"', 'info');
+    const msg = `קריאה אחרונה לנוסעי טיסה ${gateFlight.code}. שערי הטיסה ייסגרו בעוד דקות ספורות.`;
+    announce(msg); toast(`📢 ${msg}`, 'info');
   });
   document.getElementById('g-scan').addEventListener('click', () => scanCurrent());
   renderStatusBar();
