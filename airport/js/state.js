@@ -6,21 +6,26 @@ import { RULES } from './data.js';
 const listeners = new Set();
 
 export const state = {
-  screen: 'lobby',     // lobby | briefing | game | debrief
-  role: null,          // 'checkin' בגרסה זו
+  screen: 'lobby',     // lobby | setup | briefing | game | debrief
+  role: null,          // checkin | security | ramp | manager
   phase: 'checkin',    // checkin | gate (בתוך מסך המשחק)
+  shift: { time: 'morning', difficulty: 'regular' }, // בחירת השחקן בהגדרת המשמרת
 
   // נתוני משמרת
   budget: RULES.SHIFT_BUDGET,   // ₪ בקופת החברה (יורד מקנסות, עולה מאגרות)
   reputation: RULES.REP_START,  // שביעות רצון/מוניטין באחוזים
   queueLoad: 20,                // עומס תור באחוזים (0=ריק, 100=קריסה)
-  clock: 7 * 60 + 30,           // שעון משמרת בדקות מאז חצות (07:30)
+  clock: 6 * 60,                // שעון משמרת בדקות מאז חצות
   clockTimer: null,
+  queueRate: 0.7,               // קצב התמלאות התור לדקה (לפי דרגת קושי)
+  fineMult: 1,                  // מכפיל קנסות (לפי דרגת קושי)
 
   // מונים לסיכום
-  processed: 0,                 // נוסעים שטופלו בהצלחה
+  processed: 0,                 // פריטים שטופלו בהצלחה (נוסעים/מטוסים/אירועים)
   errors: [],                   // [{text, fine}]
-  feesCollected: 0,             // אגרות שנגבו
+  feesCollected: 0,             // אגרות/הכנסות שנגבו
+  summaryTiles: null,           // אריחי סיכום ספציפיים לתפקיד (נקבע ע"י המודול)
+  summaryTitle: null,           // כותרת מסך הסיכום
 
   // נוסע נוכחי + תור
   current: null,                // אובייקט הנוסע שמטופל כרגע
@@ -74,13 +79,24 @@ export function formatClock(mins = state.clock) {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
+// מחיל את בחירת המשמרת (זמן + קושי) על שעון/קצב/קנסות.
+export function applyShiftConfig(shifts, diffs, shift) {
+  const s = shifts.find((x) => x.id === shift.time) || shifts[0];
+  const d = diffs.find((x) => x.id === shift.difficulty) || diffs[1];
+  state.clock = s.start;
+  state.queueLoad = s.loadStart;
+  state.queueRate = d.queueRate;
+  state.fineMult = d.fineMult;
+  return { shift: s, diff: d };
+}
+
 // השעון רץ: כל שנייה אמיתית = דקת משחק. גם מעלה לאט את עומס התור.
 export function startClock() {
   stopClock();
   state.clockTimer = setInterval(() => {
     state.clock += 1;
-    // התור מתמלא לאט מעצמו; טיפול בנוסעים מורידו (בקוד הצ'ק-אין).
-    state.queueLoad = Math.min(100, state.queueLoad + 0.6);
+    // התור מתמלא לאט מעצמו; טיפול בנוסעים מורידו (בקוד התפקיד).
+    state.queueLoad = Math.min(100, state.queueLoad + state.queueRate);
     emit();
   }, 1000);
 }
@@ -103,6 +119,9 @@ export function resetShift() {
   state.processed = 0;
   state.errors = [];
   state.feesCollected = 0;
+  state.summaryTiles = null;
+  state.summaryTitle = null;
+  state.gateStats = null;
   state.current = null;
   state.queue = [];
   state.dialogue = [];

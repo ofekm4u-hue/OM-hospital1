@@ -59,6 +59,78 @@ export const RULES = {
   REP_START: 80,            // מוניטין/שביעות רצון התחלתי (%)
 };
 
+// ===== בחירת משמרת =====
+// זמני משמרת אפשריים (שעת התחלה בדקות מחצות) + תיאור.
+export const SHIFTS = [
+  { id: 'morning', label: 'משמרת בוקר', sub: '06:00 — שיא עומס יציאות', start: 6 * 60,  loadStart: 35 },
+  { id: 'noon',    label: 'משמרת צהריים', sub: '13:00 — קצב מתון', start: 13 * 60, loadStart: 20 },
+  { id: 'evening', label: 'משמרת ערב',  sub: '18:00 — גל טיסות שני', start: 18 * 60, loadStart: 30 },
+  { id: 'night',   label: 'משמרת לילה', sub: '23:00 — טיסות בודדות, צוות מצומצם', start: 23 * 60, loadStart: 15 },
+];
+
+// דרגות קושי: משפיעות על מספר הנוסעים/המקרים, קצב התור והעונשים.
+export const DIFFICULTIES = [
+  { id: 'trainee', label: 'מתלמד',  cases: 4, queueRate: 0.4, fineMult: 0.5, sub: 'קצב נינוח, קנסות מופחתים' },
+  { id: 'regular', label: 'דייל מן המניין', cases: 6, queueRate: 0.7, fineMult: 1, sub: 'הקצב הסטנדרטי' },
+  { id: 'rush',    label: 'שעת עומס', cases: 9, queueRate: 1.1, fineMult: 1.3, sub: 'תור מתמלא מהר, לחץ גבוה' },
+  { id: 'chaos',   label: 'כאוס מבצעי', cases: 12, queueRate: 1.5, fineMult: 1.6, sub: 'לב חזק בלבד' },
+];
+
+// ===== בנק שאלות מורחב (תשאול + שירות) =====
+export const QUESTION_BANK = {
+  'מסמכים ויעד': [
+    'לאן אתה טס היום?',
+    'מה מטרת הנסיעה שלך?',
+    'כמה זמן בכוונתך לשהות ביעד?',
+    'יש לך כרטיס חזור?',
+    'יש לך ויזה ליעד?',
+    'היכן תשהה במהלך הביקור?',
+  ],
+  'ביטחון': [
+    'מי ארז לך את המזוודה?',
+    'האם המזוודה הייתה איתך כל הזמן מאז האריזה?',
+    'האם קיבלת חפץ או מתנה ממישהו להעביר?',
+    'האם אתה נושא נוזלים, חדים או סוללות בכבודת היד?',
+    'האם מישהו ביקש ממך להעביר משהו בטיסה?',
+  ],
+  'שירות': [
+    'האם תרצה מושב חלון או מעבר?',
+    'האם יש לך כבודה נוספת לשלוח?',
+    'האם תרצה הזמנת ארוחה מיוחדת?',
+    'האם אתה זקוק לסיוע מיוחד (כיסא גלגלים)?',
+  ],
+};
+
+// קודי SSR (בקשות שירות מיוחדות) לבחירה במערכת.
+export const SSR_CODES = [
+  { code: '—',    label: 'ללא' },
+  { code: 'WCHR', label: 'כיסא גלגלים (WCHR)' },
+  { code: 'UMNR', label: 'קטין ללא ליווי (UMNR)' },
+  { code: 'INFT', label: 'תינוק על הברכיים (INFT)' },
+  { code: 'PETC', label: 'חיית מחמד בתא (PETC)' },
+  { code: 'BLND', label: 'נוסע עיוור (BLND)' },
+];
+
+export const MEAL_OPTIONS = [
+  { code: 'STD',  label: 'רגילה' },
+  { code: 'KSML', label: 'כשרה (KSML)' },
+  { code: 'VGML', label: 'צמחונית (VGML)' },
+  { code: 'MOML', label: 'מוסלמית (MOML)' },
+  { code: 'CHML', label: 'ילדים (CHML)' },
+];
+
+export const DOC_TYPES = [
+  { code: 'P',  label: 'דרכון (P)' },
+  { code: 'ID', label: 'תעודת זהות (ID)' },
+  { code: 'PD', label: 'דרכון דיפלומטי (PD)' },
+];
+
+export const CABIN_CLASSES = [
+  { code: 'Y', label: 'תיירים (Y)' },
+  { code: 'W', label: 'פרימיום (W)' },
+  { code: 'C', label: 'עסקים (C)' },
+];
+
 // יעד -> אובייקט יעד מלא.
 export function destByCode(code) {
   return DESTINATIONS.find((d) => d.code === code);
