@@ -53,6 +53,15 @@ body {
   .lg\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0,1fr)); }
 }
 .max-w-5xl { max-width: 64rem; }
+.overflow-y-auto { overflow-y: auto; }
+.grid-rows-\[auto_1fr_auto\] { grid-template-rows: auto 1fr auto; }
+.grid-rows-\[auto_1fr\] { grid-template-rows: auto 1fr; }
+.grid-cols-2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+.grid-cols-3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+.justify-start { justify-content: flex-start; }
+.mr-auto { margin-right: auto; }
+.mt-2 { margin-top: .5rem; }
+.flex-wrap { flex-wrap: wrap; }
 
 /* ===== כפתורים ===== */
 .btn-primary {
@@ -227,3 +236,137 @@ body {
 .gate-pass { background: #0b1220; border: 1px solid var(--line); border-radius: .6rem; padding: .6rem; min-height: 4rem; }
 .bp-mini { display: grid; grid-template-columns: 1fr 1fr; gap: .2rem .6rem; font-size: .8rem; color: #cbd5e1; }
 .bp-mini span:nth-child(odd) { font-weight: 700; color: #fff; }
+
+/* ===================== שדרוג v2: כלל-מערכתי ===================== */
+.ltr { direction: ltr; unicode-bidi: embed; }
+.ok { color: #6ee7b7; } .err { color: #fca5a5; } .warn { color: #fcd34d; }
+.stage-title { color: #93c5fd; font-size: .85rem; font-weight: 700; margin-bottom: .6rem; }
+.stage-msg { margin-top: .6rem; font-size: .85rem; min-height: 1.2rem; }
+.prof-row { display: flex; justify-content: space-between; gap: 1rem; padding: .25rem 0; border-bottom: 1px solid #ffffff10; font-size: .85rem; }
+.prof-l { color: #94a3b8; }
+
+/* ---- שדות הקלדה במסוף ---- */
+.term-input { background: #001423; border: 1px solid #155e75; color: #e0f2fe; border-radius: .4rem; padding: .45rem .6rem; font-size: .9rem; }
+.term-input:focus { outline: none; border-color: #22d3ee; box-shadow: 0 0 0 2px #22d3ee44; }
+.term-input::placeholder { color: #475569; }
+select.term-input { cursor: pointer; }
+.field-row { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+.field-row label { color: #93c5fd; font-size: .8rem; min-width: 5rem; }
+.field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; margin-bottom: .6rem; }
+.field { display: flex; flex-direction: column; gap: .25rem; }
+.field label { color: #93c5fd; font-size: .75rem; }
+.term-btn-ghost { background: transparent; color: #94a3b8; border: 1px dashed #475569; border-radius: .4rem; padding: .35rem .7rem; font-size: .8rem; margin-top: .5rem; }
+.term-btn-ghost:hover { color: #cbd5e1; border-color: #64748b; }
+
+/* ---- לוג מסוף ---- */
+.term-log { background: #00111f; border-bottom: 1px solid #0e7490; padding: .4rem .7rem; max-height: 5.5rem; overflow-y: auto; font-family: monospace; font-size: .72rem; }
+.log-line { color: #5eead4; opacity: .9; padding: .05rem 0; }
+.log-line.ok { color: #6ee7b7; } .log-line.err { color: #fca5a5; } .log-line.warn { color: #fcd34d; }
+
+/* ---- טאבים של שלבים ---- */
+.stage-tabs { display: flex; gap: .25rem; padding: .4rem .5rem; background: #04182f; border-bottom: 1px solid #0e7490; overflow-x: auto; }
+.stage-tab { white-space: nowrap; background: #0c2a4a; color: #93c5fd; border: 1px solid #155e75; border-radius: .4rem; padding: .3rem .55rem; font-size: .75rem; }
+.stage-tab.active { background: #155e75; color: #fff; border-color: #22d3ee; }
+.stage-tab.done { border-color: #10b981; color: #6ee7b7; }
+.stage-tab:disabled { opacity: .35; cursor: not-allowed; }
+.tab-code { font-family: monospace; font-size: .6rem; opacity: .6; margin-left: .25rem; }
+
+/* ---- מסמכים פיזיים שהנוסע מגיש ---- */
+.paper { border-radius: .5rem; padding: .5rem .6rem; margin-bottom: .5rem; font-size: .78rem; box-shadow: 0 3px 10px #0006; }
+.paper-h { font-size: .65rem; letter-spacing: .08em; opacity: .8; margin-bottom: .25rem; border-bottom: 1px solid #00000022; padding-bottom: .2rem; }
+.paper-row { display: flex; justify-content: space-between; gap: .8rem; padding: .12rem 0; }
+.paper-row b { font-weight: 700; }
+.passport-paper { background: #1e3a5f; color: #dbeafe; border: 1px solid #3b82f6; }
+.ticket-paper { background: #064e3b; color: #d1fae5; border: 1px solid #10b981; }
+.visa-paper { background: #4a2c0b; color: #fde68a; border: 1px solid #f59e0b; }
+.visa-missing { background: #3a0a0a; color: #fca5a5; border: 1px solid #ef4444; border-radius: .5rem; padding: .5rem; font-size: .78rem; }
+
+/* ---- בנק שאלות ---- */
+.qbank { background: #0b1220; border: 1px solid var(--line); border-radius: .6rem; padding: .5rem; margin-top: .4rem; max-height: 11rem; overflow-y: auto; }
+.qcat { color: #f59e0b; font-size: .7rem; font-weight: 700; margin: .4rem 0 .2rem; }
+
+/* ---- מד לחץ (ביטחון) ---- */
+.stress-wrap { } .stress-label { font-size: .7rem; color: #94a3b8; margin-bottom: .2rem; }
+.stress-bar { height: 8px; background: #0b1220; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+.stress-fill { height: 100%; width: 0; background: #10B981; transition: width .4s, background .4s; }
+
+/* ---- מסוף ביטחון/רחבה (ירוק) ---- */
+.sec-header { background: #021810; color: #6ee7b7; border-bottom-color: #047857; }
+.sec-toolbar { background: #04230f; border-bottom-color: #047857; }
+.sec-btn { background: #0c3a1f; color: #bbf7d0; border-color: #15803d; }
+.sec-btn:hover:not(:disabled) { background: #13502b; }
+
+/* ---- פרופיילר ---- */
+.profiler { font-family: monospace; }
+.prof-title { color: #34d399; font-size: .8rem; margin-bottom: .5rem; letter-spacing: .03em; }
+
+/* ---- רנטגן ---- */
+.xray-screen { background: #001a0a; border: 2px solid #065f46; border-radius: .6rem; padding: .4rem; }
+.xray-bag { fill: #04240f; stroke: #10b981; stroke-width: 2; stroke-dasharray: 6 4; }
+.xray-item { cursor: pointer; }
+.xray-item .xray-shape { transition: fill .15s; }
+.xray-item:hover .xray-shape { fill: #bbf7d0; }
+.xray-item.flagged .xray-shape { fill: #fca5a5; stroke: #ef4444; stroke-width: 2; }
+
+/* ---- מסמכים (ביטחון) ---- */
+.docs-view { display: flex; gap: .8rem; align-items: flex-start; }
+.docs-photo { background: #0b1220; border: 1px solid var(--line); border-radius: .5rem; padding: .4rem; }
+.docs-photo.docs-bad { border-color: #ef4444; box-shadow: 0 0 0 2px #ef444455; }
+.docs-avatar { width: 70px; height: 84px; border-radius: .4rem; overflow: hidden; }
+
+/* ---- מפת מושבים ---- */
+.seatmap { background: #001423; border: 1px solid #155e75; border-radius: .5rem; padding: .5rem; max-height: 9rem; overflow-y: auto; }
+.seat-row { display: flex; align-items: center; gap: .2rem; margin-bottom: .2rem; }
+.seat-rownum { width: 1.4rem; font-size: .65rem; color: #64748b; font-family: monospace; }
+.seat { width: 1.5rem; height: 1.5rem; border-radius: .25rem; border: 1px solid #155e75; background: #0c2a4a; color: #93c5fd; font-size: .65rem; }
+.seat:hover:not(.occ) { background: #155e75; }
+.seat.occ { background: #1e293b; color: #475569; cursor: not-allowed; border-color: #334155; }
+.seat.biz { border-color: #f59e0b; }
+.seat.sel { background: #10b981; color: #042f1f; border-color: #34d399; }
+.aisle { width: .6rem; }
+
+/* ---- רחבה ---- */
+.ramp-info { } .turn-clock { background: #0b1220; border: 1px solid var(--line); border-radius: .5rem; padding: .5rem; text-align: center; }
+.turn-time { font-family: monospace; font-size: 1.4rem; font-weight: 800; color: #f59e0b; }
+.ramp-checklist { display: flex; flex-direction: column; gap: .3rem; }
+.check-item { background: #0b1220; border: 1px solid var(--line); border-radius: .4rem; padding: .35rem .55rem; font-size: .8rem; color: #94a3b8; }
+.check-item.ok { color: #6ee7b7; border-color: #10b981; }
+.fuel-card { background: #04230f; border: 1px solid #15803d; border-radius: .5rem; padding: .6rem; }
+.load-holds { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; margin-top: .6rem; }
+.hold { background: #04230f; border: 1px solid #15803d; border-radius: .5rem; padding: .6rem; text-align: center; }
+.hold-h { font-size: .75rem; color: #93c5fd; } .hold-n { font-size: 1.8rem; font-weight: 800; color: #fff; }
+.cog-bar { position: relative; height: 16px; background: #1e293b; border-radius: 8px; margin-top: .3rem; overflow: hidden; }
+.cog-zone { position: absolute; right: 40%; width: 20%; top: 0; bottom: 0; background: #10b98155; border-left: 1px solid #10b981; border-right: 1px solid #10b981; }
+.cog-marker { position: absolute; top: -2px; width: 4px; height: 20px; background: #f59e0b; right: 50%; transition: right .2s; }
+.walk-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .4rem; margin: .5rem 0; }
+.walk-zone { background: #0c3a1f; color: #bbf7d0; border: 1px solid #15803d; border-radius: .5rem; padding: .7rem .4rem; font-size: .8rem; }
+.walk-zone:hover { background: #13502b; } .walk-zone.seen { border-color: #22d3ee; }
+.push-steps { display: flex; flex-direction: column; gap: .4rem; }
+.push-step { text-align: right; background: #0c2a4a; color: #93c5fd; border: 1px solid #155e75; border-radius: .5rem; padding: .55rem .7rem; font-size: .85rem; }
+.push-step.next { border-color: #22d3ee; background: #134e72; color: #fff; animation: micPulse 1.4s infinite; }
+.push-step.done { border-color: #10b981; color: #6ee7b7; opacity: .8; }
+.push-step:disabled { cursor: not-allowed; }
+
+/* ---- מנהל / FIDS ---- */
+.fids { flex: 1; overflow-y: auto; }
+.fids-row { display: grid; grid-template-columns: 1fr 1fr 1fr 1.4fr; gap: .5rem; align-items: center; padding: .5rem .8rem; border-bottom: 1px solid #0e749033; font-size: .85rem; color: #cbd5e1; }
+.fids-head { background: #022; color: #67e8f9; font-weight: 700; font-size: .75rem; position: sticky; top: 0; }
+.fids-load { height: 8px; background: #1e293b; border-radius: 4px; overflow: hidden; }
+.fids-fill { display: block; height: 100%; border-radius: 4px; }
+.event-host { } .event-card { background: #1a0e0e; border: 1px solid #b91c1c; border-radius: .7rem; padding: .9rem; }
+.event-badge { display: inline-block; background: #b91c1c; color: #fff; font-size: .7rem; font-weight: 700; padding: .15rem .5rem; border-radius: 1rem; margin-bottom: .5rem; }
+.event-title { color: #fff; font-weight: 800; font-size: 1rem; margin-bottom: .3rem; }
+.event-text { color: #cbd5e1; font-size: .85rem; margin-bottom: .7rem; line-height: 1.4; }
+.event-opts { display: flex; flex-direction: column; gap: .4rem; }
+.event-opt { text-align: right; background: #0c2a4a; color: #e0f2fe; border: 1px solid #155e75; border-radius: .5rem; padding: .55rem .7rem; font-size: .85rem; }
+.event-opt:hover:not(:disabled) { background: #134e72; border-color: #22d3ee; }
+.event-opt:disabled { opacity: .5; cursor: default; }
+
+/* ---- כפתורי בחירה (הגדרת משמרת) ---- */
+.opt-card { text-align: right; background: #0b1220; border: 1px solid var(--line); border-radius: .6rem; padding: .7rem .8rem; transition: border-color .15s, background .15s; }
+.opt-card:hover { border-color: #64748b; }
+.opt-card.sel { border-color: var(--ok); background: #052e2522; box-shadow: 0 0 0 1px var(--ok); }
+
+/* ---- כפתור סגירת גייט ---- */
+.btn-close-gate { background: #4a0a0a; color: #fca5a5; border-color: #ef4444; }
+.btn-close-gate:hover:not(:disabled) { background: #6b1010; }

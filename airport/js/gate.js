@@ -14,6 +14,7 @@ let gateQueue = [];
 let boarded = 0;
 let denied = 0;
 let gateFlight = null;
+let boardingState = 'closed'; // closed | open | final | done
 
 // סוגי בעיה אפשריים בגייט.
 function assignIssue(i, total) {
@@ -39,8 +40,36 @@ export function startGate() {
     p.boardingIssued = true;
     gateQueue.push(p);
   }
+  boardingState = 'closed';
+  finished = false;
   renderGateScreen();
   loadNextGate();
+}
+
+// פתיחת/סגירת בורדינג — מאפשרת/חוסמת סריקת כרטיסים.
+function openBoarding() {
+  if (boardingState !== 'closed') return;
+  boardingState = 'open';
+  document.getElementById('g-status').textContent = 'פתוח';
+  document.getElementById('g-status').className = 'text-emerald-300';
+  document.getElementById('board-open').disabled = true;
+  ['anno-board', 'anno-final', 'g-scan', 'board-close'].forEach((id) => { document.getElementById(id).disabled = false; });
+  toast('🟢 הבורדינג נפתח — אפשר להתחיל לסרוק כרטיסים', 'ok');
+}
+
+function closeBoarding() {
+  if (boardingState === 'closed' || boardingState === 'done') return;
+  const left = gateQueue.length + (current ? 1 : 0);
+  if (left > 0 && boardingState !== 'final') {
+    // סגירה מוקדמת בלי קריאה אחרונה — נוסעים נשארים מאחור
+    adjustReputation(-2 * left);
+    toast(`🔴 סגרת מוקדם — ${left} נוסעים נותרו בשער (פגיעה במוניטין)`, 'warn');
+  } else {
+    toast('🔴 הבורדינג נסגר. הטיסה מוכנה לדחיפה.', 'ok');
+  }
+  boardingState = 'done';
+  gateQueue = []; current = null;
+  finishGate();
 }
 
 function renderGateScreen() {
@@ -63,13 +92,15 @@ function renderGateScreen() {
       <section class="col-span-3 flex flex-col bg-[#03142b] rounded-xl border border-cyan-900/60 overflow-hidden terminal">
         <div class="terminal-header">
           <span>בקרת עלייה למטוס — GATE ${gateFlight.gate}</span>
-          <span class="text-cyan-500">עלו <b id="g-counter">0</b>/${gateFlight.seatsTotal}</span>
+          <span>סטטוס: <b id="g-status" class="text-amber-300">סגור</b> · עלו <b id="g-counter" class="text-cyan-300">0</b>/${gateFlight.seatsTotal}</span>
         </div>
         <div class="flex-1 grid grid-rows-[auto_1fr_auto] overflow-hidden">
           <div class="term-toolbar">
-            <button class="term-btn" id="anno-board">📢 כריזת בורדינג</button>
-            <button class="term-btn" id="anno-final">📢 קריאה אחרונה</button>
-            <button class="term-btn" id="g-scan">סרוק כרטיס</button>
+            <button class="term-btn" id="board-open">🟢 פתח בורדינג</button>
+            <button class="term-btn" id="anno-board" disabled>📢 כריזת בורדינג</button>
+            <button class="term-btn" id="anno-final" disabled>📢 קריאה אחרונה</button>
+            <button class="term-btn" id="g-scan" disabled>סרוק כרטיס</button>
+            <button class="term-btn btn-close-gate" id="board-close" disabled>🔴 סגור בורדינג</button>
           </div>
           <div id="g-body" class="term-body"></div>
           <div id="g-decision" class="term-decision"></div>
@@ -79,9 +110,13 @@ function renderGateScreen() {
   </div>`;
 
   document.getElementById('sb-settings').addEventListener('click', () => openSettings());
+  document.getElementById('board-open').addEventListener('click', openBoarding);
+  document.getElementById('board-close').addEventListener('click', closeBoarding);
   document.getElementById('anno-board').addEventListener('click', () =>
     toast(`📢 "טיסה ${gateFlight.code} ל${gateFlight.dest === 'BKK' ? 'בנגקוק' : ''}, מתחילים בעלייה למטוס. נא להכין דרכונים"`, 'info'));
   document.getElementById('anno-final').addEventListener('click', () => {
+    boardingState = 'final';
+    document.getElementById('g-status').textContent = 'קריאה אחרונה';
     adjustQueue(-5);
     toast('📢 "קריאה אחרונה לנוסעים המאחרים — שערי הטיסה ייסגרו בקרוב"', 'info');
   });
@@ -92,7 +127,14 @@ function renderGateScreen() {
 let current = null;
 
 function loadNextGate() {
-  if (gateQueue.length === 0) return finishGate();
+  if (boardingState === 'done') return;
+  if (gateQueue.length === 0) {
+    current = null;
+    document.getElementById('g-pass').innerHTML = `<div class="alert alert-ok">✓ כל הנוסעים טופלו. לחץ "סגור בורדינג" כדי לשחרר את הטיסה.</div>`;
+    document.getElementById('g-body').innerHTML = '';
+    document.getElementById('g-decision').innerHTML = '';
+    return;
+  }
   current = gateQueue.shift();
   const av = document.getElementById('g-avatar');
   av.innerHTML = createAvatarSVG(current.seed, current.gender);
@@ -107,6 +149,7 @@ function loadNextGate() {
 }
 
 function scanCurrent() {
+  if (boardingState === 'closed') { toast('יש לפתוח את הבורדינג קודם 🟢', 'warn'); return; }
   if (!current) return;
   const p = current;
   const body = document.getElementById('g-body');
@@ -191,8 +234,15 @@ function next() {
   setTimeout(loadNextGate, 500);
 }
 
+let finished = false;
 function finishGate() {
-  toast('הבורדינג הסתיים — הטיסה נסגרת', 'ok');
+  if (finished) return;
+  finished = true;
   state.gateStats = { boarded, denied };
+  state.summaryTitle = 'סיכום משמרת דייל קרקע';
+  state.summaryTiles = [
+    { num: state.processed, label: 'נוסעים בצ׳ק-אין' },
+    { num: boarded, label: 'עלו למטוס בגייט', cls: 'text-emerald-300' },
+  ];
   setTimeout(() => showDebrief(), 900);
 }
