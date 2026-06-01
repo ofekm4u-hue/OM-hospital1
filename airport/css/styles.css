@@ -1,0 +1,229 @@
+/* styles.css — רכיבים ואנימציות מעבר ל-Tailwind. RTL, ערכת צבעים קרה ומקצועית. */
+
+:root {
+  --bg: #1F2937;
+  --navy: #111827;
+  --ok: #10B981;
+  --err: #EF4444;
+  --warn: #F59E0B;
+  --line: #334155;
+}
+
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: radial-gradient(1200px 600px at 70% -10%, #1b2a44 0%, var(--navy) 55%);
+  color: #e2e8f0;
+  font-family: 'Heebo', system-ui, sans-serif;
+}
+#app { height: 100vh; overflow: hidden; }
+
+/* ===== Fallback ל-Tailwind =====
+   המשחק משתמש ב-Tailwind מ-CDN. אם ה-CDN איטי/חסום, הכללים הבאים שומרים על
+   הפריסה הקריטית (סרגל סטטוס, רשת שתי-העמודות, לובי) כדי שהמשחק יישאר שמיש.
+   כש-Tailwind נטען הוא גובר על אלה (ה-<style> שלו מוזרק אחרי קובץ זה). */
+.h-full { height: 100%; }
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.flex-1 { flex: 1 1 0%; }
+.items-start { align-items: flex-start; }
+.items-center { align-items: center; }
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.justify-end { justify-content: flex-end; }
+.flex-wrap { flex-wrap: wrap; }
+.shrink-0 { flex-shrink: 0; }
+.overflow-hidden { overflow: hidden; }
+.relative { position: relative; }
+.text-center { text-align: center; }
+.gap-2 { gap: .5rem; } .gap-3 { gap: .75rem; } .gap-4 { gap: 1rem; }
+.p-3 { padding: .75rem; } .p-6 { padding: 1.5rem; }
+.mt-1 { margin-top: .25rem; } .mt-3 { margin-top: .75rem; } .mt-8 { margin-top: 2rem; }
+.mb-8 { margin-bottom: 2rem; }
+.grid { display: grid; }
+.grid-cols-5 { grid-template-columns: repeat(5, minmax(0,1fr)); }
+.col-span-2 { grid-column: span 2 / span 2; }
+.col-span-3 { grid-column: span 3 / span 3; }
+.w-full { width: 100%; }
+.min-h-full { min-height: 100%; }
+@media (min-width: 768px) {
+  .md\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+}
+@media (min-width: 1024px) {
+  .lg\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0,1fr)); }
+}
+.max-w-5xl { max-width: 64rem; }
+
+/* ===== כפתורים ===== */
+.btn-primary {
+  background: var(--ok); color: #042f1f; font-weight: 700;
+  border-radius: .6rem; padding: .5rem .9rem; border: 1px solid #34d399;
+  transition: filter .15s, transform .05s;
+}
+.btn-primary:hover { filter: brightness(1.08); }
+.btn-primary:active { transform: translateY(1px); }
+.btn-ghost {
+  background: #1e293b; color: #cbd5e1; border: 1px solid var(--line);
+  border-radius: .6rem; padding: .5rem .9rem; transition: background .15s;
+}
+.btn-ghost:hover { background: #283549; }
+.btn-approve {
+  flex: 1; background: var(--ok); color: #042f1f; font-weight: 800;
+  border: 1px solid #34d399; border-radius: .6rem; padding: .65rem; font-size: 1rem;
+}
+.btn-approve:disabled { opacity: .4; cursor: not-allowed; }
+.btn-detain {
+  flex: 1; background: #7f1d1d; color: #fecaca; font-weight: 800;
+  border: 1px solid var(--err); border-radius: .6rem; padding: .65rem; font-size: 1rem;
+}
+.btn-approve:hover:not(:disabled), .btn-detain:hover { filter: brightness(1.1); }
+
+/* ===== אווטאר + מד לחץ ===== */
+.avatar-frame { border-color: var(--line); transition: box-shadow .4s, border-color .4s; flex-shrink: 0; }
+.body-tag {
+  position: absolute; top: -.4rem; left: -.4rem; background: #0b1220cc; color: #fca5a5;
+  font-size: .65rem; padding: .1rem .4rem; border-radius: .4rem; border: 1px solid #475569;
+  min-height: 0; pointer-events: none;
+}
+@keyframes nervousShift { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-1.5px);} 75% { transform: translateX(1.5px);} }
+.av-nervous .av-eyes { animation: nervousShift 1.4s ease-in-out infinite; }
+.av-shifty .av-pupil { animation: nervousShift .7s steps(2) infinite; }
+.av-sweat { transition: opacity .4s; }
+
+/* ===== ת"ז קטנה ===== */
+.id-card {
+  background: #0b1220; border: 1px solid var(--line); border-radius: .6rem;
+  padding: .6rem .7rem; min-height: 8rem;
+}
+
+/* ===== צ'אט / בועות דיבור ===== */
+.chat-box {
+  background: #0b1220; border: 1px solid var(--line); border-radius: .6rem;
+  padding: .6rem; overflow-y: auto; display: flex; flex-direction: column; gap: .4rem;
+  min-height: 6rem;
+}
+.bubble {
+  max-width: 85%; padding: .4rem .6rem; border-radius: .7rem; font-size: .85rem;
+  line-height: 1.35; position: relative; animation: pop .18s ease-out;
+}
+.bubble-who { display: block; font-size: .6rem; opacity: .6; margin-bottom: .1rem; }
+.bubble-agent { align-self: flex-start; background: #1d4ed8; color: #fff; border-bottom-right-radius: .2rem; }
+.bubble-pax { align-self: flex-end; background: #334155; color: #e2e8f0; border-bottom-left-radius: .2rem; }
+@keyframes pop { from { transform: scale(.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+/* ===== מיקרופון ===== */
+.mic-btn {
+  display: flex; align-items: center; gap: .3rem; background: #1e293b; color: #cbd5e1;
+  border: 1px solid var(--line); border-radius: .6rem; padding: .5rem .7rem; transition: all .2s;
+}
+.mic-label { font-size: .8rem; }
+.mic-btn.listening {
+  background: var(--err); color: #fff; border-color: #fca5a5;
+  animation: micPulse 1s ease-in-out infinite; position: relative;
+}
+.mic-btn.listening .mic-label::after { content: ' מקשיב...'; }
+.mic-btn.listening .mic-label { font-size: 0; }
+@keyframes micPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,.6);} 50% { box-shadow: 0 0 0 8px rgba(239,68,68,0);} }
+
+/* ===== מסוף (אלטאה) ===== */
+.terminal { font-family: 'Heebo', monospace; }
+.terminal-header {
+  display: flex; justify-content: space-between; align-items: center;
+  background: #022; color: #67e8f9; padding: .4rem .8rem; font-size: .8rem;
+  border-bottom: 1px solid #0e7490; letter-spacing: .02em;
+}
+.term-toolbar { display: flex; flex-wrap: wrap; gap: .4rem; padding: .6rem; background: #04182f; border-bottom: 1px solid #0e7490; }
+.term-btn {
+  background: #0c2a4a; color: #bae6fd; border: 1px solid #155e75; border-radius: .4rem;
+  padding: .4rem .7rem; font-size: .8rem; transition: background .15s;
+}
+.term-btn:hover:not(:disabled) { background: #134e72; }
+.term-btn:disabled { opacity: .35; cursor: not-allowed; }
+.term-body { padding: .8rem; overflow-y: auto; color: #cbd5e1; }
+.term-decision { display: flex; gap: .6rem; padding: .7rem; border-top: 1px solid #0e7490; background: #04182f; }
+
+/* ===== דרכון ===== */
+.passport {
+  background: #0a1f38; border: 1px solid #1e5b8a; border-radius: .5rem; overflow: hidden;
+  cursor: zoom-in; transition: transform .25s; transform-origin: top right;
+}
+.passport.zoom { transform: scale(1.12); cursor: zoom-out; box-shadow: 0 8px 30px #000a; }
+.passport-strip { background: #0e7490; color: #ecfeff; font-size: .7rem; padding: .25rem .6rem; letter-spacing: .1em; }
+
+/* ===== התראות ===== */
+.alert { border-radius: .5rem; padding: .5rem .7rem; font-size: .85rem; border: 1px solid; }
+.alert-ok { background: #052e25; color: #6ee7b7; border-color: var(--ok); }
+.alert-warn { background: #3a2a08; color: #fcd34d; border-color: var(--warn); }
+.alert-err { background: #3a0a0a; color: #fca5a5; border-color: var(--err); }
+
+/* ===== משקל ===== */
+.scale-area { background: #0a1f38; border: 1px solid #1e5b8a; border-radius: .5rem; padding: .7rem; }
+.scale { display: flex; flex-direction: column; align-items: center; }
+.scale-readout {
+  font-family: monospace; font-size: 1.8rem; font-weight: 800; color: #67e8f9;
+  background: #001018; border: 2px solid #0e7490; border-radius: .4rem; padding: .2rem 1.2rem; letter-spacing: .05em;
+}
+.scale-plate { width: 70%; height: 12px; background: linear-gradient(#475569,#1e293b); border-radius: 0 0 .5rem .5rem; margin-top: .4rem; box-shadow: 0 3px 0 #0b1220; }
+
+/* ===== תפריט שאלות ביטחון ===== */
+.sec-menu { display: flex; flex-direction: column; gap: .3rem; margin-top: .5rem; }
+.sec-q {
+  text-align: right; background: #0c2a4a; color: #bae6fd; border: 1px solid #155e75;
+  border-radius: .4rem; padding: .35rem .6rem; font-size: .8rem; transition: background .15s;
+}
+.sec-q:hover { background: #134e72; }
+
+/* ===== מדפסת + פתקים ===== */
+.printer-tray { min-height: 0; padding: 0 .8rem; position: relative; }
+.printed-slip {
+  margin: .5rem 0; padding: .6rem; border-radius: .4rem; cursor: grab;
+  transform: translateY(-120%); opacity: 0; transition: transform .5s ease, opacity .5s;
+  box-shadow: 0 6px 18px #0008;
+}
+.printed-slip.ejected { transform: translateY(0); opacity: 1; }
+.printed-slip.dragging { opacity: .5; }
+.printed-slip.placed { transform: scale(.9); opacity: .5; cursor: default; }
+.slip-tag { background: #fef9c3; color: #422006; border: 1px dashed #a16207; font-size: .75rem; text-align: center; }
+.tag-strip { background: #422006; color: #fde68a; font-size: .65rem; padding: .1rem; border-radius: .2rem; margin-bottom: .2rem; }
+.tag-bars { display: inline-block; width: 80%; height: 14px; background: repeating-linear-gradient(90deg,#000 0 2px,#fff 2px 4px); margin-top: .2rem; }
+.slip-boarding { background: #ecfdf5; color: #064e3b; border: 1px solid #10b981; }
+.bp-head { background: #064e3b; color: #d1fae5; font-size: .7rem; padding: .25rem .5rem; border-radius: .3rem; margin-bottom: .4rem; }
+.bp-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: .3rem .5rem; }
+.bp-l { font-size: .6rem; color: #047857; }
+.bp-v { font-size: .8rem; font-weight: 700; }
+.drop-hover { box-shadow: 0 0 0 3px var(--ok) !important; }
+
+/* ===== Toasts ===== */
+#toast-host { position: fixed; bottom: 1rem; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: .4rem; z-index: 60; }
+.toast {
+  color: #fff; padding: .55rem .9rem; border-radius: .6rem; font-size: .85rem; border: 1px solid;
+  opacity: 0; transform: translateY(12px); transition: all .3s; max-width: 90vw; text-align: center;
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+
+/* ===== מודאל הגדרות ===== */
+.modal-overlay { position: fixed; inset: 0; background: #000a; display: flex; align-items: center; justify-content: center; z-index: 70; }
+.modal-box { background: #0e1726; border: 1px solid var(--line); border-radius: .9rem; padding: 1.4rem; width: min(460px,92vw); box-shadow: 0 20px 60px #000b; }
+.ltr-input { direction: ltr; text-align: left; }
+
+/* ===== לובי ===== */
+.lobby-bg { min-height: 100vh; }
+.role-card {
+  position: relative; text-align: center; background: #0e1726; border: 1px solid var(--line);
+  border-radius: 1rem; padding: 1.4rem 1rem 2.4rem; transition: transform .15s, border-color .15s, box-shadow .15s;
+}
+.role-card:not([disabled]):hover { transform: translateY(-4px); border-color: var(--ok); box-shadow: 0 12px 30px #0006; }
+.role-soon { opacity: .55; cursor: not-allowed; }
+.soon-badge { position: absolute; bottom: .8rem; left: 50%; transform: translateX(-50%); font-size: .7rem; color: #94a3b8; border: 1px solid var(--line); border-radius: 1rem; padding: .1rem .6rem; }
+.play-badge { position: absolute; bottom: .8rem; left: 50%; transform: translateX(-50%); font-size: .8rem; color: var(--ok); font-weight: 700; }
+
+/* ===== תדריך / סיכום ===== */
+.brief-box { background: #0e1726; border: 1px solid var(--line); border-radius: 1rem; padding: 1.6rem; width: min(640px,94vw); box-shadow: 0 20px 60px #0008; }
+.stat-pill { background: #0b1220; border: 1px solid var(--line); border-radius: .7rem; padding: .7rem; text-align: center; }
+.stat-num { font-size: 1.4rem; font-weight: 800; color: #fff; }
+.stat-lbl { font-size: .7rem; color: #94a3b8; margin-top: .1rem; }
+
+/* ===== גייט ===== */
+.gate-pass { background: #0b1220; border: 1px solid var(--line); border-radius: .6rem; padding: .6rem; min-height: 4rem; }
+.bp-mini { display: grid; grid-template-columns: 1fr 1fr; gap: .2rem .6rem; font-size: .8rem; color: #cbd5e1; }
+.bp-mini span:nth-child(odd) { font-weight: 700; color: #fff; }
