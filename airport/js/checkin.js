@@ -19,6 +19,7 @@ import { startGate } from './gate.js';
 import {
   RULES, QUESTION_BANK, DOC_TYPES, CABIN_CLASSES, SSR_CODES, MEAL_OPTIONS, DESTINATIONS,
 } from './data.js';
+import { rollScenarios } from './scenarios.js';
 
 let TARGET = 6;
 let handled = 0;
@@ -31,6 +32,7 @@ const STAGES = [
   { id: 'doc',    label: 'פרטי מסמך',  code: 'F2' },
   { id: 'flight', label: 'פרטי טיסה',  code: 'F3' },
   { id: 'visa',   label: 'אשרת כניסה', code: 'F4' },
+  { id: 'special', label: 'טיפול מיוחד', code: 'F5' },
   { id: 'bag',    label: 'כבודה',      code: 'F6' },
   { id: 'seat',   label: 'הושבה ושירות', code: 'F7' },
   { id: 'issue',  label: 'הנפקה',      code: 'F9' },
@@ -46,10 +48,24 @@ export function startCheckin(caseCount = 6) {
   loadNextPassenger();
 }
 
-// מוסיף לנוסע נתוני-מקור להקלדה (ויזה, ת. לידה) ומבנה הקלדה ריק.
+const FF_TIERS = ['ללא מועדון', 'ללא מועדון', 'Silver', 'Gold', 'Platinum'];
+function recordLocator() { const c = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let s = ''; for (let i = 0; i < 6; i++) s += c[Math.floor(Math.random() * c.length)]; return s; }
+function typoName(name) { // משבש מעט את השם (להתאמת שם בכרטיס)
+  const a = name.split(''); const i = 1 + Math.floor(Math.random() * (a.length - 2));
+  if (a[i] === ' ') return name + 'י';
+  a[i] = ''; return a.join('');
+}
+
+// מוסיף לנוסע נתוני-מקור להקלדה (ויזה, ת. לידה), מזהים רשמיים, וסיטואציות.
 function prepCase(p) {
   p.dob = `${String(((p.id * 7) % 28) + 1).padStart(2, '0')}/${String(((p.id * 3) % 12) + 1).padStart(2, '0')}/${2026 - p.age}`;
   p.visaNum = p.hasVisa && p.dest.requiresVisa ? `V${Math.floor(1e7 + Math.random() * 8e7)}` : null;
+  p.pnr = recordLocator();
+  p.eticket = `114-${Math.floor(1e9 + Math.random() * 8e9)}`;
+  p.ffTier = FF_TIERS[Math.floor(Math.random() * FF_TIERS.length)];
+  p.seq = String(p.id).padStart(3, '0');
+  p.scenarios = rollScenarios(p);
+  p.ticketName = p.scenarios.some((s) => s.id === 'name_mismatch') ? typoName(p.name) : p.name;
   p.entry = { done: {}, fields: {} };
   return p;
 }
@@ -162,9 +178,13 @@ function renderPaperDocs(p) {
       <div class="paper-row"><span>אזרחות</span><b>${escapeHtml(p.origin)}</b></div>
     </div>
     <div class="paper ticket-paper">
-      <div class="paper-h">זימון לטיסה · ITINERARY</div>
+      <div class="paper-h">כרטיס אלקטרוני · E-TICKET</div>
+      <div class="paper-row"><span>שם בכרטיס</span><b>${escapeHtml(p.ticketName)}</b></div>
+      <div class="paper-row"><span>קוד הזמנה</span><b class="ltr">${p.pnr}</b></div>
+      <div class="paper-row"><span>מס׳ כרטיס</span><b class="ltr">${p.eticket}</b></div>
       <div class="paper-row"><span>טיסה</span><b class="ltr">${p.flight.code}</b></div>
       <div class="paper-row"><span>יעד</span><b>${escapeHtml(p.dest.city)} (${p.dest.code})</b></div>
+      ${p.ffTier !== 'ללא מועדון' ? `<div class="paper-row"><span>מועדון</span><b>${p.ffTier}</b></div>` : ''}
     </div>
     ${visaDoc}`;
 }
@@ -173,7 +193,8 @@ function renderPaperDocs(p) {
 function renderTabs() {
   const p = state.current;
   const tabs = document.getElementById('stage-tabs');
-  tabs.innerHTML = STAGES.filter((s) => s.id !== 'visa' || p.dest.requiresVisa)
+  tabs.innerHTML = STAGES
+    .filter((s) => (s.id !== 'visa' || p.dest.requiresVisa) && (s.id !== 'special' || p.scenarios.length))
     .map((s) => {
       const done = p.entry.done[s.id];
       const enabled = stageEnabled(s.id, p);
@@ -185,12 +206,15 @@ function renderTabs() {
 
 function stageEnabled(id, p) {
   const d = p.entry.done;
+  const visaOk = !p.dest.requiresVisa || d.visa;
+  const specialOk = !p.scenarios.length || d.special;
   switch (id) {
     case 'pnr': return true;
     case 'doc': return d.pnr;
     case 'flight': return d.doc;
     case 'visa': return d.flight;
-    case 'bag': return d.flight && (!p.dest.requiresVisa || d.visa);
+    case 'special': return d.flight && visaOk;
+    case 'bag': return d.flight && visaOk && specialOk;
     case 'seat': return d.bag;
     case 'issue': return d.seat;
     default: return false;
@@ -202,7 +226,7 @@ function setStage(id) {
   if (!stageEnabled(id, state.current)) return;
   activeStage = id;
   document.querySelectorAll('.stage-tab').forEach((b) => b.classList.toggle('active', b.dataset.stage === id));
-  const r = { pnr: stagePnr, doc: stageDoc, flight: stageFlight, visa: stageVisa, bag: stageBag, seat: stageSeat, issue: stageIssue }[id];
+  const r = { pnr: stagePnr, doc: stageDoc, flight: stageFlight, visa: stageVisa, special: stageSpecial, bag: stageBag, seat: stageSeat, issue: stageIssue }[id];
   r && r(state.current);
 }
 
@@ -224,9 +248,11 @@ function stagePnr(p) {
     p.entry.fields.surname = v;
     if (v === norm(p.last)) {
       p.entry.done.pnr = true;
-      const ref = `PNR ${(p.last[0] || 'X')}${p.id}${'KQZ'[p.id % 3]}${(p.flight.code).slice(-2)}`;
-      body().querySelector('#pnr-msg').innerHTML = `<span class="ok">✓ נמצאה הזמנה: ${ref} · ${escapeHtml(p.name)} · ${p.flight.code}</span>`;
-      logLine(`איתור הזמנה: ${v} → ${ref}`, 'ok');
+      body().querySelector('#pnr-msg').innerHTML = `
+        <div class="ok">✓ נמצאה הזמנה — RP/TLV1A0980/${p.pnr}</div>
+        <div class="text-xs text-cyan-300/80 mt-1 ltr">1. ${p.last.toUpperCase()}/${p.first} ${p.ffTier !== 'ללא מועדון' ? 'FQTV-' + p.ffTier.toUpperCase() : ''}</div>
+        <div class="text-xs text-cyan-300/80 ltr">   ${p.flight.code} Y ${p.dest.code} HK1 · ETKT ${p.eticket}</div>`;
+      logLine(`PNR RETRIEVE ${v} → ${p.pnr} · ${p.flight.code}${p.ffTier !== 'ללא מועדון' ? ' · ' + p.ffTier : ''}`, 'ok');
       renderTabs(); setStage('doc');
     } else {
       body().querySelector('#pnr-msg').innerHTML = `<span class="err">⛔ לא נמצאה הזמנה בשם "${escapeHtml(v)}". בדוק שוב מול הדרכון.</span>`;
@@ -299,7 +325,7 @@ function stageFlight(p) {
     p.entry.done.flight = true;
     msg.innerHTML = `<span class="ok">✓ שויך לטיסה ${p.flight.code} · שער ${p.flight.gate} · בורדינג ${p.flight.boarding} · ${p.dest.city}</span>`;
     logLine(`שיוך טיסה: ${flt} → ${p.dest.city} · שער ${p.flight.gate}`, 'ok');
-    renderTabs(); setStage(p.dest.requiresVisa ? 'visa' : 'bag');
+    renderTabs(); setStage(afterFlight(p));
   });
 }
 
@@ -321,7 +347,7 @@ function stageVisa(p) {
     if (p.hasVisa && v === p.visaNum) {
       p.entry.done.visa = true; p.visaChecked = true;
       msg.innerHTML = `<span class="ok">✓ ויזה אומתה.</span>`;
-      logLine(`ויזה אומתה: ${v}`, 'ok'); renderTabs(); setStage('bag');
+      logLine(`ויזה אומתה: ${v}`, 'ok'); renderTabs(); setStage(afterVisa(p));
     } else {
       msg.innerHTML = `<span class="err">⛔ מספר ויזה שגוי או שאין ברשות הנוסע ויזה תקפה.</span>`;
     }
@@ -329,8 +355,50 @@ function stageVisa(p) {
   body().querySelector('#no-visa').addEventListener('click', () => {
     p.entry.done.visa = true; p.visaChecked = true; p.noVisaEntered = true;
     body().querySelector('#visa-msg').innerHTML = `<span class="warn">⚠ סומן: ללא ויזה. אישור נוסע כזה = מחדל וקנס.</span>`;
-    logLine('סומן: ללא ויזה', 'warn'); renderTabs(); setStage('bag');
+    logLine('סומן: ללא ויזה', 'warn'); renderTabs(); setStage(afterVisa(p));
   });
+}
+
+// ---- ניתוב שלבים מותנה ----
+function afterFlight(p) { return p.dest.requiresVisa ? 'visa' : (p.scenarios.length ? 'special' : 'bag'); }
+function afterVisa(p) { return p.scenarios.length ? 'special' : 'bag'; }
+
+// ---- שלב טיפול מיוחד (סיטואציות/נהלים) ----
+function stageSpecial(p) {
+  const sevColor = { info: 'alert-ok', warn: 'alert-warn', danger: 'alert-err' };
+  body().innerHTML = `
+    <div class="stage-title">טיפול מיוחד — יש לטפל בכל ההתראות לפי הנוהל לפני המשך</div>
+    <div id="scn-list"></div>`;
+  const render = () => {
+    const list = document.getElementById('scn-list');
+    list.innerHTML = p.scenarios.map((s, i) => `
+      <div class="scn-card ${s.resolved ? 'resolved' : ''}">
+        <div class="alert ${sevColor[s.sev]} mb-1">🔔 ${escapeHtml(s.alert)}</div>
+        <div class="text-sm text-slate-300 mb-2">${escapeHtml(s.prompt)}</div>
+        ${s.resolved
+          ? `<div class="${s.resolvedOk ? 'ok' : 'err'} text-sm">${s.resolvedOk ? '✓ טופל לפי הנוהל' : '⛔ טופל באופן שגוי'}</div>`
+          : `<div class="flex flex-col gap-1">${s.options.map((o, j) => `<button class="event-opt" data-s="${i}" data-o="${j}">${escapeHtml(o.label)}</button>`).join('')}</div>`}
+      </div>`).join('');
+    list.querySelectorAll('.event-opt').forEach((b) => b.addEventListener('click', () => {
+      pickOption(p.scenarios[+b.dataset.s], +b.dataset.o);
+      render();
+      if (p.scenarios.every((s) => s.resolved)) {
+        p.entry.done.special = true; renderTabs();
+        setTimeout(() => setStage('bag'), 500);
+      }
+    }));
+  };
+  render();
+}
+
+function pickOption(scn, idx) {
+  const o = scn.options[idx];
+  scn.resolved = true; scn.resolvedOk = o.ok;
+  if (o.fee) addFee(scn.label, o.fee);
+  if (o.fine) fine(`${scn.label}: ${o.msg}`, o.fine);
+  if (o.rep) adjustReputation(o.rep);
+  toast(`${o.ok ? '✓' : '⛔'} ${o.msg}`, o.ok ? 'ok' : 'err');
+  logLine(`טיפול מיוחד: ${scn.label} → ${o.ok ? 'תקין' : 'שגוי'}`, o.ok ? 'ok' : 'err');
 }
 
 // ---- שלב 5: כבודה ----

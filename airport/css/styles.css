@@ -375,3 +375,21 @@ select.term-input { cursor: pointer; }
 .career-bar { width: min(640px, 94vw); background: #0b1220; border: 1px solid var(--line); border-radius: .7rem; padding: .7rem .9rem; }
 .xp-bar { height: 10px; background: #1e293b; border-radius: 5px; overflow: hidden; border: 1px solid #334155; }
 .xp-fill { height: 100%; background: linear-gradient(90deg, #f59e0b, #fbbf24); border-radius: 5px; transition: width .6s ease; }
+
+/* ===== כרטיסי סיטואציה (טיפול מיוחד) ===== */
+.scn-card { background: #0b1220; border: 1px solid var(--line); border-radius: .6rem; padding: .6rem; margin-bottom: .6rem; }
+.scn-card.resolved { opacity: .8; border-color: #475569; }
+
+/* ===== עולם הליכה (Top-Down) ===== */
+.world-wrap { position: relative; width: 100%; height: 100vh; overflow: hidden; background: #0b1626; }
+#world-canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.world-hud { position: absolute; top: 10px; right: 12px; left: 12px; text-align: center; pointer-events: none; }
+.world-title { color: #fff; font-weight: 800; font-size: 1.05rem; text-shadow: 0 2px 6px #000; }
+.world-hint { color: #cbd5e1; font-size: .78rem; margin-top: .15rem; text-shadow: 0 1px 4px #000; }
+.world-exit { position: absolute; top: 10px; right: 12px; background: #1e293b; color: #cbd5e1; border: 1px solid var(--line); border-radius: .5rem; padding: .35rem .7rem; font-size: .8rem; z-index: 5; }
+.near-label { position: absolute; bottom: 120px; left: 50%; transform: translateX(-50%); background: #0b1220cc; color: #fbbf24; border: 1px solid #f59e0b; border-radius: 1rem; padding: .3rem .9rem; font-size: .85rem; min-height: 0; pointer-events: none; }
+.near-label:empty { display: none; }
+.joystick { position: absolute; bottom: 28px; left: 28px; width: 110px; height: 110px; border-radius: 50%; background: #1e293b88; border: 2px solid #475569; touch-action: none; z-index: 6; }
+.joy-stick { position: absolute; top: 50%; left: 50%; width: 48px; height: 48px; margin: -24px 0 0 -24px; border-radius: 50%; background: #22d3ee; border: 2px solid #0e7490; transition: transform .04s; }
+.act-btn { position: absolute; bottom: 40px; right: 32px; width: 90px; height: 90px; border-radius: 50%; background: #334155; color: #fff; font-weight: 800; font-size: 1rem; border: 2px solid #475569; z-index: 6; }
+.act-btn.ready { background: var(--ok); color: #042f1f; border-color: #34d399; animation: micPulse 1.2s infinite; }

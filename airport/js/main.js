@@ -10,6 +10,13 @@ import { startRamp } from './ramp.js';
 import { startManager } from './manager.js';
 import { SHIFTS, DIFFICULTIES, RULES, FLIGHTS, destByCode } from './data.js';
 import { load as loadCareer, award, rankFor, nextRank, progressPct, resetCareer } from './progress.js';
+import { startWorld } from './world.js';
+
+// נקודת כניסה מהעולם ההליכתי: '__lobby__' חוזר ללובי, אחרת נכנס לתפקיד.
+export function enterRole(role) {
+  if (role === '__lobby__') { showLobby(); return; }
+  state.role = role; state.fromWorld = true; showShiftSetup();
+}
 
 const app = () => document.getElementById('app');
 
@@ -53,13 +60,15 @@ function showLobby() {
           <div class="play-badge">שחק ▸</div>
         </button>`).join('')}
     </div>
-    <div class="flex gap-2 mt-8">
+    <button id="enter-world" class="btn-primary text-base px-6 py-3 mt-6">🚶 כניסה לטרמינל — מצב הליכה (סימולטור מלא)</button>
+    <div class="flex gap-2 mt-4">
       <button id="lobby-settings" class="btn-ghost">⚙ הגדרות (מפתח / קול)</button>
       <button id="lobby-reset" class="btn-ghost text-slate-500">אפס קריירה</button>
     </div>
   </div>`;
   app().querySelectorAll('.role-card').forEach((b) =>
-    b.addEventListener('click', () => { state.role = b.dataset.role; showShiftSetup(); }));
+    b.addEventListener('click', () => { state.role = b.dataset.role; state.fromWorld = false; showShiftSetup(); }));
+  document.getElementById('enter-world').addEventListener('click', () => startWorld());
   document.getElementById('lobby-settings').addEventListener('click', () => openSettings());
   document.getElementById('lobby-reset').addEventListener('click', () => { if (confirm('לאפס את כל ההתקדמות והדרגות?')) { resetCareer(); showLobby(); } });
 }
@@ -101,7 +110,7 @@ function showShiftSetup() {
     app().querySelectorAll('[data-diff]').forEach((x) => x.classList.toggle('sel', x === b));
   }));
   document.getElementById('setup-go').addEventListener('click', showBriefing);
-  document.getElementById('setup-back').addEventListener('click', showLobby);
+  document.getElementById('setup-back').addEventListener('click', () => (state.fromWorld ? startWorld() : showLobby()));
 }
 
 // ===== תדריך =====
@@ -192,12 +201,12 @@ export function showDebrief() {
       </div>
       <div class="flex gap-2">
         <button id="db-again" class="btn-primary px-6">משמרת חדשה ▸</button>
-        <button id="db-lobby" class="btn-ghost">ללובי</button>
+        <button id="db-lobby" class="btn-ghost">${state.fromWorld ? '← חזרה לטרמינל' : 'ללובי'}</button>
       </div>
     </div>
   </div>`;
   document.getElementById('db-again').addEventListener('click', startShift);
-  document.getElementById('db-lobby').addEventListener('click', showLobby);
+  document.getElementById('db-lobby').addEventListener('click', () => (state.fromWorld ? startWorld() : showLobby()));
 }
 
 showLobby();
