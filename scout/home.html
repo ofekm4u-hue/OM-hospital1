@@ -181,6 +181,16 @@
   }
   .global-sos[hidden] { display: none; }
 </style>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0A0E14">
+<meta name="application-name" content="שו״ב צופים">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="שו״ב צופים">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="format-detection" content="telephone=no">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<link rel="apple-touch-icon" href="icons/icon.svg">
 </head>
 <body class="tactical-grid">
   <div id="header"></div>
@@ -1080,6 +1090,14 @@
     banner.onclick = () => location.href = 'hq-operator.html?forest=' + cur.forestId;
   }
 })();
+</script>
+<script>
+  // Register Service Worker (PWA shell — works offline once visited)
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    });
+  }
 </script>
 </body>
 </html>
