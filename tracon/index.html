@@ -1,0 +1,1008 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TRACON — Approach Control Radar Simulator</title>
+  <meta name="description" content="A high-fidelity Terminal Radar Approach Control (TRACON) and ATC simulator: real aviation physics, standard-rate turns, ILS intercepts, pilot-controller readback comms, and a vector-parsing command line." />
+  <meta name="theme-color" content="#0a0f1d" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    html, body, #root { height: 100%; }
+    body { margin: 0; background: #06090f; }
+    /* Radar phosphor look */
+    .radar-glow { filter: drop-shadow(0 0 2px rgba(64,224,208,0.35)); }
+    .blink { animation: blink 0.9s steps(2, start) infinite; }
+    @keyframes blink { to { visibility: hidden; } }
+    .scroll-thin::-webkit-scrollbar { width: 8px; height: 8px; }
+    .scroll-thin::-webkit-scrollbar-thumb { background: #1c2740; border-radius: 8px; }
+    .scroll-thin::-webkit-scrollbar-track { background: transparent; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    svg text { user-select: none; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel" data-presets="react">
+const { useState, useRef, useEffect, useCallback } = React;
+
+/* ============================================================================
+   LUCIDE ICON WRAPPER  — renders a lucide IconNode as a React SVG element
+   ========================================================================== */
+function Icon({ name, size = 16, className = "", strokeWidth = 2 }) {
+  const L = window.lucide || {};
+  const node = (L.icons && L.icons[name]) || L[name];
+  let children = null;
+  if (Array.isArray(node)) {
+    children = node.map(([tag, attrs], i) => React.createElement(tag, { key: i, ...attrs }));
+  }
+  return React.createElement(
+    "svg",
+    { width: size, height: size, viewBox: "0 0 24 24", fill: "none",
+      stroke: "currentColor", strokeWidth, strokeLinecap: "round",
+      strokeLinejoin: "round", className },
+    children
+  );
+}
+
+/* ============================================================================
+   MODULE 1 CONSTANTS — AIRCRAFT PHYSICS / PERFORMANCE
+   ========================================================================== */
+// Aircraft performance, grouped by category. Values are PER 1-SECOND TICK.
+const PERF = {
+  jet:   { climb: 41, desc: 30, maxSpd: 250, minSpd: 140, spdRate: 2, wake: "M" },
+  heavy: { climb: 25, desc: 25, maxSpd: 250, minSpd: 150, spdRate: 2, wake: "H" },
+  prop:  { climb: 11, desc:  8, maxSpd: 120, minSpd:  70, spdRate: 4, wake: "L" },
+};
+const TYPES = {
+  A320: "jet", B737: "jet",
+  B777: "heavy", A350: "heavy",
+  C172: "prop", BE20: "prop", // BE20 = Beechcraft King Air
+};
+const TURN_RATE = 3;            // degrees / second (standard rate)
+const TICK_MS   = 1000;         // physics tick = 1 real second
+const READBACK_MS = 2500;       // pilot listen + readback delay
+const PX_PER_NM_BASE = 9.0;     // base radar scale (40NM -> 360px radius)
+const AIRSPACE_NM = 40;
+const ILS_RANGE_NM = 15;        // feather length
+const GS_FT_PER_NM = 318;       // 3-degree glideslope ~ 318 ft / NM
+
+// Honors spec scale "100kt = 10px/s": at PX_PER_NM_BASE, 1 NM/h = 100kt feel.
+// Physics is computed in NM (time-accurate); px is a pure display mapping.
+
+const AIRLINES = ["DAL", "UAL", "AAL", "SWA", "ELY", "JBU", "AAY", "NKS"];
+const FIXES = [
+  { name: "BASAL", brg: 315 }, // NW
+  { name: "LUCKY", brg:  45 }, // NE
+  { name: "SADDE", brg: 225 }, // SW
+  { name: "SEALB", brg: 135 }, // SE
+];
+
+/* ============================================================================
+   GEOMETRY HELPERS  (positions kept in NM, screen-style: +x East, +y South)
+   ========================================================================== */
+const rad = (d) => (d * Math.PI) / 180;
+const deg = (r) => (r * 180) / Math.PI;
+const norm360 = (h) => ((h % 360) + 360) % 360;
+const norm180 = (d) => { d = ((d + 180) % 360 + 360) % 360 - 180; return d; };
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+const headingFromVec = (dx, dy) => norm360(deg(Math.atan2(dx, -dy)));
+const vecFromHeading = (h, len) => ({ x: Math.sin(rad(h)) * len, y: -Math.cos(rad(h)) * len });
+const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+const posFromBrg = (brg, d) => ({ x: Math.sin(rad(brg)) * d, y: -Math.cos(rad(brg)) * d });
+
+/* ============================================================================
+   RUNWAY / AIRPORT GEOMETRY  (KLAX template, airport at origin)
+   ========================================================================== */
+// Two physical runways, each offering two landing directions.
+function buildRunways() {
+  const L = 1.1; // half length in NM (~12000ft ~ 2NM tip to tip)
+  const mk = (id, course, centerY, axisHdg) => {
+    const dir = vecFromHeading(axisHdg, 1);            // unit along axis hdg
+    const center = { x: 0, y: centerY };
+    // threshold sits at the upwind end so the feather extends along `course` reversed
+    const thr = { x: center.x + dir.x * L, y: center.y + dir.y * L };
+    const featherDir = { x: -Math.sin(rad(course)), y: Math.cos(rad(course)) }; // outbound
+    return { id, course, thr, center, axisHdg, featherDir, L };
+  };
+  return [
+    // Runway 24R / 06L  (axis 060/240), slightly north
+    mk("24R", 240, -0.55, 60),
+    mk("06L",  60, -0.55, 240),
+    // Runway 25L / 07R  (axis 070/250), slightly south
+    mk("25L", 250,  0.55, 70),
+    mk("07R",  70,  0.55, 250),
+  ];
+}
+const RUNWAYS = buildRunways();
+const getRwy = (id) => RUNWAYS.find((r) => r.id === id);
+
+/* ============================================================================
+   AIRCRAFT FACTORY
+   ========================================================================== */
+let UID = 1;
+const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+const randInt = (lo, hi) => lo + Math.floor(Math.random() * (hi - lo + 1));
+
+function makeCallsign() {
+  return pick(AIRLINES) + randInt(10, 989);
+}
+
+function makeArrival() {
+  const fix = pick(FIXES);
+  const type = pick(Object.keys(TYPES));
+  const cat = TYPES[type];
+  const p = posFromBrg(fix.brg, AIRSPACE_NM - 1.5);
+  const hdg = headingFromVec(-p.x, -p.y); // toward field center
+  return {
+    id: UID++, callsign: makeCallsign(), type, cat, wake: PERF[cat].wake,
+    flight: "arrival", status: "enroute",
+    x: p.x, y: p.y, alt: 12000, spd: 240, hdg,
+    targetAlt: 12000, targetSpd: 240, targetHdg: hdg,
+    forcedTurn: null, clearedILS: null, clearedLand: false,
+    fuel: randInt(300, 500), lowFuelCalled: false,
+    entryFix: fix.name, exitFix: null,
+    trail: [], conflict: false, conflictTimer: 0, wakeFlag: false,
+    flashUntil: 0, selected: false, gndTimer: 0, clearedTakeoff: false,
+  };
+}
+
+function makeDeparture() {
+  const rwy = pick([getRwy("24R"), getRwy("25L")]);
+  const type = pick(Object.keys(TYPES));
+  const cat = TYPES[type];
+  const exit = pick(FIXES);
+  // spawn at the departure end of the runway (opposite the landing threshold)
+  const start = { x: -rwy.thr.x, y: -rwy.thr.y };
+  return {
+    id: UID++, callsign: makeCallsign(), type, cat, wake: PERF[cat].wake,
+    flight: "departure", status: "preflight",
+    x: start.x, y: start.y, alt: 0, spd: 0, hdg: rwy.course,
+    targetAlt: 0, targetSpd: 0, targetHdg: rwy.course,
+    forcedTurn: null, clearedILS: null, clearedLand: false,
+    fuel: Infinity, lowFuelCalled: false,
+    entryFix: null, exitFix: exit.name, rwy: rwy.id,
+    trail: [], conflict: false, conflictTimer: 0, wakeFlag: false,
+    flashUntil: 0, selected: false, gndTimer: 0, clearedTakeoff: false,
+  };
+}
+
+/* ============================================================================
+   MAIN COMPONENT
+   ========================================================================== */
+function ATCSimulator() {
+  const planesRef = useRef([]);            // mutable list of aircraft
+  const timeoutsRef = useRef([]);          // pending comm timeouts (for cleanup)
+  const occRef = useRef({});               // runway occupancy cooldowns (id -> tick)
+  const tickRef = useRef(0);
+
+  const [, forceRender] = useState(0);
+  const rerender = useCallback(() => forceRender((n) => n + 1), []);
+
+  const [log, setLog] = useState([]);
+  const [score, setScore] = useState({
+    arrivals: 0, departures: 0, infractions: 0, score: 0, reputation: 100,
+  });
+  const [command, setCommand] = useState("");
+  const [selected, setSelected] = useState(null); // callsign
+  const [paused, setPaused] = useState(false);
+  const [gameOver, setGameOver] = useState(null);  // null | {reason}
+  const [zoom, setZoom] = useState(1);
+  const [showWaypoints, setShowWaypoints] = useState(true);
+  const [showExtensions, setShowExtensions] = useState(true);
+  const [clock, setClock] = useState(0);
+
+  const logEndRef = useRef(null);
+
+  /* ---------- logging ---------- */
+  const fmtTime = (s) => {
+    const hh = String(Math.floor(s / 3600) % 24).padStart(2, "0");
+    const mm = String(Math.floor(s / 60) % 60).padStart(2, "0");
+    const ss = String(s % 60).padStart(2, "0");
+    return `${hh}:${mm}:${ss}`;
+  };
+  const addLog = useCallback((who, text, kind) => {
+    setLog((L) => {
+      const next = [...L, { t: fmtTime(tickRef.current), who, text, kind }];
+      return next.length > 250 ? next.slice(-250) : next;
+    });
+  }, []);
+
+  /* ---------- scoring ---------- */
+  const bump = useCallback((delta) => {
+    setScore((s) => {
+      const ns = { ...s };
+      for (const k in delta) ns[k] = ns[k] + delta[k];
+      ns.reputation = clamp(ns.reputation, 0, 100);
+      return ns;
+    });
+  }, []);
+
+  /* ---------- comms readback state machine ---------- */
+  // Issue: log ATC -> wait 2.5s -> log pilot readback -> APPLY targets.
+  const issue = useCallback((p, atcText, pilotText, apply) => {
+    addLog("ATC", `${p.callsign}, ${atcText}`, "atc");
+    const id = setTimeout(() => {
+      if (!planesRef.current.includes(p)) return; // gone
+      addLog(p.callsign, pilotText, "pilot");
+      apply(p);
+      rerender();
+    }, READBACK_MS);
+    timeoutsRef.current.push(id);
+  }, [addLog, rerender]);
+
+  /* ---------- COMMAND PARSER (Module 3) ---------- */
+  const runCommand = useCallback((raw) => {
+    const tokens = raw.trim().toUpperCase().split(/\s+/).filter(Boolean);
+    if (!tokens.length) return;
+    const cs = tokens[0];
+    const p = planesRef.current.find((a) => a.callsign === cs);
+    if (!p) { addLog("SYS", `Unknown callsign "${cs}".`, "sys"); return; }
+    const verb = tokens[1];
+
+    const three = (t) => /^\d{3}$/.test(t);
+
+    switch (verb) {
+      case "H": { // heading  (optional L/R forced direction)
+        if (!three(tokens[2])) return badArg();
+        const hdg = norm360(parseInt(tokens[2], 10));
+        const force = tokens[3] === "L" ? "L" : tokens[3] === "R" ? "R" : null;
+        const turnWord = force === "L" ? "turn left " : force === "R" ? "turn right " : "fly ";
+        issue(p, `${turnWord}heading ${tokens[2]}.`,
+          `Heading ${tokens[2]}, ${p.callsign}.`,
+          (a) => { a.targetHdg = hdg; a.forcedTurn = force;
+                   if (a.status === "established" || a.status === "localizer") a.status = "enroute";
+                   a.clearedILS = null; });
+        break;
+      }
+      case "A": { // altitude (hundreds of feet)
+        if (!three(tokens[2])) return badArg();
+        const alt = parseInt(tokens[2], 10) * 100;
+        const verbW = alt > p.alt ? "climb and maintain" : "descend and maintain";
+        issue(p, `${verbW} ${alt.toLocaleString()}.`,
+          `${alt > p.alt ? "Up" : "Down"} to ${alt.toLocaleString()}, ${p.callsign}.`,
+          (a) => { a.targetAlt = alt; });
+        break;
+      }
+      case "S": { // speed
+        if (!three(tokens[2])) return badArg();
+        const spd = parseInt(tokens[2], 10);
+        issue(p, `maintain ${spd} knots.`,
+          `${spd} knots, ${p.callsign}.`,
+          (a) => { a.targetSpd = spd; });
+        break;
+      }
+      case "C": { // cleared ILS approach  ->  C ILS 24R
+        if (tokens[2] !== "ILS" || !getRwy(tokens[3])) return badArg();
+        const rid = tokens[3];
+        issue(p, `cleared ILS runway ${rid} approach.`,
+          `Cleared ILS ${rid}, ${p.callsign}.`,
+          (a) => { a.clearedILS = rid; });
+        break;
+      }
+      case "L": { // cleared to land
+        issue(p, `cleared to land.`,
+          `Cleared to land, ${p.callsign}.`,
+          (a) => { a.clearedLand = true; });
+        break;
+      }
+      case "HO": { // handoff to center (departures)
+        if (p.flight !== "departure") { addLog("SYS", "Handoff is for departures.", "sys"); return; }
+        issue(p, `contact center, good day.`,
+          `Center, so long, ${p.callsign}.`,
+          (a) => { a.status = "handoff"; });
+        break;
+      }
+      case "TO": { // clear for takeoff (departure ground op)
+        if (p.flight !== "departure") return;
+        addLog("ATC", `${p.callsign}, cleared for takeoff runway ${p.rwy}.`, "atc");
+        const id = setTimeout(() => {
+          if (!planesRef.current.includes(p)) return;
+          addLog(p.callsign, `Cleared for takeoff, ${p.callsign}.`, "pilot");
+          p.clearedTakeoff = true; rerender();
+        }, READBACK_MS);
+        timeoutsRef.current.push(id);
+        break;
+      }
+      default:
+        addLog("SYS", `Unrecognized command verb "${verb || ""}".`, "sys");
+    }
+    function badArg() { addLog("SYS", `Bad arguments: "${raw}".`, "sys"); }
+  }, [addLog, issue, rerender]);
+
+  const submitCommand = useCallback(() => {
+    if (gameOver) return;
+    const raw = command.trim();
+    if (!raw) return;
+    runCommand(raw);
+    setCommand("");
+  }, [command, runCommand, gameOver]);
+
+  /* ============================================================================
+     PHYSICS + GAME ENGINE  (1-second tick)
+     ========================================================================== */
+  const stepPlane = useCallback((p, tick) => {
+    const perf = PERF[p.cat];
+
+    // --- ground phases for departures (no flight physics) ---
+    if (p.status === "preflight") {
+      p.gndTimer++;
+      if (p.gndTimer === 3) addLog(p.callsign, `Ground, ${p.callsign} at the gate, ready to taxi.`, "pilot");
+      if (p.gndTimer >= 6) { p.status = "taxi"; p.gndTimer = 0;
+        addLog("ATC", `${p.callsign}, taxi to runway ${p.rwy} via taxiways, hold short.`, "atc"); }
+      return;
+    }
+    if (p.status === "taxi") {
+      p.gndTimer++;
+      if (p.gndTimer >= 5) { p.status = "holdshort"; p.gndTimer = 0;
+        addLog(p.callsign, `Holding short runway ${p.rwy}, ready for departure.`, "pilot"); }
+      return;
+    }
+    if (p.status === "holdshort") {
+      p.gndTimer++;
+      if (p.clearedTakeoff || p.gndTimer >= 18) {
+        if (!p.clearedTakeoff) addLog("ATC", `${p.callsign}, cleared for takeoff runway ${p.rwy}.`, "atc");
+        p.status = "takeoff"; p.targetSpd = 160; p.targetAlt = 5000; p.gndTimer = 0;
+      }
+      return;
+    }
+
+    // --- TURN (standard rate, shortest unless forced) ---
+    const locked = p.status === "localizer";
+    if (!locked) {
+      const diff = norm180(p.targetHdg - p.hdg);
+      if (p.forcedTurn) {
+        const sgn = p.forcedTurn === "L" ? -1 : 1;
+        if (Math.abs(diff) <= TURN_RATE) { p.hdg = p.targetHdg; p.forcedTurn = null; }
+        else p.hdg = norm360(p.hdg + sgn * TURN_RATE);
+      } else {
+        if (Math.abs(diff) <= TURN_RATE) p.hdg = p.targetHdg;
+        else p.hdg = norm360(p.hdg + Math.sign(diff) * TURN_RATE);
+      }
+    }
+
+    // --- SPEED (inertia) ---
+    let maxS = perf.maxSpd;
+    if (p.alt < 10000) maxS = Math.min(maxS, 250);
+    const tgtS = clamp(p.targetSpd, perf.minSpd, maxS);
+    const dS = tgtS - p.spd;
+    if (Math.abs(dS) <= perf.spdRate) p.spd = tgtS;
+    else p.spd += Math.sign(dS) * perf.spdRate;
+
+    // --- ALTITUDE (climb/descent profiles) ---
+    const dA = p.targetAlt - p.alt;
+    if (dA > 0) p.alt = Math.min(p.targetAlt, p.alt + perf.climb);
+    else if (dA < 0) p.alt = Math.max(p.targetAlt, p.alt - perf.desc);
+
+    // --- ILS established detection (arrivals cleared for an approach) ---
+    if (p.flight === "arrival" && p.clearedILS && p.status !== "localizer") {
+      const r = getRwy(p.clearedILS);
+      const rel = { x: p.x - r.thr.x, y: p.y - r.thr.y };
+      const along = rel.x * r.featherDir.x + rel.y * r.featherDir.y;       // outbound distance
+      const lat = rel.x * -r.featherDir.y + rel.y * r.featherDir.x;        // signed lateral
+      const intAngle = Math.abs(norm180(p.hdg - r.course));
+      if (along > 0.3 && along <= ILS_RANGE_NM && Math.abs(lat) < 1.6 &&
+          intAngle < 30 && p.alt <= 3000) {
+        p.status = "localizer";
+        p.forcedTurn = null;
+        addLog(p.callsign, `Tower, ${p.callsign} established on the ILS ${r.id}.`, "pilot");
+      }
+    }
+
+    // --- LOCALIZER tracking + 3-degree glideslope ---
+    if (p.status === "localizer") {
+      const r = getRwy(p.clearedILS);
+      const rel = { x: p.x - r.thr.x, y: p.y - r.thr.y };
+      const along = rel.x * r.featherDir.x + rel.y * r.featherDir.y;
+      // snap onto centerline gradually
+      const center = { x: r.thr.x + r.featherDir.x * Math.max(along, 0),
+                       y: r.thr.y + r.featherDir.y * Math.max(along, 0) };
+      p.x += (center.x - p.x) * 0.25;
+      p.y += (center.y - p.y) * 0.25;
+      p.hdg = r.course;
+      p.targetHdg = r.course;
+      // glideslope altitude
+      const gsAlt = Math.max(0, along * GS_FT_PER_NM);
+      p.targetAlt = Math.min(p.targetAlt, gsAlt);
+      p.alt = Math.max(0, Math.min(p.alt, gsAlt));
+      p.targetSpd = Math.max(perf.minSpd, 140);
+
+      const occBy = occRef.current[r.id];
+      const rwyBusy = occBy && occBy !== p.id && (tick - (occRef.current[r.id + "_t"] || 0) < 6);
+
+      if (along <= 0.25) {
+        // over the threshold
+        if (p.alt <= 500 && (rwyBusy || !p.clearedLand)) {
+          // GO AROUND
+          p.status = "goaround";
+          p.clearedILS = null; p.clearedLand = false;
+          p.targetAlt = 3000; p.targetSpd = 200; p.targetHdg = r.course; p.forcedTurn = null;
+          addLog(p.callsign, `Tower, ${p.callsign} going around, missed approach!`, "pilot");
+          return "goaround";
+        }
+        if (p.alt <= 50 && p.clearedLand) {
+          occRef.current[r.id] = p.id;
+          occRef.current[r.id + "_t"] = tick;
+          addLog(p.callsign, `Clear of the runway, ${p.callsign}, good day.`, "pilot");
+          return "landed";
+        }
+      }
+    }
+
+    // --- DEPARTURE flight phases ---
+    if (p.flight === "departure") {
+      if (p.status === "takeoff") {
+        if (p.spd >= 140) { p.status = "climbout"; p.alt = Math.max(p.alt, 1); }
+      }
+      if (p.status === "climbout" && p.alt >= 5000) {
+        p.status = "departing";
+        addLog("ATC", `${p.callsign}, radar contact, climb and maintain 5,000.`, "atc");
+      }
+    }
+
+    // --- POSITION (trigonometric integration in NM) ---
+    if (p.spd > 0 && p.alt > 0 || p.status === "takeoff" || p.status === "climbout") {
+      const nmPerTick = p.spd / 3600; // knots -> NM per second
+      p.x += Math.sin(rad(p.hdg)) * nmPerTick;
+      p.y += -Math.cos(rad(p.hdg)) * nmPerTick;
+    }
+
+    // --- TRAIL (history of 3 dots) ---
+    if (tick % 1 === 0) {
+      p.trail.push({ x: p.x, y: p.y });
+      if (p.trail.length > 3) p.trail.shift();
+    }
+
+    // --- FUEL (arrivals) ---
+    if (p.flight === "arrival" && Number.isFinite(p.fuel)) {
+      p.fuel -= 1;
+      if (p.fuel === 100 && !p.lowFuelCalled) {
+        p.lowFuelCalled = true;
+        addLog(p.callsign, `Tower, ${p.callsign}, we are low on fuel, requesting priority.`, "emerg");
+      }
+      if (p.fuel <= 0) return "fuelcrash";
+    }
+    return null;
+  }, [addLog]);
+
+  /* ---------- the master tick ---------- */
+  useEffect(() => {
+    if (paused || gameOver) return;
+    const iv = setInterval(() => {
+      const tick = ++tickRef.current;
+      setClock(tick);
+      const planes = planesRef.current;
+      const removals = [];
+      let over = null;
+
+      for (const p of planes) {
+        const res = stepPlane(p, tick);
+        if (res === "landed") { removals.push(p); bump({ arrivals: 1, score: 100 }); }
+        else if (res === "fuelcrash") {
+          removals.push(p);
+          over = { reason: `${p.callsign} ran out of fuel and crashed.` };
+        }
+        // remove departures handed off & beyond field
+        if (p.status === "handoff") {
+          removals.push(p); bump({ departures: 1, score: 100 });
+        }
+        // cull anything that drifts well outside airspace
+        if (dist(p, { x: 0, y: 0 }) > AIRSPACE_NM + 8 && p.status !== "preflight") {
+          if (!removals.includes(p)) {
+            removals.push(p);
+            if (p.flight === "arrival") bump({ score: -25, reputation: -5 });
+          }
+        }
+      }
+
+      // --- SEPARATION + WAKE checks (Module 5) ---
+      for (const p of planes) p.conflict = false;
+      for (let i = 0; i < planes.length; i++) {
+        for (let j = i + 1; j < planes.length; j++) {
+          const a = planes[i], b = planes[j];
+          if (a.alt < 50 || b.alt < 50) continue;
+          const d = dist(a, b);
+          const vsep = Math.abs(a.alt - b.alt);
+          if (d < 3 && vsep < 1000) { a.conflict = b.conflict = true; }
+          // wake: heavy on ILS, trailing M/L within 5NM on same approach
+          const heavy = a.wake === "H" ? a : b.wake === "H" ? b : null;
+          const trail = heavy === a ? b : a;
+          if (heavy && heavy.status === "localizer" && trail.wake !== "H" &&
+              trail.clearedILS === heavy.clearedILS && trail.status === "localizer" && d < 5) {
+            over = { reason: `WAKE TURBULENCE: ${trail.callsign} too close behind heavy ${heavy.callsign}.` };
+          }
+        }
+      }
+      // sustained conflict accounting
+      for (const p of planes) {
+        if (p.conflict) {
+          p.conflictTimer++;
+          if (p.conflictTimer === 5) {
+            bump({ infractions: 1, score: -50 });
+            setScore((s) => ({ ...s, reputation: clamp(Math.round(s.reputation * 0.8), 0, 100) }));
+            addLog("SYS", `LOSS OF SEPARATION — ${p.callsign}. Reputation -20%.`, "emerg");
+          }
+        } else p.conflictTimer = 0;
+      }
+
+      // apply removals
+      if (removals.length) {
+        planesRef.current = planes.filter((p) => !removals.includes(p));
+      }
+      if (over) { setGameOver(over); }
+      rerender();
+    }, TICK_MS);
+    return () => clearInterval(iv);
+  }, [paused, gameOver, stepPlane, bump, rerender, addLog]);
+
+  /* ---------- traffic spawner ---------- */
+  useEffect(() => {
+    if (paused || gameOver) return;
+    const spawn = setInterval(() => {
+      const planes = planesRef.current;
+      if (planes.length >= 9) return;
+      const arrivals = planes.filter((p) => p.flight === "arrival").length;
+      const deps = planes.filter((p) => p.flight === "departure").length;
+      let np;
+      if (arrivals <= deps) np = makeArrival();
+      else np = makeDeparture();
+      planesRef.current = [...planes, np];
+      addLog("SYS", `${np.callsign} (${np.type}) ${np.flight === "arrival"
+        ? `inbound via ${np.entryFix}` : `requesting departure to ${np.exitFix}`}.`, "sys");
+      rerender();
+    }, 14000);
+    return () => clearInterval(spawn);
+  }, [paused, gameOver, addLog, rerender]);
+
+  // seed initial traffic once
+  useEffect(() => {
+    planesRef.current = [makeArrival(), makeArrival(), makeDeparture()];
+    rerender();
+    return () => { timeoutsRef.current.forEach(clearTimeout); };
+  }, [rerender]);
+
+  // auto-scroll comms log
+  useEffect(() => { logEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [log]);
+
+  /* ---------- reset / restart ---------- */
+  const restart = useCallback(() => {
+    timeoutsRef.current.forEach(clearTimeout);
+    timeoutsRef.current = [];
+    occRef.current = {};
+    tickRef.current = 0;
+    planesRef.current = [makeArrival(), makeArrival(), makeDeparture()];
+    setLog([]); setScore({ arrivals: 0, departures: 0, infractions: 0, score: 0, reputation: 100 });
+    setGameOver(null); setPaused(false); setSelected(null); setCommand("");
+    rerender();
+  }, [rerender]);
+
+  /* ---------- macro helpers ---------- */
+  const selPlane = () => planesRef.current.find((p) => p.callsign === selected);
+  const macro = (txt) => { if (selected) runCommand(`${selected} ${txt}`); };
+  const turnBy = (sgn) => {
+    const p = selPlane(); if (!p) return;
+    const nh = norm360(p.hdg + sgn * 30);
+    runCommand(`${selected} H ${String(Math.round(nh)).padStart(3, "0")} ${sgn < 0 ? "L" : "R"}`);
+  };
+
+  const planes = planesRef.current;
+  const blink = tickRef.current % 2 === 0;
+
+  /* ============================================================================
+     RENDER
+     ========================================================================== */
+  const VB = 800, CX = 400, CY = 400;
+  const pxNM = PX_PER_NM_BASE * zoom;
+  const toPx = (p) => ({ x: CX + p.x * pxNM, y: CY + p.y * pxNM });
+
+  return (
+    <div className="h-full w-full flex flex-col bg-[#06090f] text-slate-200 mono text-[13px]">
+      {/* ============ TOP BAR ============ */}
+      <header className="flex items-center justify-between px-4 py-2 bg-[#0a0f1d] border-b border-cyan-900/40">
+        <div className="flex items-center gap-2 text-cyan-300">
+          <Icon name="RadioTower" size={20} />
+          <span className="font-bold tracking-widest text-sm">KLAX TRACON</span>
+          <span className="text-slate-500 text-xs ml-2">APP CONTROL · 124.5</span>
+        </div>
+        <div className="flex items-center gap-4 text-xs">
+          <span className="text-cyan-200">UTC {fmtTime(clock)}</span>
+          <button onClick={() => setPaused((p) => !p)}
+            className="flex items-center gap-1 px-2 py-1 rounded bg-slate-800 hover:bg-slate-700">
+            <Icon name={paused ? "Play" : "Pause"} size={14} />{paused ? "Resume" : "Pause"}
+          </button>
+          <button onClick={restart}
+            className="flex items-center gap-1 px-2 py-1 rounded bg-slate-800 hover:bg-slate-700">
+            <Icon name="RotateCcw" size={14} />Reset
+          </button>
+        </div>
+      </header>
+
+      <div className="flex-1 flex min-h-0">
+        {/* ============ LEFT: RADAR (65%) ============ */}
+        <div className="relative" style={{ width: "65%" }}>
+          <RadarScope
+            planes={planes} toPx={toPx} pxNM={pxNM} VB={VB} CX={CX} CY={CY}
+            showWaypoints={showWaypoints} showExtensions={showExtensions}
+            blink={blink} selected={selected}
+            onSelect={(cs) => { setSelected(cs); setCommand(cs + " "); }}
+          />
+          {/* map controls */}
+          <div className="absolute top-3 left-3 flex flex-col gap-2">
+            <MapBtn onClick={() => setZoom((z) => clamp(+(z + 0.25).toFixed(2), 0.5, 2.5))} icon="ZoomIn" label="Zoom In" />
+            <MapBtn onClick={() => setZoom((z) => clamp(+(z - 0.25).toFixed(2), 0.5, 2.5))} icon="ZoomOut" label="Zoom Out" />
+            <MapBtn onClick={() => setShowWaypoints((v) => !v)} icon="MapPin" label="Waypoints" active={showWaypoints} />
+            <MapBtn onClick={() => setShowExtensions((v) => !v)} icon="Spline" label="ILS Feathers" active={showExtensions} />
+          </div>
+          <div className="absolute bottom-3 left-3 text-[11px] text-slate-500">
+            RANGE {AIRSPACE_NM} NM · ZOOM {zoom.toFixed(2)}× · {planes.length} TGT
+          </div>
+        </div>
+
+        {/* ============ RIGHT SIDEBAR (35%) ============ */}
+        <aside className="flex flex-col border-l border-cyan-900/40 bg-[#0a0f1d]" style={{ width: "35%" }}>
+          {/* SCOREBOARD */}
+          <div className="grid grid-cols-3 gap-px bg-cyan-900/20 border-b border-cyan-900/40 text-center">
+            <Stat label="Arrivals" value={score.arrivals} tone="text-cyan-300" />
+            <Stat label="Departures" value={score.departures} tone="text-green-300" />
+            <Stat label="Infractions" value={score.infractions} tone="text-red-400" />
+            <Stat label="Score" value={score.score} tone="text-amber-300" />
+            <Stat label="Reputation" value={score.reputation + "%"}
+                  tone={score.reputation > 60 ? "text-emerald-300" : score.reputation > 30 ? "text-amber-300" : "text-red-400"} />
+            <Stat label="In Sky" value={planes.length} tone="text-slate-300" />
+          </div>
+
+          {/* FLIGHT STRIP BAY */}
+          <div className="flex-1 min-h-0 flex flex-col border-b border-cyan-900/40">
+            <SectionTitle icon="LayoutList" text="Flight Strip Bay" />
+            <div className="flex-1 overflow-y-auto scroll-thin px-2 py-1 space-y-1">
+              {planes.length === 0 && <div className="text-slate-600 text-xs p-2">No traffic.</div>}
+              {planes.map((p) => (
+                <FlightStrip key={p.id} p={p} blink={blink}
+                  selected={selected === p.callsign}
+                  onClick={() => { setSelected(p.callsign); setCommand(p.callsign + " "); }} />
+              ))}
+            </div>
+          </div>
+
+          {/* RADIO LOG */}
+          <div className="h-[32%] min-h-[140px] flex flex-col">
+            <SectionTitle icon="Radio" text="ATC Radio Log" />
+            <div className="flex-1 overflow-y-auto scroll-thin px-2 py-1 text-[12px] leading-snug">
+              {log.map((e, i) => (
+                <div key={i} className="mb-0.5">
+                  <span className="text-slate-600">{e.t} </span>
+                  <span className={
+                    e.kind === "atc" ? "text-cyan-300" :
+                    e.kind === "pilot" ? "text-amber-200" :
+                    e.kind === "emerg" ? "text-red-400 font-bold" : "text-slate-500"
+                  }>{e.who}:</span>{" "}
+                  <span className={e.kind === "emerg" ? "text-red-300" : "text-slate-300"}>{e.text}</span>
+                </div>
+              ))}
+              <div ref={logEndRef} />
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      {/* ============ BOTTOM CONTROL BAR ============ */}
+      <footer className="bg-[#0a0f1d] border-t border-cyan-900/40 px-3 py-2">
+        <div className="flex items-center gap-2">
+          <span className="text-cyan-500">›</span>
+          <input
+            value={command}
+            onChange={(e) => setCommand(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") submitCommand(); }}
+            placeholder="DAL422 H 270 · UAL88 A 030 · AAL55 S 160 · DAL422 C ILS 24R · DAL422 L · SWA10 HO"
+            className="flex-1 bg-black/60 border border-cyan-900/50 rounded px-3 py-1.5 text-cyan-100 outline-none focus:border-cyan-500 placeholder:text-slate-600 uppercase"
+            spellCheck={false}
+          />
+          <button onClick={submitCommand}
+            className="px-4 py-1.5 rounded bg-cyan-700 hover:bg-cyan-600 text-white flex items-center gap-1">
+            <Icon name="Send" size={14} /> Transmit
+          </button>
+        </div>
+        {/* MACRO DASHBOARD */}
+        <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
+          <span className="text-slate-500">
+            {selected ? <span className="text-cyan-300">{selected}</span> : "select a strip/blip"} ›
+          </span>
+          <MBtn onClick={() => turnBy(-1)} icon="CornerUpLeft">L30</MBtn>
+          <MBtn onClick={() => turnBy(1)} icon="CornerUpRight">R30</MBtn>
+          <HeadingMacro onSet={(h) => macro(`H ${h}`)} />
+          <AltMacro onSet={(a) => macro(`A ${a}`)} />
+          <SpeedMacro onSet={(s) => macro(`S ${s}`)} />
+          <RwyMacro onSet={(r) => macro(`C ILS ${r}`)} />
+          <MBtn onClick={() => macro("L")} icon="PlaneLanding">Land</MBtn>
+          <MBtn onClick={() => macro("TO")} icon="PlaneTakeoff">T/O</MBtn>
+          <MBtn onClick={() => macro("HO")} icon="LogOut">Handoff</MBtn>
+        </div>
+      </footer>
+
+      {/* ============ GAME OVER OVERLAY ============ */}
+      {gameOver && (
+        <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-50">
+          <div className="bg-[#12182b] border border-red-700 rounded-xl p-8 text-center max-w-md">
+            <Icon name="TriangleAlert" size={48} className="text-red-500 mx-auto" />
+            <h2 className="text-2xl font-bold text-red-400 mt-3">GAME OVER</h2>
+            <p className="text-slate-300 mt-2">{gameOver.reason}</p>
+            <div className="text-slate-400 text-sm mt-3">
+              Arrivals {score.arrivals} · Departures {score.departures} · Score {score.score}
+            </div>
+            <button onClick={restart}
+              className="mt-5 px-6 py-2 rounded bg-cyan-700 hover:bg-cyan-600 text-white">
+              Restart Session
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============================================================================
+   RADAR SCOPE (SVG)
+   ========================================================================== */
+function RadarScope({ planes, toPx, pxNM, VB, CX, CY, showWaypoints, showExtensions, blink, selected, onSelect }) {
+  const ringNM = [10, 20, 30, 40];
+  return (
+    <svg viewBox={`0 0 ${VB} ${VB}`} className="w-full h-full block" style={{ background: "#0a0f1d" }}>
+      <defs>
+        <radialGradient id="scopeBg" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#0d1326" />
+          <stop offset="100%" stopColor="#070b16" />
+        </radialGradient>
+      </defs>
+      <rect x="0" y="0" width={VB} height={VB} fill="url(#scopeBg)" />
+
+      {/* range rings */}
+      {ringNM.map((nm) => (
+        <circle key={nm} cx={CX} cy={CY} r={nm * pxNM} fill="none"
+          stroke="#13325a" strokeWidth="1" strokeDasharray={nm === 40 ? "" : "2 6"} opacity="0.7" />
+      ))}
+      {/* compass spokes */}
+      {Array.from({ length: 12 }).map((_, i) => {
+        const a = i * 30;
+        const o = vecFromHeading(a, 40 * pxNM);
+        const lbl = vecFromHeading(a, 40 * pxNM + 14);
+        return (
+          <g key={i}>
+            <line x1={CX} y1={CY} x2={CX + o.x} y2={CY + o.y} stroke="#0e2545" strokeWidth="0.5" opacity="0.5" />
+            <text x={CX + lbl.x} y={CY + lbl.y} fill="#2a567f" fontSize="9" textAnchor="middle"
+              dominantBaseline="middle">{String(a / 10).padStart(2, "0")}</text>
+          </g>
+        );
+      })}
+
+      {/* runways + ILS feathers */}
+      {RUNWAYS.map((r) => {
+        const a = toPx({ x: r.center.x + Math.sin(rad(r.axisHdg)) * r.L, y: r.center.y - Math.cos(rad(r.axisHdg)) * r.L });
+        const b = toPx({ x: r.center.x - Math.sin(rad(r.axisHdg)) * r.L, y: r.center.y + Math.cos(rad(r.axisHdg)) * r.L });
+        return <line key={r.id + "rw"} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke="#9fb4cc" strokeWidth="3" strokeLinecap="round" />;
+      })}
+      {showExtensions && RUNWAYS.map((r) => {
+        const thr = toPx(r.thr);
+        const far = toPx({ x: r.thr.x + r.featherDir.x * ILS_RANGE_NM, y: r.thr.y + r.featherDir.y * ILS_RANGE_NM });
+        const perp = { x: -r.featherDir.y, y: r.featherDir.x };
+        const w = 1.3;
+        const e1 = toPx({ x: r.thr.x + r.featherDir.x * ILS_RANGE_NM + perp.x * w, y: r.thr.y + r.featherDir.y * ILS_RANGE_NM + perp.y * w });
+        const e2 = toPx({ x: r.thr.x + r.featherDir.x * ILS_RANGE_NM - perp.x * w, y: r.thr.y + r.featherDir.y * ILS_RANGE_NM - perp.y * w });
+        return (
+          <g key={r.id + "ils"} stroke="#1f6f5c" strokeWidth="1" strokeDasharray="4 4" opacity="0.8">
+            <line x1={thr.x} y1={thr.y} x2={far.x} y2={far.y} />
+            <line x1={thr.x} y1={thr.y} x2={e1.x} y2={e1.y} />
+            <line x1={thr.x} y1={thr.y} x2={e2.x} y2={e2.y} />
+            <text x={far.x} y={far.y} dx="4" fill="#2f9e84" fontSize="9">{r.id}</text>
+          </g>
+        );
+      })}
+
+      {/* waypoints */}
+      {FIXES.map((f) => {
+        const p = toPx(posFromBrg(f.brg, AIRSPACE_NM - 1.5));
+        return (
+          <g key={f.name}>
+            <path d={`M ${p.x} ${p.y - 6} L ${p.x + 6} ${p.y} L ${p.x} ${p.y + 6} L ${p.x - 6} ${p.y} Z`}
+              fill="none" stroke="#5b7fb0" strokeWidth="1.2" />
+            {showWaypoints && (
+              <text x={p.x + 9} y={p.y + 3} fill="#7fa3cc" fontSize="10">{f.name}</text>
+            )}
+          </g>
+        );
+      })}
+
+      {/* aircraft */}
+      {planes.map((p) => (
+        <AircraftBlip key={p.id} p={p} toPx={toPx} blink={blink} selected={selected === p.callsign} onSelect={onSelect} />
+      ))}
+
+      {/* center field */}
+      <circle cx={CX} cy={CY} r="3" fill="#cdd9e6" />
+    </svg>
+  );
+}
+
+function AircraftBlip({ p, toPx, blink, selected, onSelect }) {
+  if (p.status === "preflight" || p.status === "taxi" || p.status === "holdshort") {
+    // show small ground marker only
+    const g = toPx(p);
+    return (
+      <g onClick={() => onSelect(p.callsign)} className="cursor-pointer">
+        <rect x={g.x - 3} y={g.y - 3} width="6" height="6" fill="#3d6b3d" />
+        <text x={g.x + 8} y={g.y + 3} fill="#7fae7f" fontSize="9">{p.callsign} ▶GND</text>
+      </g>
+    );
+  }
+  const s = toPx(p);
+  const emerg = (p.lowFuelCalled && Number.isFinite(p.fuel) && p.fuel < 100) || p.fuel <= 100 && p.flight === "arrival" && p.lowFuelCalled;
+  const danger = p.conflict || p.wakeFlag;
+  let color = p.flight === "arrival" ? "#38bdf8" : "#4ade80";
+  if (p.status === "localizer" || p.status === "established") color = "#facc15";
+  if (p.status === "goaround") color = "#fb923c";
+  if (emerg) color = "#f87171";
+  if (danger) color = "#ef4444";
+  const hide = danger && blink;
+
+  // leader line + data block offset
+  const bx = s.x + 26, by = s.y - 26;
+  const cur = String(Math.round(p.alt / 100)).padStart(3, "0");
+  const asn = String(Math.round(p.targetAlt / 100)).padStart(3, "0");
+  const trailPts = p.trail.map(toPx);
+
+  return (
+    <g onClick={() => onSelect(p.callsign)} className="cursor-pointer radar-glow" opacity={hide ? 0.25 : 1}>
+      {/* history trail */}
+      {trailPts.map((t, i) => (
+        <circle key={i} cx={t.x} cy={t.y} r="1.6" fill={color} opacity={0.2 + i * 0.18} />
+      ))}
+      {/* selection ring */}
+      {selected && <circle cx={s.x} cy={s.y} r="10" fill="none" stroke="#fff" strokeWidth="1" opacity="0.7" />}
+      {/* blip */}
+      <rect x={s.x - 3.5} y={s.y - 3.5} width="7" height="7" fill={color}
+        stroke={selected ? "#fff" : "none"} strokeWidth="0.5" />
+      {/* leader */}
+      <line x1={s.x} y1={s.y} x2={bx} y2={by} stroke={color} strokeWidth="0.7" opacity="0.6" />
+      {/* data block (3 lines) */}
+      <text x={bx} y={by - 8} fill={color} fontSize="10" fontWeight="bold">{p.callsign} {p.type}</text>
+      <text x={bx} y={by + 3} fill={color} fontSize="10">{cur} C {asn}</text>
+      <text x={bx} y={by + 14} fill={color} fontSize="10">{Math.round(p.spd)} {p.wake}</text>
+    </g>
+  );
+}
+
+/* ============================================================================
+   SIDEBAR PIECES
+   ========================================================================== */
+function Stat({ label, value, tone }) {
+  return (
+    <div className="bg-[#0a0f1d] py-2">
+      <div className={`text-lg font-bold ${tone}`}>{value}</div>
+      <div className="text-[10px] uppercase tracking-wide text-slate-500">{label}</div>
+    </div>
+  );
+}
+function SectionTitle({ icon, text }) {
+  return (
+    <div className="flex items-center gap-1.5 px-2 py-1 text-cyan-400 text-[11px] uppercase tracking-widest bg-cyan-900/10 border-b border-cyan-900/30">
+      <Icon name={icon} size={13} /> {text}
+    </div>
+  );
+}
+
+function FlightStrip({ p, blink, selected, onClick }) {
+  const arr = p.flight === "arrival";
+  const emerg = p.lowFuelCalled || p.status === "goaround" || p.conflict;
+  let base = arr ? "bg-sky-950/60 border-sky-700/50" : "bg-green-950/50 border-green-700/40";
+  if (emerg) base = `bg-red-950/60 border-red-600 ${blink ? "opacity-60" : ""}`;
+  if (selected) base += " ring-1 ring-cyan-400";
+  const cur = String(Math.round(p.alt / 100)).padStart(3, "0");
+  const asn = String(Math.round(p.targetAlt / 100)).padStart(3, "0");
+  const statusLabel = {
+    enroute: "ENR", localizer: "ILS", established: "ILS", goaround: "GO-AROUND",
+    preflight: "PREFLT", taxi: "TAXI", holdshort: "HOLD", takeoff: "ROLL",
+    climbout: "CLB", departing: "DEP", handoff: "HANDOFF",
+  }[p.status] || p.status.toUpperCase();
+  return (
+    <button onClick={onClick}
+      className={`w-full text-left border-l-4 rounded px-2 py-1 ${base} hover:brightness-125`}>
+      <div className="flex justify-between items-center">
+        <span className="font-bold text-slate-100">{p.callsign}</span>
+        <span className="text-[10px] text-slate-400">{p.type} · {p.wake}</span>
+      </div>
+      <div className="flex justify-between text-[11px] text-slate-300">
+        <span>FL {cur}→{asn}</span>
+        <span>{Math.round(p.spd)}kt</span>
+        <span>{String(Math.round(p.hdg)).padStart(3, "0")}°</span>
+      </div>
+      <div className="flex justify-between text-[10px]">
+        <span className="text-cyan-400">{statusLabel}</span>
+        <span className="text-slate-500">
+          {arr ? (p.entryFix) : (p.exitFix)}
+          {Number.isFinite(p.fuel) && <span className={p.fuel < 100 ? " text-red-400" : " text-slate-600"}> · FUEL {p.fuel}s</span>}
+        </span>
+      </div>
+    </button>
+  );
+}
+
+/* ============================================================================
+   MAP + MACRO BUTTONS
+   ========================================================================== */
+function MapBtn({ onClick, icon, label, active }) {
+  return (
+    <button onClick={onClick} title={label}
+      className={`flex items-center gap-1.5 px-2 py-1 rounded text-[11px] border
+        ${active === false ? "bg-slate-900/70 border-slate-700 text-slate-500"
+          : "bg-slate-800/80 border-cyan-800/50 text-cyan-200"} hover:bg-slate-700`}>
+      <Icon name={icon} size={14} /> {label}
+    </button>
+  );
+}
+function MBtn({ onClick, icon, children }) {
+  return (
+    <button onClick={onClick}
+      className="flex items-center gap-1 px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700">
+      {icon && <Icon name={icon} size={12} />}{children}
+    </button>
+  );
+}
+function HeadingMacro({ onSet }) {
+  const [v, setV] = useState("090");
+  return (
+    <span className="flex items-center gap-1 bg-slate-900 rounded px-1 border border-slate-700">
+      <span className="text-slate-500">HDG</span>
+      <input value={v} onChange={(e) => setV(e.target.value)} size={3}
+        className="w-9 bg-black/40 text-cyan-200 text-center outline-none" />
+      <button onClick={() => /^\d{3}$/.test(v) && onSet(v)} className="text-cyan-400 hover:text-cyan-200">▶</button>
+    </span>
+  );
+}
+function AltMacro({ onSet }) {
+  const opts = ["020", "030", "050", "070", "100", "150"];
+  return (
+    <span className="flex items-center gap-1 bg-slate-900 rounded px-1 border border-slate-700">
+      <span className="text-slate-500">ALT</span>
+      <select onChange={(e) => e.target.value && onSet(e.target.value)} defaultValue=""
+        className="bg-black/40 text-cyan-200 outline-none">
+        <option value="" disabled>--</option>
+        {opts.map((o) => <option key={o} value={o}>{o}</option>)}
+      </select>
+    </span>
+  );
+}
+function SpeedMacro({ onSet }) {
+  const opts = ["250", "210", "180", "160", "140"];
+  return (
+    <span className="flex items-center gap-1 bg-slate-900 rounded px-1 border border-slate-700">
+      <span className="text-slate-500">SPD</span>
+      <select onChange={(e) => e.target.value && onSet(e.target.value)} defaultValue=""
+        className="bg-black/40 text-cyan-200 outline-none">
+        <option value="" disabled>--</option>
+        {opts.map((o) => <option key={o} value={o}>{o}</option>)}
+      </select>
+    </span>
+  );
+}
+function RwyMacro({ onSet }) {
+  return (
+    <span className="flex items-center gap-1 bg-slate-900 rounded px-1 border border-slate-700">
+      <span className="text-slate-500">ILS</span>
+      <select onChange={(e) => e.target.value && onSet(e.target.value)} defaultValue=""
+        className="bg-black/40 text-amber-200 outline-none">
+        <option value="" disabled>RWY</option>
+        {["24R", "25L", "06L", "07R"].map((o) => <option key={o} value={o}>{o}</option>)}
+      </select>
+    </span>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<ATCSimulator />);
+  </script>
+</body>
+</html>
