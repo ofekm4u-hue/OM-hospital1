@@ -2,10 +2,19 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
   <title>TRACON — Approach Control Radar Simulator</title>
   <meta name="description" content="A high-fidelity Terminal Radar Approach Control (TRACON) and ATC simulator: real aviation physics, standard-rate turns, ILS intercepts, pilot-controller readback comms, and a vector-parsing command line." />
   <meta name="theme-color" content="#0a0f1d" />
+
+  <!-- PWA: installable, fullscreen, offline -->
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icon-180.png" />
+  <link rel="icon" type="image/png" href="icon-192.png" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="TRACON" />
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
@@ -14,7 +23,10 @@
   <script src="https://unpkg.com/lucide@latest"></script>
   <style>
     html, body, #root { height: 100%; }
-    body { margin: 0; background: #06090f; }
+    body { margin: 0; background: #06090f; overscroll-behavior: none; }
+    /* respect iPad/iPhone safe areas when running fullscreen as an installed app */
+    header { padding-top: max(0.5rem, env(safe-area-inset-top)); }
+    footer { padding-bottom: max(0.5rem, env(safe-area-inset-bottom)); }
     /* Radar phosphor look */
     .radar-glow { filter: drop-shadow(0 0 2px rgba(64,224,208,0.35)); }
     .blink { animation: blink 0.9s steps(2, start) infinite; }
@@ -28,6 +40,15 @@
 </head>
 <body>
   <div id="root"></div>
+
+  <script>
+    // Register the service worker so the app installs and runs offline.
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("sw.js").catch(() => {});
+      });
+    }
+  </script>
 
   <script type="text/babel" data-presets="react">
 const { useState, useRef, useEffect, useCallback } = React;
