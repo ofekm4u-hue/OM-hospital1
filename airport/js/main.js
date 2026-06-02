@@ -11,6 +11,7 @@ import { startManager } from './manager.js';
 import { SHIFTS, DIFFICULTIES, RULES, FLIGHTS, destByCode } from './data.js';
 import { load as loadCareer, award, rankFor, nextRank, progressPct, resetCareer } from './progress.js';
 import { startWorld } from './world.js';
+import { startWorld3D } from './world3d.js';
 
 // נקודת כניסה מהעולם ההליכתי: '__lobby__' חוזר ללובי, אחרת נכנס לתפקיד.
 export function enterRole(role) {
@@ -60,7 +61,8 @@ function showLobby() {
           <div class="play-badge">שחק ▸</div>
         </button>`).join('')}
     </div>
-    <button id="enter-world" class="btn-primary text-base px-6 py-3 mt-6">🚶 כניסה לטרמינל — מצב הליכה (סימולטור מלא)</button>
+    <button id="enter-3d" class="btn-primary text-base px-6 py-3 mt-6" style="background:#7c3aed;border-color:#a855f7">🎮 מצב תלת-ממד (גוף ראשון) — ראיון + טרמינל נתב"ג</button>
+    <button id="enter-world" class="btn-ghost text-base px-6 py-2.5 mt-2">🚶 מצב הליכה דו-ממדי (מהיר)</button>
     <div class="flex gap-2 mt-4">
       <button id="lobby-settings" class="btn-ghost">⚙ הגדרות (מפתח / קול)</button>
       <button id="lobby-reset" class="btn-ghost text-slate-500">אפס קריירה</button>
@@ -68,7 +70,8 @@ function showLobby() {
   </div>`;
   app().querySelectorAll('.role-card').forEach((b) =>
     b.addEventListener('click', () => { state.role = b.dataset.role; state.fromWorld = false; showShiftSetup(); }));
-  document.getElementById('enter-world').addEventListener('click', () => startWorld());
+  document.getElementById('enter-world').addEventListener('click', () => { state.world3d = false; startWorld(); });
+  document.getElementById('enter-3d').addEventListener('click', () => { state.world3d = true; startWorld3D('interview'); });
   document.getElementById('lobby-settings').addEventListener('click', () => openSettings());
   document.getElementById('lobby-reset').addEventListener('click', () => { if (confirm('לאפס את כל ההתקדמות והדרגות?')) { resetCareer(); showLobby(); } });
 }
@@ -110,7 +113,7 @@ function showShiftSetup() {
     app().querySelectorAll('[data-diff]').forEach((x) => x.classList.toggle('sel', x === b));
   }));
   document.getElementById('setup-go').addEventListener('click', showBriefing);
-  document.getElementById('setup-back').addEventListener('click', () => (state.fromWorld ? startWorld() : showLobby()));
+  document.getElementById('setup-back').addEventListener('click', backToWorld);
 }
 
 // ===== תדריך =====
@@ -206,7 +209,13 @@ export function showDebrief() {
     </div>
   </div>`;
   document.getElementById('db-again').addEventListener('click', startShift);
-  document.getElementById('db-lobby').addEventListener('click', () => (state.fromWorld ? startWorld() : showLobby()));
+  document.getElementById('db-lobby').addEventListener('click', backToWorld);
+}
+
+// חזרה לסביבת ההליכה (תלת-ממד / דו-ממד) או ללובי.
+function backToWorld() {
+  if (!state.fromWorld) return showLobby();
+  if (state.world3d) startWorld3D('terminal'); else startWorld();
 }
 
 showLobby();
