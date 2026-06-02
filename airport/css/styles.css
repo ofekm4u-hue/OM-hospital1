@@ -393,3 +393,26 @@ select.term-input { cursor: pointer; }
 .joy-stick { position: absolute; top: 50%; left: 50%; width: 48px; height: 48px; margin: -24px 0 0 -24px; border-radius: 50%; background: #22d3ee; border: 2px solid #0e7490; transition: transform .04s; }
 .act-btn { position: absolute; bottom: 40px; right: 32px; width: 90px; height: 90px; border-radius: 50%; background: #334155; color: #fff; font-weight: 800; font-size: 1rem; border: 2px solid #475569; z-index: 6; }
 .act-btn.ready { background: var(--ok); color: #042f1f; border-color: #34d399; animation: micPulse 1.2s infinite; }
+
+/* ===== מצב תלת-ממד (WebGL) ===== */
+.w3d-wrap { position: relative; width: 100%; height: 100vh; overflow: hidden; background: #05080f; }
+#w3d-canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
+.w3d-cross { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); color: #ffffffaa; font-size: 1.4rem; pointer-events: none; text-shadow: 0 0 4px #000; }
+.w3d-hud-top { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); background: #0b1220aa; border: 1px solid #ffffff22; color: #e2e8f0; padding: .3rem .8rem; border-radius: 1rem; font-size: .85rem; pointer-events: none; }
+.w3d-prompt { position: absolute; bottom: 130px; left: 50%; transform: translateX(-50%); background: #0b1220dd; color: #fbbf24; border: 1px solid #f59e0b; border-radius: 1rem; padding: .35rem 1rem; font-size: .95rem; opacity: 0; transition: opacity .15s; pointer-events: none; }
+.w3d-prompt.on { opacity: 1; }
+.w3d-help { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); color: #94a3b8; font-size: .72rem; background: #0b122088; padding: .2rem .6rem; border-radius: .5rem; pointer-events: none; }
+
+/* ===== ראיון (שלב א') ===== */
+#iv-host { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: #02060fbb; }
+.iv-panel { background: #0e1726; border: 1px solid #334155; border-radius: 1rem; padding: 1.6rem; width: min(620px,92vw); box-shadow: 0 24px 70px #000c; }
+.iv-badge { display: inline-block; background: #1d4ed8; color: #fff; font-size: .75rem; font-weight: 700; padding: .2rem .7rem; border-radius: 1rem; margin-bottom: .7rem; }
+.iv-badge.ok { background: #059669; } .iv-badge.fail { background: #b91c1c; }
+.iv-title { color: #fff; font-size: 1.15rem; font-weight: 800; margin-bottom: 1rem; line-height: 1.4; }
+.iv-text { color: #cbd5e1; font-size: .9rem; margin-bottom: .8rem; line-height: 1.5; }
+.iv-opts { display: flex; flex-direction: column; gap: .5rem; }
+.iv-opt { text-align: right; background: #0c2a4a; color: #e0f2fe; border: 1px solid #155e75; border-radius: .6rem; padding: .6rem .8rem; font-size: .9rem; transition: background .15s; }
+.iv-opt:hover { background: #134e72; }
+.iv-opt.right { background: #065f46; border-color: #10b981; color: #d1fae5; }
+.iv-opt.wrong { background: #7f1d1d; border-color: #ef4444; color: #fecaca; }
+.iv-fb { min-height: 1.4rem; margin-top: .7rem; font-size: .9rem; }
