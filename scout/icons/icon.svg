@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0A0E14"/>
+      <stop offset="100%" stop-color="#11161F"/>
+    </linearGradient>
+    <linearGradient id="ring" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#4DD0E1"/>
+      <stop offset="100%" stop-color="#2DD881"/>
+    </linearGradient>
+  </defs>
+  <!-- Background rounded square (full bleed for maskable) -->
+  <rect x="0" y="0" width="512" height="512" rx="96" fill="url(#bg)"/>
+  <!-- Outer tactical ring -->
+  <circle cx="256" cy="256" r="170" fill="none" stroke="url(#ring)" stroke-width="14" opacity="0.85"/>
+  <!-- Inner crosshair -->
+  <circle cx="256" cy="256" r="118" fill="none" stroke="#4DD0E1" stroke-width="3" opacity="0.55"/>
+  <line x1="256" y1="60"  x2="256" y2="120" stroke="#4DD0E1" stroke-width="6" stroke-linecap="round"/>
+  <line x1="256" y1="392" x2="256" y2="452" stroke="#4DD0E1" stroke-width="6" stroke-linecap="round"/>
+  <line x1="60"  y1="256" x2="120" y2="256" stroke="#4DD0E1" stroke-width="6" stroke-linecap="round"/>
+  <line x1="392" y1="256" x2="452" y2="256" stroke="#4DD0E1" stroke-width="6" stroke-linecap="round"/>
+  <!-- Scout fleur (stylized triangle) -->
+  <polygon points="256,140 326,366 186,366" fill="#4DD0E1"/>
+  <polygon points="256,180 300,346 212,346" fill="#0A0E14"/>
+  <polygon points="256,220 280,326 232,326" fill="#2DD881"/>
+  <!-- Center dot -->
+  <circle cx="256" cy="298" r="14" fill="#FFB547"/>
+</svg>
