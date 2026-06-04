@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>ניהול מחנות קיץ — תנועת הצופים</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;500;600;700;800&family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ===== Design tokens — צבעי תנועת הצופים ===== */
+  :root{
+    --khaki:        #6b7042;   /* חולצת תנועה — חאקי/ירוק זית */
+    --khaki-dark:   #555a32;
+    --khaki-light:  #8a9159;
+    --olive-bg:     #eef0e6;
+    --navy:         #1f3a5f;   /* כחול צופים — עניבה/סמל */
+    --navy-dark:    #16263f;
+    --navy-light:   #2f5582;
+    --gray-bg:      #f4f5f0;   /* רקע אפור בהיר נקי */
+    --card-bg:      #ffffff;
+    --border:       #d9dcce;
+    --text:         #232a1f;
+    --text-soft:    #5b6357;
+    --ok:           #2e7d4f;
+    --ok-bg:        #e3f3e9;
+    --warn:         #b9770d;
+    --warn-bg:      #fbf0d9;
+    --danger:       #b23b3b;
+    --danger-bg:    #f7e3e3;
+    --info:         #1f3a5f;
+    --shadow-sm:    0 1px 3px rgba(31,58,95,.08);
+    --shadow-md:    0 6px 18px rgba(31,58,95,.12);
+    --r-sm: 7px; --r-md: 12px; --r-lg: 18px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Assistant','Rubik',system-ui,sans-serif;
+    background:var(--gray-bg);
+    color:var(--text);
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ===== Header ===== */
+  header.app-header{
+    background:linear-gradient(120deg,var(--navy-dark),var(--navy));
+    color:#fff;
+    padding:14px 26px;
+    display:flex;align-items:center;gap:16px;
+    box-shadow:var(--shadow-md);
+    position:sticky;top:0;z-index:50;
+  }
+  .emblem{
+    width:50px;height:50px;flex:0 0 auto;
+    border-radius:50%;
+    background:radial-gradient(circle at 30% 30%,var(--khaki-light),var(--khaki-dark));
+    display:flex;align-items:center;justify-content:center;
+    font-size:24px;border:3px solid rgba(255,255,255,.85);
+    box-shadow:inset 0 0 8px rgba(0,0,0,.25);
+  }
+  .app-header .titles{flex:1;min-width:0;}
+  .app-header h1{font-size:1.35rem;font-weight:800;margin:0;letter-spacing:.2px;}
+  .app-header .sub{font-size:.82rem;opacity:.82;font-weight:500;margin-top:1px;}
+  .btn-reset{
+    background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.35);
+    padding:8px 14px;border-radius:var(--r-sm);font-family:inherit;font-size:.85rem;
+    font-weight:600;cursor:pointer;transition:.15s;white-space:nowrap;
+  }
+  .btn-reset:hover{background:rgba(255,255,255,.22);}
+
+  /* ===== Tabs nav ===== */
+  nav.tabs{
+    display:flex;flex-wrap:wrap;gap:4px;
+    background:var(--khaki);
+    padding:0 14px;
+    box-shadow:var(--shadow-sm);
+    position:sticky;top:78px;z-index:40;
+  }
+  nav.tabs button{
+    background:transparent;border:none;color:rgba(255,255,255,.85);
+    font-family:inherit;font-size:.95rem;font-weight:600;
+    padding:14px 18px;cursor:pointer;position:relative;
+    border-bottom:3px solid transparent;transition:.15s;
+  }
+  nav.tabs button:hover{color:#fff;background:rgba(255,255,255,.08);}
+  nav.tabs button.active{
+    color:#fff;background:rgba(255,255,255,.14);
+    border-bottom-color:#fff;
+  }
+  nav.tabs button .tab-ico{margin-left:6px;}
+
+  /* ===== Layout ===== */
+  main{max-width:1280px;margin:0 auto;padding:24px 22px 70px;}
+  .tab-panel{display:none;animation:fade .25s ease;}
+  .tab-panel.active{display:block;}
+  @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+  .panel-head{margin-bottom:16px;}
+  .panel-head h2{font-size:1.5rem;font-weight:800;margin:0 0 2px;color:var(--navy-dark);}
+  .panel-head p{margin:0;color:var(--text-soft);font-size:.92rem;}
+
+  /* ===== Summary cards ===== */
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin-bottom:20px;}
+  .card{
+    background:var(--card-bg);border:1px solid var(--border);border-radius:var(--r-md);
+    padding:16px 18px;box-shadow:var(--shadow-sm);position:relative;overflow:hidden;
+  }
+  .card::before{content:"";position:absolute;inset-inline-start:0;top:0;bottom:0;width:5px;background:var(--khaki);}
+  .card.navy::before{background:var(--navy);}
+  .card.ok::before{background:var(--ok);}
+  .card.warn::before{background:var(--warn);}
+  .card.danger::before{background:var(--danger);}
+  .card .label{font-size:.85rem;color:var(--text-soft);font-weight:600;margin-bottom:6px;}
+  .card .value{font-size:1.7rem;font-weight:800;color:var(--navy-dark);line-height:1.1;}
+  .card .value small{font-size:.95rem;font-weight:600;color:var(--text-soft);}
+
+  /* ===== Toolbar ===== */
+  .toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:14px;}
+  .toolbar .spacer{flex:1;}
+  .btn{
+    font-family:inherit;font-size:.9rem;font-weight:600;border-radius:var(--r-sm);
+    padding:9px 16px;cursor:pointer;border:1px solid transparent;transition:.15s;
+    display:inline-flex;align-items:center;gap:6px;
+  }
+  .btn-primary{background:var(--khaki);color:#fff;}
+  .btn-primary:hover{background:var(--khaki-dark);}
+  .btn-add{background:var(--navy);color:#fff;}
+  .btn-add:hover{background:var(--navy-dark);}
+  .field-inline{display:flex;align-items:center;gap:8px;font-size:.9rem;font-weight:600;color:var(--text-soft);}
+  select.hanhaga{
+    font-family:inherit;font-size:.9rem;font-weight:600;padding:8px 12px;
+    border:1px solid var(--border);border-radius:var(--r-sm);background:#fff;color:var(--navy-dark);cursor:pointer;
+  }
+
+  /* ===== Filter chips ===== */
+  .filters{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:16px;}
+  .chip{
+    font-family:inherit;font-size:.85rem;font-weight:600;padding:7px 14px;cursor:pointer;
+    border-radius:999px;border:1px solid var(--border);background:#fff;color:var(--text-soft);transition:.15s;
+  }
+  .chip:hover{border-color:var(--khaki-light);color:var(--khaki-dark);}
+  .chip.active{background:var(--khaki);color:#fff;border-color:var(--khaki);}
+  .chip .count{font-weight:700;opacity:.8;margin-inline-start:4px;font-size:.78rem;}
+
+  /* ===== Table ===== */
+  .table-wrap{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--r-md);overflow:hidden;box-shadow:var(--shadow-sm);}
+  table{width:100%;border-collapse:collapse;font-size:.92rem;}
+  thead th{
+    background:var(--navy);color:#fff;font-weight:700;text-align:right;
+    padding:12px 14px;white-space:nowrap;font-size:.88rem;
+  }
+  tbody td{padding:11px 14px;border-top:1px solid var(--border);text-align:right;vertical-align:top;}
+  tbody tr:nth-child(even){background:#fafbf6;}
+  tbody tr:hover{background:var(--olive-bg);}
+  td.notes{color:var(--text-soft);font-size:.86rem;max-width:280px;}
+  .num{font-variant-numeric:tabular-nums;font-weight:600;}
+  .empty{text-align:center;padding:34px;color:var(--text-soft);font-weight:600;}
+
+  /* status badges */
+  .badge{display:inline-block;padding:3px 11px;border-radius:999px;font-size:.8rem;font-weight:700;white-space:nowrap;}
+  .b-ok{background:var(--ok-bg);color:var(--ok);}
+  .b-warn{background:var(--warn-bg);color:var(--warn);}
+  .b-danger{background:var(--danger-bg);color:var(--danger);}
+  .b-info{background:#e6edf5;color:var(--navy);}
+  .b-neutral{background:#ecefe4;color:var(--khaki-dark);}
+
+  /* row actions */
+  .row-actions{display:flex;gap:6px;white-space:nowrap;}
+  .icon-btn{
+    border:1px solid var(--border);background:#fff;border-radius:var(--r-sm);
+    padding:5px 10px;cursor:pointer;font-family:inherit;font-size:.82rem;font-weight:600;transition:.15s;
+  }
+  .icon-btn.edit{color:var(--navy);}
+  .icon-btn.edit:hover{background:var(--navy);color:#fff;border-color:var(--navy);}
+  .icon-btn.del{color:var(--danger);}
+  .icon-btn.del:hover{background:var(--danger);color:#fff;border-color:var(--danger);}
+
+  /* sector tag */
+  .sector-tag{display:inline-block;padding:2px 9px;border-radius:var(--r-sm);background:var(--olive-bg);
+    color:var(--khaki-dark);font-size:.8rem;font-weight:700;white-space:nowrap;}
+
+  /* ===== Modal ===== */
+  .modal-overlay{
+    position:fixed;inset:0;background:rgba(22,38,63,.55);backdrop-filter:blur(2px);
+    display:none;align-items:flex-start;justify-content:center;z-index:100;padding:28px 16px;overflow-y:auto;
+  }
+  .modal-overlay.open{display:flex;}
+  .modal{
+    background:#fff;border-radius:var(--r-lg);width:100%;max-width:560px;
+    box-shadow:0 20px 60px rgba(0,0,0,.3);animation:pop .2s ease;
+  }
+  @keyframes pop{from{opacity:0;transform:scale(.96) translateY(8px);}to{opacity:1;transform:none;}}
+  .modal-head{
+    background:var(--navy);color:#fff;padding:16px 22px;border-radius:var(--r-lg) var(--r-lg) 0 0;
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .modal-head h3{margin:0;font-size:1.15rem;font-weight:800;}
+  .modal-head .x{background:none;border:none;color:#fff;font-size:1.5rem;cursor:pointer;line-height:1;opacity:.85;}
+  .modal-head .x:hover{opacity:1;}
+  .modal-body{padding:20px 22px;display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .form-field{display:flex;flex-direction:column;gap:5px;}
+  .form-field.full{grid-column:1 / -1;}
+  .form-field label{font-size:.85rem;font-weight:700;color:var(--text-soft);}
+  .form-field input,.form-field select,.form-field textarea{
+    font-family:inherit;font-size:.92rem;padding:9px 11px;border:1px solid var(--border);
+    border-radius:var(--r-sm);background:#fff;color:var(--text);width:100%;
+  }
+  .form-field input:focus,.form-field select:focus,.form-field textarea:focus{
+    outline:none;border-color:var(--khaki);box-shadow:0 0 0 3px rgba(107,112,66,.15);
+  }
+  .form-field textarea{resize:vertical;min-height:62px;}
+  .modal-foot{padding:14px 22px 20px;display:flex;justify-content:flex-start;gap:10px;}
+  .btn-cancel{background:#eceee5;color:var(--text-soft);}
+  .btn-cancel:hover{background:#dfe2d6;}
+
+  footer.app-foot{text-align:center;color:var(--text-soft);font-size:.82rem;padding:18px;}
+
+  @media(max-width:640px){
+    .modal-body{grid-template-columns:1fr;}
+    .app-header h1{font-size:1.1rem;}
+    nav.tabs{top:74px;}
+  }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="emblem">⚜️</div>
+  <div class="titles">
+    <h1>ניהול מחנות קיץ — תנועת הצופים</h1>
+    <div class="sub">מערכת ניהול תפעולית · תקציב · יערות · לוגיסטיקה · לו"ז · מבני קצה</div>
+  </div>
+  <button class="btn-reset" onclick="resetAll()">↺ איפוס לברירת מחדל</button>
+</header>
+
+<nav class="tabs" id="tabsNav">
+  <button data-tab="budget" class="active"><span class="tab-ico">💰</span>תקציב והנהגה</button>
+  <button data-tab="forests"><span class="tab-ico">🌲</span>יערות ומיקומים</button>
+  <button data-tab="logistics"><span class="tab-ico">📦</span>לוגיסטיקה ותשתיות</button>
+  <button data-tab="schedule"><span class="tab-ico">🗓️</span>לו"ז המחנה</button>
+  <button data-tab="structures"><span class="tab-ico">🏗️</span>מבני קצה וסנדות</button>
+</nav>
+
+<main>
+
+  <!-- ========== 1. BUDGET ========== -->
+  <section class="tab-panel active" id="panel-budget">
+    <div class="panel-head">
+      <h2>ניהול תקציב, כספים והנהגה</h2>
+      <p>מעקב סעיפי תקציב הנהגתיים — תכנון מול ביצוע בפועל</p>
+    </div>
+    <div class="toolbar">
+      <div class="field-inline">
+        <span>הנהגה:</span>
+        <select class="hanhaga" id="hanhagaSelect" onchange="renderBudget()">
+          <option>הנהגת צפון</option><option>הנהגת חיפה</option><option>הנהגת שרון דרום</option>
+          <option>הנהגת דרור</option><option>הנהגת איילון</option><option>הנהגת תל אביב</option>
+          <option>הנהגת ירושלים</option><option>הנהגת דרום</option>
+        </select>
+      </div>
+      <div class="spacer"></div>
+      <button class="btn btn-add" onclick="openModal('budget')">＋ הוספת סעיף תקציבי</button>
+    </div>
+    <div class="cards" id="cards-budget"></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>סעיף תקציבי</th><th>קטגוריה</th><th>תקציב מתוכנן (₪)</th>
+          <th>הוצאה בפועל (₪)</th><th>סטטוס</th><th>הערות</th><th>פעולות</th>
+        </tr></thead>
+        <tbody id="tbody-budget"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ========== 2. FORESTS ========== -->
+  <section class="tab-panel" id="panel-forests">
+    <div class="panel-head">
+      <h2>ניהול יערות ומיקומי מחנה</h2>
+      <p>מיקומי המחנות, תאריכי שהייה, מגבלות קהל ואישורי קק"ל/משטרה</p>
+    </div>
+    <div class="toolbar">
+      <div class="spacer"></div>
+      <button class="btn btn-add" onclick="openModal('forests')">＋ הוספת יער/מיקום</button>
+    </div>
+    <div class="cards" id="cards-forests"></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>שם היער</th><th>גוש/חלקת מחנה</th><th>תאריכי שהייה</th>
+          <th>מגבלת קהל</th><th>אישור קק"ל/משטרה</th><th>הערות בטיחות</th><th>פעולות</th>
+        </tr></thead>
+        <tbody id="tbody-forests"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ========== 3. LOGISTICS ========== -->
+  <section class="tab-panel" id="panel-logistics">
+    <div class="panel-head">
+      <h2>לוגיסטיקה, אקונומיה ותשתיות יער</h2>
+      <p>מאגר הציוד והמשימות התפעוליות — מסונן לפי מדורי השטח של התנועה</p>
+    </div>
+    <div class="cards" id="cards-logistics"></div>
+    <div class="filters" id="filters-logistics"></div>
+    <div class="toolbar">
+      <div class="spacer"></div>
+      <button class="btn btn-add" onclick="openModal('logistics')">＋ הוספת פריט/משימה</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>מדור/תחום</th><th>שם הפריט/המשימה</th><th>כמות נדרשת</th><th>יחידת מידה</th>
+          <th>סטטוס</th><th>אחראי</th><th>הערות לוגיסטיות</th><th>פעולות</th>
+        </tr></thead>
+        <tbody id="tbody-logistics"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ========== 4. SCHEDULE ========== -->
+  <section class="tab-panel" id="panel-schedule">
+    <div class="panel-head">
+      <h2>ניהול ימי המחנה ולוח זמנים (לו"ז תנועתי)</h2>
+      <p>שלבי המחנה בשטח — שכבות גיל, משימות מרכזיות וסטטוס אישורי בטיחות</p>
+    </div>
+    <div class="toolbar">
+      <div class="spacer"></div>
+      <button class="btn btn-add" onclick="openModal('schedule')">＋ הוספת שלב</button>
+    </div>
+    <div class="cards" id="cards-schedule"></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>שלב</th><th>תאריכים</th><th>שכבת גיל בשטח</th>
+          <th>משימה מרכזית</th><th>סטטוס אישור בטיחות</th><th>פעולות</th>
+        </tr></thead>
+        <tbody id="tbody-schedule"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ========== 5. STRUCTURES ========== -->
+  <section class="tab-panel" id="panel-structures">
+    <div class="panel-head">
+      <h2>מבני קצה, סנדות ואישורי מהנדס</h2>
+      <p>ניהול מבני החלוץ והקצה על פי חוזר מנכ"ל ואישורי קונסטרוקטור — בטיחות מעל הכל</p>
+    </div>
+    <div class="toolbar">
+      <div class="spacer"></div>
+      <button class="btn btn-add" onclick="openModal('structures')">＋ הוספת מבנה</button>
+    </div>
+    <div class="cards" id="cards-structures"></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>שם המבנה</th><th>גובה (מ')</th><th>כמות סנדות</th>
+          <th>אישור קונסטרוקטור</th><th>סטטוס בנייה</th><th>הערות בטיחות</th><th>פעולות</th>
+        </tr></thead>
+        <tbody id="tbody-structures"></tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+
+<!-- ===== Modal ===== -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="modalTitle">הוספת רשומה</h3>
+      <button class="x" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-foot">
+      <button class="btn btn-primary" onclick="saveModal()">💾 שמירה</button>
+      <button class="btn btn-cancel" onclick="closeModal()">ביטול</button>
+    </div>
+  </div>
+</div>
+
+<footer class="app-foot">⚜️ מערכת ניהול מחנות קיץ · תנועת הצופים והצופות בישראל · כל הנתונים נשמרים מקומית בדפדפן</footer>
+
+<script>
+/* =========================================================
+   נתוני ברירת מחדל
+   ========================================================= */
+const DEFAULTS = {
+  budget: [
+    {item:'אוטובוסים פיזור חניכים ושכ"ב', cat:'לוגיסטיקה', planned:52000, actual:52000, status:'אושר', notes:'חברת הסעות מאושרת ע"י החברה למתנ"סים'},
+    {item:'מצרכים יבשים וטריים לאקונומיה', cat:'אקונומיה', planned:75000, actual:71000, status:'אושר', notes:'אספקה דרך זכיין המכרז התנועתי'},
+    {item:'רכש חבלים (סיסל 4, 6 ו-8 מ"מ)', cat:'מחסן', planned:8500, actual:9200, status:'אושר', notes:'חריגה בשל תוספת כמות לחלוץ הנהגתי'},
+    {item:'תשלום לקבלן תאי שירותים כימיים ומכלי ביוב', cat:'תברואה', planned:24000, actual:24000, status:'אושר', notes:'כולל שאיבה דו-יומית לפי תנאי המכרז'},
+    {item:'אגרת רישוי, קק"ל ואישורי מהנדס בטיחות', cat:'מנהלה', planned:6500, actual:6500, status:'אושר', notes:'תשלום עבור בדיקת סטטיקאי ומבני קצה'},
+    {item:'ציוד רפואי ועזרה ראשונה', cat:'בטיחות', planned:5000, actual:4800, status:'אושר', notes:'חוסמי עורקים, תחבושות, תיק חובש'},
+    {item:'חולצות מחנה לחניכים וצוות', cat:'תרבות', planned:15000, actual:16200, status:'אושר', notes:'חריגה קלה בשל תוספת מידות'},
+    {item:'פרסום ושיווק שבטי', cat:'מנהלה', planned:3000, actual:1500, status:'ממתין לאישור', notes:'פליירים ושלטים ליישוב'},
+  ],
+  forests: [
+    {name:'יער ציפורי', block:'מתחם דרום (חלקות 4-5)', dates:'10.07.2026 - 19.07.2026', capacity:800, approval:'מאושר', notes:'שימו לב לשיפוע בצד המערבי'},
+    {name:'יער עופר (הכרמל)', block:"שלוחה ב'", dates:'22.07.2026 - 31.07.2026', capacity:1200, approval:'ממתין לאישור משטרה', notes:'חסימת ציר גישה לרכב כבד'},
+    {name:'יער חרודית', block:'מתחם מרכזי', dates:'02.08.2026 - 08.08.2026', capacity:500, approval:'מאושר', notes:'דגש על פינוי אשפה יומי'},
+  ],
+  logistics: [
+    // אקונומיה
+    {sector:'אקונומיה', item:'מקררי תעשייה 2 דלתות (בשרי/חלבי)', qty:2, unit:'יחידות', status:'בהזמנה', owner:'מנהל אקונומיה', notes:'מחייב אישור דת"ק ויישור קו חשמל 3 פאזות'},
+    {sector:'אקונומיה', item:'סירי ענק (אלומיניום 50 ליטר) לבישול גדודי', qty:6, unit:'יחידות', status:'במחסן', owner:'צוות מטבח', notes:"לעבור על כולם עם סקוץ' וחיטוי לפני המחנה"},
+    {sector:'אקונומיה', item:'מבערי גז תעשייתיים ("דרגשים")', qty:5, unit:'יחידות', status:'במחסן', owner:'טכנאי גז מוסמך', notes:'בדיקת לחץ ואישור טכנאי מורשה ביום החלוץ הראשון — חובה'},
+    {sector:'אקונומיה', item:'מיכלי גז 48 ק"ג + כלוב הגנה נעול', qty:3, unit:'יחידות', status:'בהזמנה', owner:'לוגיסטיקה', notes:'כלוב נעול במרחק 15 מ\' לפחות ממתחם החניכים'},
+    {sector:'אקונומיה', item:'משטחי עבודה (נירוסטה) לחיתוך והכנה', qty:4, unit:'יחידות', status:'במחסן', owner:'צוות מטבח', notes:'ניקוי יומי עם אקונומיקה בסוף כל משמרת'},
+    {sector:'אקונומיה', item:'קרשי חיתוך צבעוניים (הפרדת בשר/ירקות)', qty:12, unit:'יחידות', status:'במחסן', owner:'מחסנאי אקונומיה', notes:'אדום לבשר, ירוק לירקות, כחול לדגים'},
+    {sector:'אקונומיה', item:'חומרי גלם יבשים (אורז, פסטה, שימורים)', qty:1, unit:"טונאז'", status:'בהזמנה', owner:'ספק שופרסל', notes:'אספקה ישירה לחלוץ ביום השלישי'},
+    {sector:'אקונומיה', item:'לחם ומוצרי מאפה טריים', qty:400, unit:'יחידות', status:'חסר', owner:'מנהל אקונומיה', notes:'אספקה יומית בכל בוקר בשעה 06:00 ליער'},
+    // אבטחה
+    {sector:'אבטחה', item:'מגדל שמירה חלוץ (סנדות)', qty:1, unit:'יחידות', status:'במחסן', owner:'ראש חלוץ', notes:'מבנה בגובה 4 מטרים, דורש אישור קונסטרוקטור'},
+    {sector:'אבטחה', item:'פנקס רישום כניסות/יציאות ומבקרים בשער', qty:2, unit:'יחידות', status:'במחסן', owner:'אחראי אבטחה', notes:'חובת חתימה לכל רכב או הורה שנכנס ליער'},
+    {sector:'אבטחה', item:'אפודי זוהר (שכפ"צ זוהר) לצוות שמירת לילה', qty:15, unit:'יחידות', status:'במחסן', owner:'תורן שמירה', notes:'חלוקה בלילה לחניכים בוגרים ושכבה בוגרת'},
+    {sector:'אבטחה', item:'מכשירי קשר ניידים (מירסים/ווקי-טוקי)', qty:8, unit:'יחידות', status:'במחסן', owner:'חמ"ל מחנה', notes:'בדיקת תקינות סוללות ומטענים בחמ"ל'},
+    {sector:'אבטחה', item:'מטפי כיבוי אש (אבקה 6 ק"ג)', qty:15, unit:'יחידות', status:'במחסן', owner:'ממונה בטיחות', notes:'פריסה: 2 במטבח, 2 בחמ"ל, מרפאה, וכל מתחם גדודי'},
+    {sector:'אבטחה', item:'זרנוקי מים לכיבוי אש (חיבור להידרנט)', qty:2, unit:'יחידות', status:'במחסן', owner:'לוגיסטיקה', notes:'פריסה קבועה מאחורי מתחם המטבח השבטי'},
+    // רפואה
+    {sector:'רפואה', item:'תיקי חובש פלוגתיים מאובזרים + ערכות החייאה', qty:4, unit:'יחידות', status:'במחסן', owner:'חובש ראשי', notes:'חובש מחנה רשמי (מד"א/צבאי) בתוקף, כולל חוסמי עורקים'},
+    {sector:'רפואה', item:'מקרר תרופות ייעודי למרפאה', qty:1, unit:'יחידות', status:'בהזמנה', owner:'לוגיסטיקה', notes:'דורש חיבור קבוע לגנרטור גיבוי'},
+    {sector:'רפואה', item:'אלונקות שדה מתקפלות', qty:3, unit:'יחידות', status:'במחסן', owner:'בטיחות שבטית', notes:'לבדוק תקינות רצועות הידוק'},
+    {sector:'רפואה', item:'ערכות עזרה ראשונה לצוות חלוץ', qty:2, unit:'יחידות', status:'במחסן', owner:'ראש חלוץ', notes:'לחלוקה ביום הראשון של ההקמות'},
+    {sector:'רפואה', item:'בלוני חמצן ניידים למרפאה', qty:2, unit:'יחידות', status:'חסר', owner:'חובש ראשי', notes:'מחייב אישור ספק רפואי מוצהר'},
+    // תברואה
+    {sector:'תברואה', item:'עמדות שטיפת וחיטוי ידיים (סבונמט + נייר)', qty:12, unit:'יחידות', status:'בהזמנה', owner:'מרכז תברואה', notes:'בכניסה לחדר האוכל השבטי ולמתחם השירותים'},
+    {sector:'תברואה', item:'פחי אשפה ירוקים גדולים (צפרדעים)', qty:3, unit:'יחידות', status:'במחסן', owner:'קבלן פינוי', notes:'תיאום מול קק"ל והמועצה האזורית לפינוי יומי'},
+    {sector:'תברואה', item:'מתקני קטילת יתושים וחרקים למטבח', qty:4, unit:'יחידות', status:'במחסן', owner:'צוות מטבח', notes:'חובה להתקין במתחם סגור'},
+    {sector:'תברואה', item:"חומרי חיטוי (כלור, אקונומיקה, אלכוג'ל)", qty:15, unit:'גלונים', status:'במחסן', owner:'מחסנאי שבטי', notes:'אחסון במקום מוצל ונעול בלבד'},
+    // מקלחות וביוב
+    {sector:'מקלחות וביוב', item:'מיכלי מים לשתייה ולרחצה (קוביות 1 קוב) + משאבות לחץ', qty:6, unit:'יחידות', status:'בהזמנה', owner:'קבלן מים', notes:'חיבור לחנוכיית המים ההנהגתית המרכזית'},
+    {sector:'מקלחות וביוב', item:'מרכזיית מים ("חנוכיית צינורות") למקלחות', qty:2, unit:'יחידות', status:'במחסן', owner:'אינסטלטור מחנה', notes:'לבדוק שאין נזילות בחיבורים מהשנה שעברה'},
+    {sector:'מקלחות וביוב', item:'וילונות אטומים למקלחות חניכים', qty:40, unit:'יחידות', status:'חסר', owner:'צוות חלוץ', notes:'חלוקה שווה בין מתחם בנים למתחם בנות'},
+    {sector:'מקלחות וביוב', item:'תאי שירותים כימיים ניידים', qty:14, unit:'יחידות', status:'בהזמנה', owner:'ספק חיצוני', notes:'הפרדה מוחלטת: חניכים, חניכות וצוות בוגר; שאיבה פעמיים ביום'},
+    {sector:'מקלחות וביוב', item:'צינורות שרשוריים ומשאבות טבולות לניקוז שפכים', qty:150, unit:'מטרים', status:'במחסן', owner:'אינסטלטור מחנה', notes:'הובלה ישירה לבור הספיגה המאושר ביער'},
+    // גדרות
+    {sector:'גדרות', item:'גדר רשת ירוקה היקפית (תיחום חוסם)', qty:600, unit:'מטרים', status:'במחסן', owner:'אחראי אבטחה', notes:'תיחום מלא של כל שטח המחנה לפי פקודת המשטרה'},
+    {sector:'גדרות', item:'בזנ"טים ארוכים + פקקי פלסטיק בטיחותיים', qty:250, unit:'יחידות', status:'במחסן', owner:'צוות חלוץ', notes:'חובה פקק צהוב/אדום על כל בזנ"ט למניעת פציעות'},
+    {sector:'גדרות', item:'פרוזקטורים תאורת לדים (LED) להיקף ולשער', qty:12, unit:'יחידות', status:'בהזמנה', owner:'קבלן חשמל', notes:'חיבור לרשת החשמל ההנהגתית, בדיקת הארקה'},
+    {sector:'גדרות', item:'סרט סימון מזהיר (אדום-לבן)', qty:10, unit:'גלילים', status:'במחסן', owner:'בטיחות שבטית', notes:'לתיחום אזורים מסוכנים או בורות ביער'},
+    {sector:'גדרות', item:'בוטקה שומר לעמדת השער', qty:1, unit:'יחידות', status:'במחסן', owner:'לוגיסטיקה', notes:'כולל כיסא, שולחן ופנקס רישום כניסות'},
+    // מחסן
+    {sector:'מחסן', item:'סנדות אורן קלופות (3 מטר ו-4 מטר)', qty:500, unit:'יחידות', status:'במחסן', owner:'מחסנאי שבטי', notes:'בדיקת סנדות סדוקות או שבורות ופסילתן מיידית'},
+    {sector:'מחסן', item:'חבלי סיסל איכותיים (חבילות 5 ק"ג)', qty:80, unit:'חבילות', status:'חסר', owner:'מחסנאי שבטי', notes:'חוסר של 20 חבילות — השלמת רכש דחופה דרך המרכז הלוגיסטי'},
+    {sector:'מחסן', item:'כלי עבודה (פטישים, גרזנים, מפתח שווקי)', qty:30, unit:'יחידות', status:'במחסן', owner:'צוות חלוץ', notes:'סימון כל הכלים בצבע השבט'},
+    {sector:'מחסן', item:'גנרטור 5KW כולל מייצב מתח', qty:2, unit:'יחידות', status:'במחסן', owner:'קבלן חשמל', notes:'דורש בדיקת בודק חשמל מוסמך בשטח היער'},
+    {sector:'מחסן', item:'מפתחות ומנעולים לתיבות הציוד', qty:15, unit:'יחידות', status:'במחסן', owner:'מחסנאי שבטי', notes:'מפתח רזרבי יישאר אצל מרכז השבט'},
+  ],
+  schedule: [
+    {phase:'ימי חלוץ שבטי (שכ"ב)', dates:'ימים 1-3', age:'שמיניסטים וצוות בוגר', task:'הקמת תשתיות, מטבח, מקלחות ומבני קצה', status:'מאושר מהנדס'},
+    {phase:"הגעת חניכי צמי\"ד וד'-ו'", dates:'ימים 4-7', age:'שכבה צעירה', task:'פעילות תוכן, מסלולים, טקס פתיחה', status:'מאושר חמ"ל תנועתי'},
+    {phase:"הגעת חניכי ז'-ח' (מחנה קורס)", dates:'ימים 5-8', age:'שכבת ביניים', task:'ניווטים, בישול צופי, הכשרה לקראת שכ"ב', status:'מאושר משרד החינוך'},
+    {phase:'ימי פירוק ומסדר דמעות', dates:'יום 9', age:'שכ"ב בלבד', task:'פירוק מבנים, גלילת חבלים, ניקוי שטח היער והחזרתו לקק"ל', status:'ממתין לסיור נציג קק"ל'},
+  ],
+  structures: [
+    {name:'שער מחנה נושא (לפי נושא המחנה)', height:6.5, sandot:140, engineer:'כן', status:'בתהליך בנייה', notes:'חובה מתיחות כפולות לחלוץ אחורי, שימוש בחבלי 8 מ"מ'},
+    {name:'תורן הנהגתי / שבטי מרכזי', height:9, sandot:18, engineer:'כן', status:'טרם החל', notes:'מבנה תלת-רגל עם סנדת שפיץ מחוזקת, ייבנה רק ע"י שמיניסטים'},
+    {name:'מתחם חדר אוכל מקורה (רשתות צל)', height:3.5, sandot:90, engineer:'כן', status:'הושלם', notes:'בדיקת מתיחות כבלים לעצים, אישור עמידות ברוח'},
+    {name:'מחסן שבטי וחמ"ל', height:3, sandot:40, engineer:'לא', status:'הושלם', notes:'מבנה קוביה פשוט, דורש כיסוי ברזנט אטום ושילוט "חמ"ל - אין כניסה"'},
+    {name:'מתקן שטיפת כלים גדודי (מתקן מים)', height:2.5, sandot:30, engineer:'לא', status:'בתהליך בנייה', notes:'שיפוע קבוע לניקוז המים ישירות לצינור השרשורי'},
+  ],
+};
+
+const SECTORS = ['אקונומיה','אבטחה','רפואה','תברואה','מקלחות וביוב','גדרות','מחסן'];
+const STORAGE_KEY = 'tzofim_camp_v1';
+
+/* =========================================================
+   State + persistence
+   ========================================================= */
+let state, logisticsFilter = 'הכל';
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){ state = JSON.parse(raw); return; }
+  }catch(e){ console.warn('localStorage load failed', e); }
+  state = JSON.parse(JSON.stringify(DEFAULTS));
+}
+function saveState(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+  catch(e){ console.warn('localStorage save failed', e); }
+}
+function resetAll(){
+  if(!confirm('לאפס את כל הנתונים לברירת המחדל? כל השינויים שביצעת יימחקו.')) return;
+  state = JSON.parse(JSON.stringify(DEFAULTS));
+  saveState(); renderAll();
+}
+
+/* =========================================================
+   Helpers
+   ========================================================= */
+const ils = n => Number(n||0).toLocaleString('he-IL');
+const esc = s => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function statusBadge(s){
+  const map = {
+    'אושר':'b-ok','מאושר':'b-ok','במחסן':'b-ok','הושלם':'b-ok',
+    'ממתין לאישור':'b-warn','בהזמנה':'b-warn','בתהליך בנייה':'b-warn','בתהליך תכנון':'b-warn','בתהליך הקמה':'b-warn','טרם החל':'b-neutral',
+    'חסר':'b-danger',
+  };
+  let cls = 'b-info';
+  for(const k in map){ if(String(s).indexOf(k)===0){ cls = map[k]; break; } }
+  if(String(s).indexOf('ממתין')===0) cls='b-warn';
+  if(String(s).indexOf('מאושר')===0) cls='b-ok';
+  return `<span class="badge ${cls}">${esc(s)}</span>`;
+}
+function rowActions(tab, i){
+  return `<div class="row-actions">
+    <button class="icon-btn edit" onclick="openModal('${tab}',${i})">✎ עריכה</button>
+    <button class="icon-btn del" onclick="delRow('${tab}',${i})">🗑 מחיקה</button>
+  </div>`;
+}
+function delRow(tab, i){
+  if(!confirm('למחוק את הרשומה?')) return;
+  state[tab].splice(i,1); saveState(); renderAll();
+}
+function cardHTML(label, value, cls){
+  return `<div class="card ${cls||''}"><div class="label">${label}</div><div class="value">${value}</div></div>`;
+}
+
+/* =========================================================
+   Render — Budget
+   ========================================================= */
+function renderBudget(){
+  const rows = state.budget;
+  const approved = rows.filter(r=>r.status==='אושר').reduce((s,r)=>s+Number(r.planned||0),0);
+  const actual   = rows.reduce((s,r)=>s+Number(r.actual||0),0);
+  const balance  = approved - actual;
+  const hanhaga  = document.getElementById('hanhagaSelect').value;
+  document.getElementById('cards-budget').innerHTML =
+    cardHTML(`סך תקציב מאושר · ${esc(hanhaga)}`, `₪ ${ils(approved)}`, 'navy') +
+    cardHTML('סך הוצאות בפועל', `₪ ${ils(actual)}`, 'warn') +
+    cardHTML('יתרה (רזרבה תנועתית)', `₪ ${ils(balance)}`, balance>=0?'ok':'danger');
+  document.getElementById('tbody-budget').innerHTML = rows.length ? rows.map((r,i)=>`
+    <tr>
+      <td><strong>${esc(r.item)}</strong></td>
+      <td><span class="b-neutral badge">${esc(r.cat)}</span></td>
+      <td class="num">₪ ${ils(r.planned)}</td>
+      <td class="num">₪ ${ils(r.actual)}</td>
+      <td>${statusBadge(r.status)}</td>
+      <td class="notes">${esc(r.notes)}</td>
+      <td>${rowActions('budget',i)}</td>
+    </tr>`).join('') : emptyRow(7);
+}
+
+/* =========================================================
+   Render — Forests
+   ========================================================= */
+function renderForests(){
+  const rows = state.forests;
+  const totalCap = rows.reduce((s,r)=>s+Number(r.capacity||0),0);
+  const selected = rows[0] ? rows[0].name : '—';
+  document.getElementById('cards-forests').innerHTML =
+    cardHTML('יער ראשי נבחר', esc(selected), 'navy') +
+    cardHTML('מספר חניכים מתוכנן', `${ils(totalCap)} <small>איש</small>`, 'ok') +
+    cardHTML('מספר יערות פעילים', rows.length, 'warn');
+  document.getElementById('tbody-forests').innerHTML = rows.length ? rows.map((r,i)=>`
+    <tr>
+      <td><strong>${esc(r.name)}</strong></td>
+      <td>${esc(r.block)}</td>
+      <td class="num">${esc(r.dates)}</td>
+      <td class="num">${ils(r.capacity)} איש</td>
+      <td>${statusBadge(r.approval)}</td>
+      <td class="notes">${esc(r.notes)}</td>
+      <td>${rowActions('forests',i)}</td>
+    </tr>`).join('') : emptyRow(7);
+}
+
+/* =========================================================
+   Render — Logistics (with filter)
+   ========================================================= */
+function renderLogisticsFilters(){
+  const all = ['הכל', ...SECTORS];
+  document.getElementById('filters-logistics').innerHTML = all.map(s=>{
+    const count = s==='הכל' ? state.logistics.length : state.logistics.filter(r=>r.sector===s).length;
+    return `<button class="chip ${logisticsFilter===s?'active':''}" onclick="setLogisticsFilter('${s.replace(/'/g,"\\'")}')">${esc(s)}<span class="count">${count}</span></button>`;
+  }).join('');
+}
+function setLogisticsFilter(s){ logisticsFilter = s; renderLogistics(); }
+function renderLogistics(){
+  renderLogisticsFilters();
+  const all = state.logistics;
+  const missing = all.filter(r=>r.status==='חסר').length;
+  const received = all.filter(r=>r.status==='במחסן').length;
+  const pct = all.length ? Math.round(received/all.length*100) : 0;
+  document.getElementById('cards-logistics').innerHTML =
+    cardHTML('סך פריטים חסרים במחנה', `${missing} <small>פריטים</small>`, missing>0?'danger':'ok') +
+    cardHTML('ציוד שהתקבל (במחסן)', `${pct}%`, 'ok') +
+    cardHTML('סך פריטים/משימות', all.length, 'navy');
+  // render with original indices preserved for edit/delete
+  const view = all.map((r,i)=>({r,i})).filter(o=>logisticsFilter==='הכל'||o.r.sector===logisticsFilter);
+  document.getElementById('tbody-logistics').innerHTML = view.length ? view.map(({r,i})=>`
+    <tr>
+      <td><span class="sector-tag">${esc(r.sector)}</span></td>
+      <td><strong>${esc(r.item)}</strong></td>
+      <td class="num">${ils(r.qty)}</td>
+      <td>${esc(r.unit)}</td>
+      <td>${statusBadge(r.status)}</td>
+      <td>${esc(r.owner)}</td>
+      <td class="notes">${esc(r.notes)}</td>
+      <td>${rowActions('logistics',i)}</td>
+    </tr>`).join('') : emptyRow(8);
+}
+
+/* =========================================================
+   Render — Schedule
+   ========================================================= */
+function renderSchedule(){
+  const rows = state.schedule;
+  const approved = rows.filter(r=>String(r.status).indexOf('מאושר')===0).length;
+  document.getElementById('cards-schedule').innerHTML =
+    cardHTML('מספר שלבים במחנה', rows.length, 'navy') +
+    cardHTML('שלבים מאושרי בטיחות', `${approved} / ${rows.length}`, approved===rows.length?'ok':'warn');
+  document.getElementById('tbody-schedule').innerHTML = rows.length ? rows.map((r,i)=>`
+    <tr>
+      <td><strong>${esc(r.phase)}</strong></td>
+      <td class="num">${esc(r.dates)}</td>
+      <td>${esc(r.age)}</td>
+      <td class="notes">${esc(r.task)}</td>
+      <td>${statusBadge(r.status)}</td>
+      <td>${rowActions('schedule',i)}</td>
+    </tr>`).join('') : emptyRow(6);
+}
+
+/* =========================================================
+   Render — Structures
+   ========================================================= */
+function renderStructures(){
+  const rows = state.structures;
+  const building = rows.filter(r=>{const s=String(r.status); return s.indexOf('בתהליך')===0 || s.indexOf('טרם')===0;}).length;
+  const engineer = rows.filter(r=>r.engineer==='כן').length;
+  document.getElementById('cards-structures').innerHTML =
+    cardHTML('מבנים בתהליך / טרם הוקמו', building, 'warn') +
+    cardHTML('אישורי מהנדס נדרשים', `${engineer} <small>מבנים</small>`, 'danger') +
+    cardHTML('סך מבני קצה', rows.length, 'navy');
+  document.getElementById('tbody-structures').innerHTML = rows.length ? rows.map((r,i)=>`
+    <tr>
+      <td><strong>${esc(r.name)}</strong></td>
+      <td class="num">${esc(r.height)} מ'</td>
+      <td class="num">${ils(r.sandot)}</td>
+      <td>${r.engineer==='כן'?'<span class="badge b-danger">כן — נדרש</span>':'<span class="badge b-neutral">לא</span>'}</td>
+      <td>${statusBadge(r.status)}</td>
+      <td class="notes">${esc(r.notes)}</td>
+      <td>${rowActions('structures',i)}</td>
+    </tr>`).join('') : emptyRow(7);
+}
+
+function emptyRow(cols){ return `<tr><td class="empty" colspan="${cols}">אין רשומות — לחצו על "הוספה" כדי להתחיל</td></tr>`; }
+
+function renderAll(){
+  renderBudget(); renderForests(); renderLogistics(); renderSchedule(); renderStructures();
+}
+
+/* =========================================================
+   Modal — generic add/edit
+   ========================================================= */
+const SCHEMAS = {
+  budget: {title:'סעיף תקציבי', fields:[
+    {key:'item',label:'סעיף תקציבי',type:'text',full:true},
+    {key:'cat',label:'קטגוריה',type:'text'},
+    {key:'status',label:'סטטוס',type:'select',opts:['אושר','ממתין לאישור']},
+    {key:'planned',label:'תקציב מתוכנן (₪)',type:'number'},
+    {key:'actual',label:'הוצאה בפועל (₪)',type:'number'},
+    {key:'notes',label:'הערות',type:'textarea',full:true},
+  ]},
+  forests: {title:'יער / מיקום מחנה', fields:[
+    {key:'name',label:'שם היער',type:'text'},
+    {key:'block',label:'גוש/חלקת מחנה',type:'text'},
+    {key:'dates',label:'תאריכי שהייה',type:'text'},
+    {key:'capacity',label:'מגבלת קהל',type:'number'},
+    {key:'approval',label:'אישור קק"ל/משטרה',type:'select',opts:['מאושר','ממתין לאישור משטרה','ממתין לאישור קק"ל']},
+    {key:'notes',label:'הערות בטיחות',type:'textarea',full:true},
+  ]},
+  logistics: {title:'פריט/משימה לוגיסטית', fields:[
+    {key:'sector',label:'מדור/תחום',type:'select',opts:SECTORS},
+    {key:'item',label:'שם הפריט/המשימה',type:'text'},
+    {key:'qty',label:'כמות נדרשת',type:'number'},
+    {key:'unit',label:'יחידת מידה',type:'text'},
+    {key:'status',label:'סטטוס',type:'select',opts:['במחסן','בהזמנה','חסר']},
+    {key:'owner',label:'אחראי',type:'text'},
+    {key:'notes',label:'הערות לוגיסטיות',type:'textarea',full:true},
+  ]},
+  schedule: {title:'שלב במחנה', fields:[
+    {key:'phase',label:'שלב',type:'text',full:true},
+    {key:'dates',label:'תאריכים',type:'text'},
+    {key:'age',label:'שכבת גיל בשטח',type:'text'},
+    {key:'task',label:'משימה מרכזית',type:'textarea',full:true},
+    {key:'status',label:'סטטוס אישור בטיחות',type:'text',full:true},
+  ]},
+  structures: {title:'מבנה קצה', fields:[
+    {key:'name',label:'שם המבנה',type:'text',full:true},
+    {key:'height',label:"גובה (מ')",type:'number'},
+    {key:'sandot',label:'כמות סנדות משוערת',type:'number'},
+    {key:'engineer',label:'דורש אישור קונסטרוקטור',type:'select',opts:['כן','לא']},
+    {key:'status',label:'סטטוס בנייה',type:'select',opts:['טרם החל','בתהליך תכנון','בתהליך בנייה','הושלם']},
+    {key:'notes',label:'הערות בטיחות',type:'textarea',full:true},
+  ]},
+};
+
+let editCtx = {tab:null, index:null};
+
+function openModal(tab, index){
+  editCtx = {tab, index: (index==null?null:index)};
+  const schema = SCHEMAS[tab];
+  const rec = (index!=null) ? state[tab][index] : {};
+  document.getElementById('modalTitle').textContent = (index!=null?'עריכת ':'הוספת ') + schema.title;
+  document.getElementById('modalBody').innerHTML = schema.fields.map(f=>{
+    const val = rec[f.key]!=null ? rec[f.key] : '';
+    let input;
+    if(f.type==='select'){
+      input = `<select data-key="${f.key}">${f.opts.map(o=>`<option ${String(o)===String(val)?'selected':''}>${esc(o)}</option>`).join('')}</select>`;
+    } else if(f.type==='textarea'){
+      input = `<textarea data-key="${f.key}">${esc(val)}</textarea>`;
+    } else {
+      input = `<input type="${f.type}" data-key="${f.key}" value="${esc(val)}" ${f.type==='number'?'step="any"':''}>`;
+    }
+    return `<div class="form-field ${f.full?'full':''}"><label>${esc(f.label)}</label>${input}</div>`;
+  }).join('');
+  document.getElementById('modalOverlay').classList.add('open');
+}
+function closeModal(){ document.getElementById('modalOverlay').classList.remove('open'); }
+function saveModal(){
+  const {tab, index} = editCtx;
+  const schema = SCHEMAS[tab];
+  const rec = {};
+  let valid = true;
+  document.querySelectorAll('#modalBody [data-key]').forEach(el=>{
+    const f = schema.fields.find(x=>x.key===el.dataset.key);
+    let v = el.value;
+    if(f.type==='number') v = v===''?0:Number(v);
+    if(f.type!=='textarea' && f.key!=='notes' && (v==='' || v==null)) { /* basic required-ish */ }
+    rec[el.dataset.key] = v;
+  });
+  // require at least the primary text field non-empty
+  const primary = schema.fields[0].key;
+  if(!String(rec[primary]||'').trim()){ alert('נא למלא לפחות את השדה הראשי.'); return; }
+  if(index!=null) state[tab][index] = rec;
+  else state[tab].push(rec);
+  saveState(); closeModal(); renderAll();
+}
+
+/* =========================================================
+   Tabs
+   ========================================================= */
+document.getElementById('tabsNav').addEventListener('click', e=>{
+  const btn = e.target.closest('button[data-tab]'); if(!btn) return;
+  document.querySelectorAll('#tabsNav button').forEach(b=>b.classList.toggle('active', b===btn));
+  const tab = btn.dataset.tab;
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.toggle('active', p.id==='panel-'+tab));
+  window.scrollTo({top:0, behavior:'smooth'});
+});
+
+// close modal on overlay click / Esc
+document.getElementById('modalOverlay').addEventListener('click', e=>{ if(e.target.id==='modalOverlay') closeModal(); });
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
+
+/* ===== init ===== */
+loadState();
+renderAll();
+</script>
+</body>
+</html>
