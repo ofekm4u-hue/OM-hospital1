@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>נתב"ג · עמדת פקח מכ"ם גישה (LLBG ATC)</title>
+  <!-- Tailwind via Play CDN (no build config needed) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    html, body, #root { height: 100%; margin: 0; background: #030712; }
+    * { box-sizing: border-box; border-radius: 0 !important; }
+    .flash { animation: fl 0.7s steps(2, start) infinite; }
+    @keyframes fl { 50% { opacity: 0.25; } }
+    /* point the frontend at the backend WebSocket; change host if remote */
+  </style>
+  <script>
+    // override here if your backend is not on localhost:8000
+    window.__LLBG_WS__ = `ws://${location.hostname || "localhost"}:8000/ws`;
+  </script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+</html>

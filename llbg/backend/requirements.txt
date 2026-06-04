@@ -1,0 +1,9 @@
+# ── LLBG ATC backend dependencies ──────────────────────────────────────────
+fastapi>=0.110
+uvicorn[standard]>=0.29
+python-dotenv>=1.0
+pydantic>=2.6
+# LLM providers (install at least one; both are optional — the server also has
+# a built-in offline rule-based pilot so it runs with no key at all):
+openai>=1.30
+anthropic>=0.34
