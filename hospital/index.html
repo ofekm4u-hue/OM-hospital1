@@ -279,6 +279,50 @@
   .nowrap{white-space:nowrap;}
   .pill-route{font-size:.7rem;background:#e6eef4;color:var(--navy);padding:2px 7px;border-radius:5px;font-weight:700;}
 
+  /* ===================== Training / Case simulator ===================== */
+  .sim-hero{background:linear-gradient(135deg,var(--navy),var(--teal-dark));color:#fff;border-radius:var(--r-lg);
+    padding:26px 28px;box-shadow:var(--shadow-md);display:flex;align-items:center;gap:22px;flex-wrap:wrap;margin-bottom:18px;}
+  .sim-hero .grow{flex:1;min-width:220px;}
+  .sim-hero h2{margin:0 0 6px;font-size:1.6rem;font-weight:900;}
+  .sim-hero p{margin:0;opacity:.9;font-size:.95rem;}
+  .sim-score{display:flex;gap:18px;flex-wrap:wrap;}
+  .sim-score .s{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);border-radius:var(--r-md);padding:10px 16px;text-align:center;min-width:90px;}
+  .sim-score .s .v{font-size:1.5rem;font-weight:900;line-height:1;}
+  .sim-score .s .l{font-size:.72rem;opacity:.85;margin-top:3px;}
+  .sim-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:16px;align-items:start;}
+  @media(max-width:880px){.sim-grid{grid-template-columns:1fr;}}
+  .sim-actions{position:sticky;top:112px;}
+  .dispo-btn{display:flex;align-items:center;gap:10px;width:100%;text-align:start;border:1px solid var(--border);
+    background:#fff;border-radius:var(--r-sm);padding:12px 14px;margin-bottom:8px;cursor:pointer;font-size:.95rem;font-weight:600;color:var(--text);transition:.13s;font-family:inherit;}
+  .dispo-btn:hover{border-color:var(--navy-light);background:#f5f9fc;transform:translateY(-1px);}
+  .dispo-btn .ic{font-size:1.3rem;}
+  .dispo-btn.or{border-inline-start:5px solid var(--red);}
+  .dispo-btn.adm{border-inline-start:5px solid var(--navy);}
+  .dispo-btn.dc{border-inline-start:5px solid var(--green);}
+  .dispo-btn:disabled{opacity:.55;cursor:not-allowed;transform:none;}
+
+  .chat{display:flex;flex-direction:column;gap:9px;max-height:300px;overflow-y:auto;padding:6px 2px;margin-bottom:10px;}
+  .bubble{max-width:85%;padding:9px 13px;border-radius:14px;font-size:.9rem;line-height:1.45;}
+  .bubble.q{align-self:flex-start;background:var(--navy);color:#fff;border-bottom-inline-start-radius:4px;}
+  .bubble.a{align-self:flex-end;background:#eef2f6;color:var(--text);border-bottom-inline-end-radius:4px;}
+  .chat-empty{color:var(--text-faint);font-size:.86rem;text-align:center;padding:20px;}
+  .q-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;}
+  .q-chips button{background:#f3f6f9;border:1px solid var(--border);border-radius:999px;padding:6px 12px;font-size:.82rem;
+    cursor:pointer;font-family:inherit;color:var(--navy-dark);transition:.12s;}
+  .q-chips button:hover{background:#e2ecf3;border-color:var(--navy-light);}
+  .q-chips button:disabled{opacity:.45;cursor:default;}
+
+  .xray{background:#0b0f14;border-radius:var(--r-sm);padding:8px;display:flex;justify-content:center;}
+  .xray svg{width:100%;max-width:340px;height:auto;}
+  .reveal-card{border:2px solid var(--teal);border-radius:var(--r-md);padding:16px 18px;background:#f0fbf9;}
+  .reveal-card.fail{border-color:var(--red);background:var(--red-bg);}
+  .reveal-card h3{margin:0 0 6px;font-size:1.15rem;}
+  .case-pill{display:inline-block;background:#e6eef4;color:var(--navy-dark);border-radius:6px;padding:2px 9px;font-weight:700;font-size:.82rem;}
+  .feedback-good{color:var(--green);} .feedback-bad{color:var(--red);}
+  .critical-banner{background:var(--red);color:#fff;border-radius:var(--r-md);padding:14px 18px;font-weight:800;
+    display:flex;align-items:center;gap:10px;font-size:1.02rem;box-shadow:var(--shadow-md);animation:shake .4s;}
+  @keyframes shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-6px);}75%{transform:translateX(6px);}}
+
   /* ===================== Print ===================== */
   @media print{
     body{background:#fff;}
@@ -368,6 +412,7 @@
   <nav class="tabs" id="tabsNav">
     <button data-view="dashboard" class="active">🏥 לוח בקרה</button>
     <button data-view="admit" data-perm="admit">➕ קבלת חולה חדש</button>
+    <button data-view="train">🎓 סימולציית מקרים</button>
     <button data-view="beds">🛏️ ניהול מיטות</button>
     <button data-view="archive">🗄️ ארכיון שחרורים</button>
     <button data-view="users" data-perm="manage">👤 משתמשים</button>
@@ -389,6 +434,8 @@
     <section class="view" id="usersView"></section>
     <!-- AUDIT -->
     <section class="view" id="auditView"></section>
+    <!-- TRAINING — clinical case simulator -->
+    <section class="view" id="trainView"></section>
     <!-- DOCUMENT -->
     <section class="view" id="docView"></section>
   </main>
@@ -672,7 +719,7 @@ function navigate(view, opts){
   currentView=view;
   document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
   const map = { dashboard:"dashboardView", admit:"admitView", record:"recordView", beds:"bedsView",
-    archive:"archiveView", users:"usersView", audit:"auditView", document:"docView" };
+    archive:"archiveView", users:"usersView", audit:"auditView", train:"trainView", document:"docView" };
   const el = $(map[view]); if(el) el.classList.add("active");
   document.querySelectorAll("#tabsNav button").forEach(b=>b.classList.toggle("active", b.dataset.view===view));
   window.scrollTo(0,0);
@@ -688,6 +735,7 @@ function renderView(view, opts){
     case "archive":   renderArchive(); break;
     case "users":     renderUsers(); break;
     case "audit":     renderAudit(); break;
+    case "train":     renderTraining(); break;
     case "document":  renderDocument(opts); break;
   }
 }
@@ -1334,9 +1382,10 @@ function renderAudit(){
    DISCHARGE DOCUMENT generator (official OM Hospital summary)
    ================================================================== */
 function renderDocument(opts){
-  const enc=getEncounter(opts&&opts.encId? opts.encId : currentEncounterId);
+  opts=opts||{};
+  const enc=opts.enc || getEncounter(opts.encId? opts.encId : currentEncounterId);
   if(!enc){ navigate("dashboard"); return; }
-  const p=getPatient(enc.patientId); const v=enc.triage||{};
+  const p=opts.patient || getPatient(enc.patientId); const v=enc.triage||{};
   const allergyHtml = (p.allergies&&p.allergies.length)? `<span class="doc-allergy">${esc(p.allergies.join(", "))}</span>` : "אין אלרגיות ידועות";
 
   const labOrders=enc.orders.filter(o=>o.type==="lab"&&o.status==="resulted");
@@ -1415,7 +1464,8 @@ function renderDocument(opts){
     <div class="doc-footer">מסמך זה הופק אוטומטית ממערכת OM Hospital · ${fmtDateTime(Date.now())} · מסמך לדוגמה (סימולציה בלבד)</div>
   </div>`;
   $("docBack").addEventListener("click",()=>{
-    if(enc.status===STATUS.DISCHARGED||enc.status===STATUS.ADMITTED) navigate("archive");
+    if(enc._train) navigate("train");
+    else if(enc.status===STATUS.DISCHARGED||enc.status===STATUS.ADMITTED) navigate("archive");
     else navigate("record",{encId:enc.id});
   });
 }
@@ -1453,6 +1503,573 @@ function openDataModal(){
     confirmModal("איפוס נתונים","פעולה זו תמחק את כל המטופלים, המפגשים והיומן ותחזיר את המערכת למצב התחלתי (חשבונות הצוות יישמרו). להמשיך?",
       ()=>{ const users=state.users; state=freshState(); state.users=users; saveState(); toast("הנתונים אופסו","ok"); navigate("dashboard"); },"אפס הכל");
   });
+}
+
+/* ==================================================================
+   CLINICAL CASE SIMULATOR (Training mode)
+   ================================================================== */
+const TRAIN_KEY = "om_hospital_train_v1";
+
+const DISPOS = [
+  {k:"OR",            label:"העברה לחדר ניתוח דחוף (OR)", cls:"or",  ic:"🔪"},
+  {k:"admit_internal",label:"אשפוז — מחלקה פנימית",        cls:"adm", ic:"🏥"},
+  {k:"admit_cardio",  label:"אשפוז — קרדיולוגיה / צנתור",  cls:"adm", ic:"❤️"},
+  {k:"admit_icu",     label:"אשפוז — טיפול נמרץ (ICU)",    cls:"adm", ic:"🚨"},
+  {k:"discharge",     label:"שחרור הביתה + מרשם",          cls:"dc",  ic:"🏠"},
+];
+const DISPO_LABEL = Object.fromEntries(DISPOS.map(d=>[d.k,d.label]));
+
+const Q_CHIPS = [
+  {key:"location",  label:"איפה כואב?"},
+  {key:"onset",     label:"מתי התחיל?"},
+  {key:"character", label:"איך הכאב?"},
+  {key:"radiation", label:"מקרין למקום אחר?"},
+  {key:"fever",     label:"יש חום?"},
+  {key:"nausea",    label:"בחילה / הקאות?"},
+  {key:"breathing", label:"קוצר נשימה?"},
+  {key:"urinary",   label:"בעיות בשתן?"},
+  {key:"trauma",    label:"חבלה / נפילה?"},
+  {key:"sweating",  label:"הזעה?"},
+  {key:"pmh",       label:"מחלות רקע?"},
+  {key:"meds",      label:"תרופות קבועות?"},
+];
+const KW_MAP = {"כואב":"location","איפה":"location","היכן":"location","מתי":"onset","התחיל":"onset","כמה זמן":"onset",
+  "חום":"fever","בחיל":"nausea","הקא":"nausea","נשימ":"breathing","אוויר":"breathing","שתן":"urinary","השתנ":"urinary",
+  "הזע":"sweating","מקרין":"radiation","נפל":"trauma","חבל":"trauma","תאונ":"trauma","רקע":"pmh","מחל":"pmh","תרופ":"meds","איך":"character","אופי":"character"};
+
+const FNAMES_M=["יוסי","דוד","משה","אבי","רון","עמית","איתי","ניר","עומר","גיא"];
+const FNAMES_F=["מירי","דנה","רותי","יעל","נועה","שירה","אורית","ליאת","תמר","הדס"];
+const LNAMES=["כהן","לוי","מזרחי","פרץ","ביטון","אזולאי","דהן","אברהם","פרידמן","אוחיון","שרון","ברוך"];
+
+/* ---------- Case bank (hidden diagnoses) ---------- */
+const CASE_BANK = [
+  {
+    id:"appendicitis", dx:"אפנדיציט חריף", dxEn:"appendicitis", emoji:"🩹",
+    ageRange:[14,42], gender:"any", chief:"כאב בטן מאתמול בלילה",
+    story:"כאב שהתחיל סביב הטבור ועבר לצד ימין למטה, עם בחילה ואובדן תיאבון.",
+    vitals:{bp:"126/78",pulse:99,temp:38.1,spo2:98,pain:7},
+    exam:"רגישות מקומית ברביע ימני תחתון, נקודת מקברני רגישה, סימן בלמברג חיובי (כאב בשחרור).",
+    qa:{location:"כואב לי בצד ימין למטה בבטן.", onset:"התחיל אתמול בלילה סביב הטבור ואז עבר לצד ימין למטה.",
+      character:"כאב חד שמחמיר כשאני זז או משתעל.", nausea:"כן, הקאתי פעמיים ואין לי בכלל תיאבון.",
+      fever:"מדדתי בבית 38.", radiation:"לא ממש מקרין, ממוקם בצד ימין למטה.", urinary:"אין צריבה או בעיה בשתן.",
+      trauma:"לא נפלתי ולא נחבלתי.", pmh:"אני בריא בדרך כלל.", meds:"לא לוקח תרופות קבועות.", sweating:"קצת מזיע מהכאב."},
+    labs:{"WBC":[14,19],"NEUT%":[80,92],"CRP":[55,150]},
+    imaging:{"US בטן":{report:"אפנדיקס מעובה (>7 מ\"מ), לא נדחס, עם מעט נוזל חופשי סביבו — מתאים לאפנדיציט חריף.", svg:"ct_abdomen_appendix"},
+      "CT בטן":{report:"אפנדיקס מודלק ומעובה עם הסננת שומן פריאפנדיקולרית. ללא עדות לפרפורציה.", svg:"ct_abdomen_appendix"}},
+    correct:"OR", critical:["discharge"],
+    rationale:"אפנדיציט חריף מחייב כריתת תוספתן דחופה (אפנדקטומיה) למניעת ניקוב ודלקת צפק.",
+    success:"המטופל הועבר בדחיפות לחדר ניתוח. בוצעה אפנדקטומיה לפרוסקופית, התוספתן הוסר בהצלחה והמטופל מתאושש יפה.",
+    wrong:{discharge:"כשל קריטי! שחרור מטופל עם אפנדיציט עלול להוביל לניקוב התוספתן ולדלקת צפק מסכנת חיים.",
+      admit_cardio:"שגוי — אין כאן בעיה לבבית.", admit_icu:"לא מתאים — המטופל יציב; הבעיה כירורגית.", admit_internal:"לא מספיק — מדובר במצב כירורגי הדורש ניתוח, לא טיפול שמרני."}
+  },
+  {
+    id:"pneumonia", dx:"דלקת ריאות (Pneumonia)", dxEn:"pneumonia", emoji:"🫁",
+    ageRange:[45,82], gender:"any", chief:"שיעול וחום מזה 3 ימים",
+    story:"שיעול עם ליחה, חום גבוה וקוצר נשימה מחמיר.",
+    vitals:{bp:"118/72",pulse:106,temp:38.8,spo2:90,pain:3},
+    exam:"חיכוכים וקרפיטציות באונה תחתונה שמאל, ירידה בכניסת אוויר באותו אזור.",
+    qa:{location:"כואב לי בצד שמאל של החזה כשאני נושם עמוק.", onset:"מזה כשלושה ימים והחמיר.",
+      character:"כאב דוקר בנשימה, ושיעול עם ליחה צהובה-ירקרקה.", nausea:"לא ממש.", fever:"חום גבוה עד 39 וצמרמורות.",
+      radiation:"לא מקרין.", breathing:"כן, קשה לי לנשום ואני מתנשף.", urinary:"תקין.", trauma:"לא.",
+      pmh:"מעשן, יתר לחץ דם.", meds:"כדור ללחץ דם.", sweating:"מזיע בלילה מהחום."},
+    labs:{"WBC":[15,22],"NEUT%":[82,93],"CRP":[120,280]},
+    imaging:{"צילום חזה (CXR)":{report:"תסנין אווירי (consolidation) באונה תחתונה שמאל עם ברונכוגרם אווירי, מתאים לדלקת ריאות. ללא נוזל פלאורלי משמעותי.", svg:"chest_infiltrate"}},
+    correct:"admit_internal", critical:[],
+    rationale:"דלקת ריאות עם סטורציה נמוכה (90%) וחום גבוה דורשת אשפוז במחלקה פנימית לאנטיביוטיקה תוך-ורידית, חמצן ומעקב.",
+    success:"המטופל אושפז במחלקה פנימית, החל טיפול אנטיביוטי תוך-ורידי וחמצן. מצבו משתפר בהדרגה.",
+    wrong:{discharge:"מסוכן — סטורציה 90% וחום גבוה מצריכים אשפוז וטיפול תוך-ורידי, לא שחרור.",
+      OR:"שגוי לחלוטין — אין כאן אינדיקציה כירורגית.", admit_cardio:"לא מתאים — הבעיה ריאתית-זיהומית.", admit_icu:"מוגזם כרגע — אין אי-ספיקה נשימתית קשה; פנימית מתאימה."}
+  },
+  {
+    id:"mi", dx:"אוטם שריר הלב (MI)", dxEn:"myocardial infarction", emoji:"❤️",
+    ageRange:[52,80], gender:"male", chief:"כאב לוחץ בחזה מזה שעה",
+    story:"כאב לוחץ מרכזי בחזה במנוחה, מקרין ליד שמאל וללסת, עם הזעה ובחילה.",
+    vitals:{bp:"150/95",pulse:94,temp:36.8,spo2:95,pain:8},
+    exam:"חיוור ומזיע, ללא רעשים נוספים בלב, ריאות נקיות.",
+    qa:{location:"כאב לוחץ באמצע החזה.", onset:"התחיל לפני כשעה כשנחתי, ולא עובר.",
+      character:"כמו לחץ כבד או פיל על החזה.", radiation:"מקרין ליד שמאל וללסת.", nausea:"כן, בחילה קלה.",
+      fever:"אין חום.", breathing:"קצת קוצר נשימה.", sweating:"כן, הזעה קרה חזקה.", urinary:"תקין.",
+      trauma:"לא.", pmh:"מעשן, סוכרת, כולסטרול גבוה.", meds:"כדור לסוכרת וסטטין."},
+    labs:{"hs-Trop":[150,950]},
+    imaging:{"אק\"ג (ECG)":{report:"הרמות מקטע ST בלידים II, III ו-aVF עם שינויים רציפרוקליים — אוטם תחתון חריף (STEMI).", svg:"ecg_stemi"}},
+    correct:"admit_cardio", critical:["OR","discharge"],
+    rationale:"STEMI מחייב הפעלת מערך צנתור דחוף (PCI) — אשפוז בקרדיולוגיה/טיפול נמרץ לבבי. עיכוב מסכן חיים.",
+    success:"הופעל מערך הצנתור הדחוף. המטופל נלקח לצנתור (PCI), נפתח העורק החסום, והוא הועבר ליחידה לבבית במצב יציב.",
+    wrong:{OR:"כשל קריטי! מטופל עם אוטם שריר הלב נשלח בטעות לניתוח בטן — עיכוב בצנתור מסכן חיים ממשי.",
+      discharge:"כשל קריטי! שחרור מטופל עם אוטם לבבי פעיל עלול להסתיים במוות פתאומי.",
+      admit_internal:"לא מספיק — מדובר באוטם המצריך צנתור דחוף וניטור לבבי, לא מחלקה פנימית רגילה.",
+      admit_icu:"בכיוון הנכון (ניטור), אך החיוני ביותר הוא צנתור דחוף דרך מערך הקרדיולוגיה."}
+  },
+  {
+    id:"hipfx", dx:"שבר בצוואר הירך", dxEn:"hip fracture", emoji:"🦴",
+    ageRange:[68,92], gender:"any", chief:"נפילה בבית וכאב חזק בירך",
+    story:"קשישה שנפלה בבית, כאב חזק בירך ימין וחוסר יכולת לעמוד.",
+    vitals:{bp:"140/82",pulse:90,temp:36.6,spo2:97,pain:8},
+    exam:"רגל ימין מקוצרת ומסובבת כלפי חוץ, כל תנועה בירך גורמת לכאב חד.",
+    qa:{location:"כואב לי במפשעה ובירך ימין.", onset:"נפלתי הבוקר בבית על הצד.",
+      character:"כאב חזק מאוד, לא יכולה לזוז.", trauma:"כן, נפלתי על הרצפה במטבח.", nausea:"לא.",
+      fever:"אין חום.", radiation:"הכאב מקרין לכיוון הברך.", breathing:"בסדר.", urinary:"תקין.",
+      pmh:"אוסטאופורוזיס, יתר לחץ דם.", meds:"סידן וכדור ללחץ דם.", sweating:"לא."},
+    labs:{"HGB":[9.5,11.5]},
+    imaging:{"צילום גפה":{report:"שבר תוך-מפרקי בצוואר הירך הימני עם תזוזה (Garden III-IV).", svg:"xray_hip_fracture"}},
+    correct:"OR", critical:[],
+    rationale:"שבר צוואר ירך עם תזוזה דורש ניתוח אורתופדי (קיבוע פנימי או החלפת מפרק) בהקדם להפחתת תחלואה.",
+    success:"המטופלת הועברה לאורתופדיה ועברה ניתוח להחלפת/קיבוע מפרק הירך בהצלחה. החל שיקום מוקדם.",
+    wrong:{discharge:"מסוכן — שבר ירך עם תזוזה אינו ניתן לשחרור; דרוש ניתוח ואשפוז.",
+      admit_cardio:"לא רלוונטי.", admit_icu:"לא נדרש טיפול נמרץ.", admit_internal:"חלקי — נדרש תיקון כירורגי אורתופדי, לא טיפול פנימי בלבד."}
+  },
+  {
+    id:"renalcolic", dx:"קוליק כלייתי (אבן בדרכי השתן)", dxEn:"ureteric calculus", emoji:"🪨",
+    ageRange:[25,55], gender:"any", chief:"כאב חזק בצד הגב מהבוקר",
+    story:"כאב גלי חזק בצד הגב המקרין למפשעה, עם דם בשתן ובחילה.",
+    vitals:{bp:"142/86",pulse:100,temp:36.9,spo2:99,pain:9},
+    exam:"רגישות בזווית הצלעות-עמוד שדרה (CVA tenderness) משמאל, הבטן רכה.",
+    qa:{location:"כאב חזק בצד שמאל בגב, מקרין למטה למפשעה.", onset:"התחיל פתאום הבוקר.",
+      character:"כאב גלי שבא והולך, אני לא מוצא תנוחה נוחה.", urinary:"שמתי לב לדם בשתן ואני משתין הרבה.",
+      nausea:"כן, בחילה והקאתי פעם אחת.", fever:"אין חום.", radiation:"מקרין מהגב למפשעה ולאשך.",
+      trauma:"לא.", breathing:"בסדר.", pmh:"היו לי אבנים בכליה בעבר.", meds:"אין.", sweating:"מהכאב."},
+    labs:{"Creat":[1.3,1.8]},
+    imaging:{"CT בטן":{report:"אבן באורטר השמאלי בגודל כ-6 מ\"מ עם הרחבה קלה של אגן הכליה (hydronephrosis). ללא סימני זיהום.", svg:"ct_abdomen_stone"}},
+    correct:"discharge", critical:[],
+    rationale:"אבן קטנה (<7 מ\"מ) ללא חום/זיהום וללא אי-ספיקת כליות — ניתן לשחרר עם משככי כאבים, שתייה מרובה ומעקב אורולוגי.",
+    success:"המטופל קיבל משככי כאבים, השתפר, ושוחרר עם הנחיות, מסננת לשתן ומעקב אורולוגי. רוב האבנים בגודל זה יוצאות באופן ספונטני.",
+    wrong:{OR:"מוגזם — אבן בגודל זה אינה מצריכה ניתוח דחוף; טיפול שמרני מתאים.",
+      admit_internal:"לרוב לא נדרש אשפוז כשאין חום/זיהום ותפקוד כליות שמור.", admit_cardio:"לא רלוונטי.", admit_icu:"לא נדרש."}
+  },
+  {
+    id:"stroke", dx:"אירוע מוחי איסכמי (CVA)", dxEn:"ischemic stroke", emoji:"🧠",
+    ageRange:[60,86], gender:"any", chief:"חולשה פתאומית בצד ימין וקושי בדיבור",
+    story:"לפני שעה הופיעו פתאום חולשת יד ימין, צניחת פנים וקושי בדיבור.",
+    vitals:{bp:"178/98",pulse:84,temp:36.7,spo2:96,pain:0},
+    exam:"חולשת פלג גוף ימני (כוח 2/5), צניחת זווית הפה מימין, דיבור מעורפל. NIHSS גבוה.",
+    qa:{onset:"לפני שעה בדיוק, פתאום, באמצע ארוחת הבוקר.", location:"לא כואב — פשוט נחלשה היד ונפל הפה.",
+      character:"היד הימנית לא זזה טוב והדיבור מבולבל.", breathing:"בסדר.", fever:"אין.", nausea:"לא.",
+      radiation:"-", urinary:"תקין.", trauma:"לא נפל.", pmh:"פרפור פרוזדורים, יתר לחץ דם.",
+      meds:"לא לוקח מדללי דם בקביעות.", sweating:"לא."},
+    labs:{"Glu":[120,150]},
+    imaging:{"CT ראש":{report:"ללא דימום תוך-גולגולתי. סימני איסכמיה מוקדמים באגן עורק מוחי אמצעי (MCA) שמאל — מתאים לאוטם איסכמי חריף.", svg:"ct_head_infarct"}},
+    correct:"admit_icu", critical:["discharge"],
+    rationale:"אירוע מוחי איסכמי בחלון זמן הוא מצב חירום: הערכה לטיפול ממיס קריש (tPA)/תרומבקטומיה וניטור צמוד ביחידת שבץ/נמרץ.",
+    success:"המטופל הוערך בדחיפות, ניתן טיפול ממיס קריש (tPA) במסגרת יחידת השבץ והוא מנוטר בטיפול נמרץ. החל שיפור נוירולוגי.",
+    wrong:{discharge:"כשל קריטי! שחרור מטופל עם אירוע מוחי פעיל מבטל את חלון הזמן לטיפול ועלול לגרום נכות קבועה.",
+      OR:"לא — אין כאן אינדיקציה לניתוח (אין דימום).", admit_internal:"לא מספיק — נדרשת יחידת שבץ/נמרץ עם ניטור צמוד וטיפול ממיס קריש.",
+      admit_cardio:"הגורם אמנם לבבי (פרפור), אך הטיפול החריף הוא נוירולוגי ביחידת שבץ."}
+  },
+  {
+    id:"asthma", dx:"החמרת אסתמה (Asthma exacerbation)", dxEn:"asthma exacerbation", emoji:"😮‍💨",
+    ageRange:[16,45], gender:"any", chief:"קוצר נשימה וצפצופים מאתמול",
+    story:"קוצר נשימה וצפצופים שהחמירו לאחר חשיפה לחתול, על רקע אסתמה ידועה.",
+    vitals:{bp:"126/76",pulse:112,temp:36.9,spo2:91,pain:1},
+    exam:"צפצופים נשיפתיים (wheezing) דו-צדדיים, שימוש בשרירי עזר, מדבר במשפטים קצרים.",
+    qa:{breathing:"קשה לי לנשום ויש צפצופים בחזה.", onset:"מאתמול בערב, החמיר אחרי שהייתי אצל חבר עם חתול.",
+      location:"לא כאב ממש, יותר לחץ וקוצר נשימה.", character:"מתנשף, נושם מהר.", cough:"שיעול יבש.",
+      fever:"אין חום.", nausea:"לא.", radiation:"-", urinary:"תקין.", trauma:"לא.",
+      pmh:"אסתמה מילדות.", meds:"משאף ונטולין לפי הצורך.", sweating:"לא."},
+    labs:{},
+    imaging:{"צילום חזה (CXR)":{report:"ריאות מנופחות (hyperinflation) עם שטוח הסרעפת, ללא תסנין וללא פנאומותורקס.", svg:"chest_hyperinflated"}},
+    correct:"discharge", critical:[],
+    rationale:"החמרת אסתמה קלה-בינונית שמגיבה לטיפול (אינהלציות סלבוטמול + סטרואידים) — ניתן לשחרר עם משאפים והנחיות.",
+    success:"המטופל קיבל אינהלציות סלבוטמול וסטרואידים, הסטורציה והצפצופים השתפרו, ושוחרר עם משאפים, קורס סטרואידים ומעקב.",
+    wrong:{OR:"לא רלוונטי לחלוטין.", admit_icu:"מוגזם — אין אי-ספיקה נשימתית מסכנת חיים; הגיב יפה לטיפול.",
+      admit_internal:"לרוב מיותר אם הגיב יפה לטיפול במיון.", admit_cardio:"הבעיה ריאתית, לא לבבית."}
+  },
+];
+
+/* ---------- SVG pseudo-imaging library ---------- */
+const SVG_LIB = {
+  _frame:(inner)=>`<svg viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg"><rect width="240" height="240" fill="#0a0e13"/>${inner}<text x="8" y="232" fill="#6f8aa0" font-size="9">OM HOSPITAL · IMAGING (סימולציה)</text></svg>`,
+  chest_infiltrate:()=>SVG_LIB._frame(`<g stroke="#9fb6c9" stroke-width="2" fill="none" opacity="0.85">
+      <path d="M120 30 V150"/><ellipse cx="86" cy="110" rx="42" ry="64"/><ellipse cx="154" cy="110" rx="42" ry="64"/>
+      ${[0,1,2,3,4].map(i=>`<path d="M70 ${70+i*20} Q120 ${60+i*20} 170 ${70+i*20}" opacity="0.5"/>`).join("")}
+      <path d="M118 95 q22 30 6 70" stroke="#7d93a6"/></g>
+    <ellipse cx="86" cy="148" rx="30" ry="26" fill="#dfe9f1" opacity="0.55"/>
+    <circle cx="86" cy="148" r="34" fill="none" stroke="#ff4d5e" stroke-width="2.5" stroke-dasharray="6 4"/>
+    <text x="40" y="200" fill="#ff7b88" font-size="12" font-weight="bold">תסנין</text>`),
+  chest_hyperinflated:()=>SVG_LIB._frame(`<g stroke="#9fb6c9" stroke-width="2" fill="none" opacity="0.85">
+      <path d="M120 28 V160"/><ellipse cx="84" cy="118" rx="46" ry="74"/><ellipse cx="156" cy="118" rx="46" ry="74"/>
+      <path d="M40 178 Q120 170 200 178" stroke="#7d93a6"/></g>
+    <text x="58" y="206" fill="#8fd3c8" font-size="11">ריאות מנופחות · ללא תסנין</text>`),
+  ct_abdomen_appendix:()=>SVG_LIB._frame(`<circle cx="120" cy="118" r="92" fill="#11202b" stroke="#46627a" stroke-width="2"/>
+    <ellipse cx="120" cy="70" rx="20" ry="13" fill="#243b4d"/>
+    <path d="M150 150 q18 12 14 34" stroke="#cfd9e0" stroke-width="9" fill="none" stroke-linecap="round"/>
+    <circle cx="162" cy="172" r="22" fill="none" stroke="#ff4d5e" stroke-width="2.5" stroke-dasharray="6 4"/>
+    <text x="120" y="206" fill="#ff7b88" font-size="11" font-weight="bold">אפנדיקס מודלק</text>`),
+  ct_abdomen_stone:()=>SVG_LIB._frame(`<circle cx="120" cy="118" r="92" fill="#11202b" stroke="#46627a" stroke-width="2"/>
+    <path d="M86 96 q-20 22 0 44" stroke="#5e7d92" stroke-width="10" fill="none"/>
+    <circle cx="92" cy="118" r="7" fill="#ffffff"/>
+    <circle cx="92" cy="118" r="18" fill="none" stroke="#ff4d5e" stroke-width="2.5" stroke-dasharray="6 4"/>
+    <text x="120" y="206" fill="#ff7b88" font-size="11" font-weight="bold">אבן + הרחבת אגן הכליה</text>`),
+  ecg_stemi:()=>SVG_LIB._frame(`<rect x="14" y="40" width="212" height="150" fill="#0e1620" stroke="#33485a"/>
+    <path d="M14 130 H40 l6 0 l4 -10 l4 40 l4 -30 l6 0 l40 0 l4 -55 l30 0 l4 8 l40 0 l6 0 l4 -10 l4 40 l4 -30 l30 0"
+      fill="none" stroke="#33ff8a" stroke-width="2"/>
+    <path d="M96 75 q15 -6 34 0" stroke="#ff4d5e" stroke-width="3" fill="none"/>
+    <text x="92" y="64" fill="#ff7b88" font-size="11" font-weight="bold">↑ST</text>
+    <text x="20" y="182" fill="#7fe6aa" font-size="10">STEMI · הרמות ST</text>`),
+  xray_hip_fracture:()=>SVG_LIB._frame(`<g fill="#e7eef4" opacity="0.9">
+      <ellipse cx="150" cy="80" rx="40" ry="34"/><rect x="92" y="96" width="36" height="120" rx="16" transform="rotate(18 110 150)"/>
+      <circle cx="120" cy="108" r="20"/></g>
+    <path d="M104 96 l34 18" stroke="#0a0e13" stroke-width="4"/>
+    <path d="M104 96 l34 18" stroke="#ff4d5e" stroke-width="2" stroke-dasharray="4 3"/>
+    <circle cx="121" cy="105" r="22" fill="none" stroke="#ff4d5e" stroke-width="2.5" stroke-dasharray="6 4"/>
+    <text x="120" y="206" fill="#ff7b88" font-size="11" font-weight="bold">קו שבר בצוואר הירך</text>`),
+  ct_head_infarct:()=>SVG_LIB._frame(`<ellipse cx="120" cy="116" rx="84" ry="96" fill="#e9eef3" opacity="0.92"/>
+    <ellipse cx="120" cy="116" rx="70" ry="82" fill="#46586a"/>
+    <path d="M120 40 V192" stroke="#2c3a48" stroke-width="2"/>
+    <ellipse cx="150" cy="110" rx="24" ry="30" fill="#2a3742"/>
+    <circle cx="150" cy="110" r="30" fill="none" stroke="#ff4d5e" stroke-width="2.5" stroke-dasharray="6 4"/>
+    <text x="120" y="212" fill="#ff7b88" font-size="11" font-weight="bold">אזור איסכמי (MCA שמאל)</text>`),
+};
+
+/* ---------- Training state & stats ---------- */
+let tCase=null, tPatient=null, tState=null, tRxMeds=[];
+function loadTrainStats(){ try{ return JSON.parse(localStorage.getItem(TRAIN_KEY))||{cases:0,correctDx:0,correctDispo:0}; }catch(e){ return {cases:0,correctDx:0,correctDispo:0}; } }
+function saveTrainStats(s){ try{ localStorage.setItem(TRAIN_KEY, JSON.stringify(s)); }catch(e){} }
+
+function genTPatient(c){
+  const female = c.gender==="female" || (c.gender==="any" && Math.random()<0.5);
+  const fn = female? FNAMES_F[Math.floor(Math.random()*FNAMES_F.length)] : FNAMES_M[Math.floor(Math.random()*FNAMES_M.length)];
+  const ln = LNAMES[Math.floor(Math.random()*LNAMES.length)];
+  const age = rnd(c.ageRange[0], c.ageRange[1]);
+  const d=new Date(); const dob=`${d.getFullYear()-age}-${String(rnd(1,12)).padStart(2,"0")}-${String(rnd(1,28)).padStart(2,"0")}`;
+  let id=""; for(let i=0;i<9;i++) id+=Math.floor(Math.random()*10);
+  return { id, name:`${fn} ${ln}`, gender:female?"נקבה":"זכר", dob, age, bloodType:["A+","B+","O+","AB+","O-","A-"][Math.floor(Math.random()*6)], hmo:HMOS[Math.floor(Math.random()*HMOS.length)], allergies:[] };
+}
+
+function newTrainingCase(){
+  tCase = CASE_BANK[Math.floor(Math.random()*CASE_BANK.length)];
+  tPatient = genTPatient(tCase);
+  tState = { vitalsRevealed:false, examRevealed:false, asked:[], chat:[], labsDone:false, imaging:{}, dxGuess:null, decided:false, decision:null };
+  tRxMeds = [];
+  renderTraining();
+}
+
+/* ---------- Render ---------- */
+function renderTraining(){
+  const stats=loadTrainStats();
+  const acc = stats.cases? Math.round(stats.correctDispo/stats.cases*100):0;
+  if(!tCase){
+    $("trainView").innerHTML = `
+      <div class="sim-hero">
+        <div class="grow">
+          <h2>🎓 סימולציית מקרים קליניים</h2>
+          <p>קבל מטופל וירטואלי עם אבחנה חבויה. תשאל, בדוק מדדים, הזמן מעבדה ודימות, קבע אבחנה — והחלט על הניתוב הנכון (ניתוח / אשפוז / שחרור). המערכת תיתן לך פידבק רפואי מלא.</p>
+        </div>
+        <div class="sim-score">
+          <div class="s"><div class="v">${stats.cases}</div><div class="l">מקרים</div></div>
+          <div class="s"><div class="v">${stats.correctDispo}</div><div class="l">החלטות נכונות</div></div>
+          <div class="s"><div class="v">${acc}%</div><div class="l">דיוק</div></div>
+        </div>
+      </div>
+      <div class="panel panel-pad" style="text-align:center;padding:40px;">
+        <div style="font-size:3rem;margin-bottom:8px;">🚑</div>
+        <h3 style="margin:0 0 6px;color:var(--navy-dark);">מוכן למשמרת?</h3>
+        <p class="muted" style="margin:0 0 18px;">לחץ כדי לקבל מטופל חדש לחדר המיון.</p>
+        <button class="btn teal" id="tNew" style="font-size:1.05rem;padding:13px 30px;">🆕 קבל חולה חדש</button>
+      </div>`;
+    $("tNew").addEventListener("click", newTrainingCase);
+    return;
+  }
+  renderActiveCase();
+}
+
+function renderActiveCase(){
+  const c=tCase, p=tPatient, ts=tState;
+  const v=c.vitals; const acu = ts.vitalsRevealed? computeAcuity(v) : null;
+
+  // chat html
+  const chatHtml = ts.chat.length? ts.chat.map(m=>`<div class="bubble ${m.t}">${esc(m.x)}</div>`).join("") : `<div class="chat-empty">שאל את המטופל שאלה כדי להתחיל את האנמנזה.</div>`;
+  const chipsHtml = Q_CHIPS.map(q=>`<button data-q="${q.key}" ${ts.asked.includes(q.key)?"disabled":""}>${esc(q.label)}</button>`).join("");
+
+  // imaging buttons
+  const imgBtns = Object.keys(c.imaging).map(m=>`<button class="btn ghost sm" data-img="${esc(m)}">🖥️ ${esc(m)}${ts.imaging[m]?" ✓":""}</button>`).join(" ");
+
+  $("trainView").innerHTML = `
+    <div class="toolbar"><button class="btn ghost sm" id="tBack">← לתפריט הסימולציה</button><div class="spacer"></div>
+      <button class="btn ghost sm" id="tGiveup">🏳️ ויתור — גלה אבחנה</button>
+      <button class="btn teal sm" id="tNew2">🆕 מקרה חדש</button></div>
+
+    <div class="pt-head">
+      <div class="avatar" style="width:54px;height:54px;border-radius:14px;background:var(--teal);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-weight:800;">${c.emoji}</div>
+      <div class="grow">
+        <div class="pt-name">${esc(p.name)}</div>
+        <div class="pt-meta"><span>ת"ז: ${esc(p.id)}</span><span>${esc(p.gender)} · גיל ${p.age}</span><span>קופ"ח: ${esc(p.hmo)}</span></div>
+      </div>
+      <div style="text-align:center;"><span class="badge amber">תלונה: ${esc(c.chief)}</span></div>
+    </div>
+
+    <div class="sim-grid" style="margin-top:14px;">
+      <div>
+        <!-- Vitals -->
+        <div class="panel panel-pad" style="margin-bottom:14px;">
+          <div class="section-title">🩺 מדדים חיוניים (Vitals)</div>
+          ${ts.vitalsRevealed? `
+            <div class="vitals-grid">
+              ${vitBox("לחץ דם",v.bp,"מ\"מ")}${vitBox("דופק",v.pulse,"לדקה")}${vitBox("חום",v.temp,"°C")}
+              ${vitBox("סטורציה",v.spo2,"%")}${vitBox("כאב",v.pain,"/10")}
+            </div>
+            <div style="margin-top:10px;"><span class="badge ${acu.color}"><span class="dot ${acu.color}"></span>${ACUITY_HE[acu.color]} · ESI ${acu.esi}</span></div>`
+          : `<p class="muted" style="margin:0 0 10px;">המדדים טרם נמדדו.</p><button class="btn sm" id="tVitals">📏 מדוד מדדים</button>`}
+        </div>
+
+        <!-- Anamnesis -->
+        <div class="panel panel-pad" style="margin-bottom:14px;">
+          <div class="section-title">💬 אנמנזה — תשאול המטופל</div>
+          <div class="chat" id="tChat">${chatHtml}</div>
+          <div class="q-chips">${chipsHtml}</div>
+          <div style="display:flex;gap:8px;"><input class="ctrl" id="tAskInput" placeholder="או הקלד שאלה חופשית..." style="flex:1;">
+            <button class="btn sm" id="tAskBtn">שאל</button></div>
+        </div>
+
+        <!-- Physical exam -->
+        <div class="panel panel-pad" style="margin-bottom:14px;">
+          <div class="section-title">🔍 בדיקה גופנית</div>
+          ${ts.examRevealed? `<p style="margin:0;">${esc(c.exam)}</p>` : `<button class="btn sm" id="tExam">בצע בדיקה גופנית</button>`}
+        </div>
+
+        <!-- Diagnostics -->
+        <div class="panel panel-pad">
+          <div class="section-title">🧪 בדיקות עזר ודימות</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+            <button class="btn ghost sm" id="tLabs">🩸 הזמן בדיקות דם${ts.labsDone?" ✓":""}</button>
+            ${imgBtns}
+          </div>
+          <div id="tLabsResult">${ts.labsDone? renderTrainLabs(c) : ""}</div>
+        </div>
+      </div>
+
+      <!-- Action column -->
+      <div class="sim-actions">
+        <div class="panel panel-pad" style="margin-bottom:14px;">
+          <div class="section-title">🧠 האבחנה שלך</div>
+          <select class="ctrl" id="tDxGuess" ${ts.decided?"disabled":""} style="margin-bottom:8px;">
+            <option value="">— בחר אבחנה משוערת —</option>
+            ${dxOptions().map(d=>`<option ${ts.dxGuess===d?"selected":""}>${esc(d)}</option>`).join("")}
+          </select>
+          <button class="btn block sm" id="tDxBtn" ${ts.decided?"disabled":""}>אשר אבחנה</button>
+          <div id="tDxFeedback" style="margin-top:8px;"></div>
+        </div>
+        <div class="panel panel-pad">
+          <div class="section-title">🚦 החלטת ניתוב (Disposition)</div>
+          ${DISPOS.map(d=>`<button class="dispo-btn ${d.cls}" data-dispo="${d.k}" ${ts.decided?"disabled":""}><span class="ic">${d.ic}</span>${esc(d.label)}</button>`).join("")}
+        </div>
+        <div id="tOutcome" style="margin-top:14px;"></div>
+      </div>
+    </div>`;
+
+  // wiring
+  $("tBack").addEventListener("click",()=>{ tCase=null; renderTraining(); });
+  $("tNew2").addEventListener("click", newTrainingCase);
+  $("tGiveup").addEventListener("click",()=>{ if(!ts.decided){ revealCase(null); } });
+  const tv=$("tVitals"); if(tv) tv.addEventListener("click",()=>{ ts.vitalsRevealed=true; renderActiveCase(); });
+  const te=$("tExam"); if(te) te.addEventListener("click",()=>{ ts.examRevealed=true; renderActiveCase(); });
+  const tl=$("tLabs"); if(tl) tl.addEventListener("click",()=>{ ts.labsDone=true; renderActiveCase(); });
+  document.querySelectorAll("[data-img]").forEach(b=>b.addEventListener("click",()=>openImaging(b.dataset.img)));
+  document.querySelectorAll("[data-q]").forEach(b=>b.addEventListener("click",()=>askQuestion(b.dataset.q)));
+  $("tAskBtn").addEventListener("click",()=>{ const inp=$("tAskInput"); askFreeText(inp.value); inp.value=""; });
+  $("tAskInput").addEventListener("keydown",e=>{ if(e.key==="Enter"){ askFreeText(e.target.value); e.target.value=""; } });
+  $("tDxBtn").addEventListener("click", confirmDxGuess);
+  document.querySelectorAll("[data-dispo]").forEach(b=>b.addEventListener("click",()=>decideDispo(b.dataset.dispo)));
+
+  // restore outcome/feedback if already decided
+  if(ts.decided && ts._outcomeHtml) $("tOutcome").innerHTML = ts._outcomeHtml;
+  if(ts.dxGuess && ts._dxFeedback) $("tDxFeedback").innerHTML = ts._dxFeedback;
+}
+function vitBox(label,val,unit){ return `<div class="vital"><label>${label} <span class="muted">${unit}</span></label><div style="font-size:1.15rem;font-weight:800;color:var(--navy-dark);margin-top:4px;">${esc(val)}</div></div>`; }
+
+function dxOptions(){
+  // all bank diagnoses + ensure current; shuffle deterministically per case
+  const all = CASE_BANK.map(c=>c.dx);
+  return all.slice().sort();
+}
+
+/* ---------- Anamnesis ---------- */
+function askQuestion(key){
+  const c=tCase, ts=tState;
+  const qChip = Q_CHIPS.find(q=>q.key===key);
+  if(ts.asked.includes(key)) return;
+  ts.asked.push(key);
+  ts.chat.push({t:"q", x: qChip?qChip.label:key});
+  const ans = c.qa[key] || "לפי המטופל: אין משהו מיוחד לציין בנושא הזה.";
+  ts.chat.push({t:"a", x: ans});
+  renderActiveCase(); scrollChat();
+}
+function askFreeText(text){
+  text=(text||"").trim(); if(!text) return;
+  const c=tCase, ts=tState;
+  ts.chat.push({t:"q", x:text});
+  // map keyword -> key
+  let key=null;
+  for(const kw in KW_MAP){ if(text.includes(kw)){ key=KW_MAP[kw]; break; } }
+  let ans;
+  if(key && c.qa[key]) ans=c.qa[key];
+  else {
+    // try substring match against any answer
+    ans = "לפי המטופל: אני לא בטוח, אבל מה שמטריד אותי הכי הרבה זה " + c.chief.replace(/מזה.*/,"").trim() + ".";
+  }
+  if(key && !ts.asked.includes(key)) ts.asked.push(key);
+  ts.chat.push({t:"a", x:ans});
+  renderActiveCase(); scrollChat();
+}
+function scrollChat(){ const el=$("tChat"); if(el) el.scrollTop=el.scrollHeight; }
+
+/* ---------- Labs ---------- */
+function renderTrainLabs(c){
+  const panels=["ספירת דם (CBC)","כימיה (Chemistry)","טרופונין (Troponin)"];
+  let html=`<div style="font-weight:700;color:var(--navy-dark);margin-bottom:6px;">🩸 תוצאות מעבדה</div>`;
+  panels.forEach(pn=>{
+    LAB_CATALOG[pn].forEach(a=>{
+      const ov=c.labs&&c.labs[a.k];
+      const dec=(a.k==="HGB"||a.k==="K"||a.k==="Creat"||a.k==="INR")?1:0;
+      const range = ov? ov : [a.low + (a.high-a.low)*0.25, a.high - (a.high-a.low)*0.25];
+      const val=rnd(range[0],range[1],dec);
+      const flag = val>a.high?"H":val<a.low?"L":"";
+      html+=`<div class="result-row"><span>${esc(a.he)} <span class="muted">(${esc(a.k)})</span></span>
+        <span class="rv ${flag==='H'?'high':flag==='L'?'low':''}">${val} ${esc(a.unit)} ${flag?`<span class="flag ${flag}">${flag==='H'?'▲':'▼'}</span>`:""} <span class="muted" style="font-weight:400;font-size:.72rem;">(${a.low}-${a.high})</span></span></div>`;
+    });
+  });
+  return html;
+}
+
+/* ---------- Imaging ---------- */
+function openImaging(modality){
+  const c=tCase; const im=c.imaging[modality]; if(!im) return;
+  tState.imaging[modality]=true;
+  const svg = SVG_LIB[im.svg]? SVG_LIB[im.svg]() : "";
+  const term = encodeURIComponent(c.dxEn);
+  openModal(`<div class="modal-head"><h3>🖥️ ${esc(modality)}</h3><button class="x" onclick="closeModal()">×</button></div>
+    <div class="modal-body">
+      <div class="xray">${svg}</div>
+      <div class="radiology-report" style="margin-top:12px;"><b>פענוח רדיולוג:</b><br>${esc(im.report)}</div>
+      <p class="hint" style="margin-top:10px;">להשוואה עם תמונות אמיתיות ממאגרים רפואיים פתוחים:</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <a class="btn ghost sm" href="https://radiopaedia.org/search?q=${term}&scope=cases" target="_blank" rel="noopener">Radiopaedia ↗</a>
+        <a class="btn ghost sm" href="https://commons.wikimedia.org/w/index.php?search=${term}+x-ray&title=Special:MediaSearch&type=image" target="_blank" rel="noopener">Wikimedia ↗</a>
+      </div>
+    </div>
+    <div class="modal-foot"><button class="btn" onclick="closeModal()">סגור</button></div>`, true);
+  renderActiveCase();
+}
+
+/* ---------- Diagnosis guess ---------- */
+function confirmDxGuess(){
+  const ts=tState, c=tCase;
+  const g=$("tDxGuess").value; if(!g){ toast("בחר אבחנה","err"); return; }
+  ts.dxGuess=g;
+  const correct = g===c.dx;
+  ts._dxFeedback = correct
+    ? `<div class="badge green" style="width:100%;justify-content:center;">✓ אבחנה נכונה!</div>`
+    : `<div class="badge amber" style="width:100%;justify-content:center;">האבחנה שציינת אינה המדויקת ביותר — נראה בסוף.</div>`;
+  $("tDxFeedback").innerHTML = ts._dxFeedback;
+  ts._dxCorrect = correct;
+}
+
+/* ---------- Disposition decision ---------- */
+function decideDispo(k){
+  const ts=tState, c=tCase;
+  if(ts.decided) return;
+  ts.decided=true; ts.decision=k;
+  const correct = k===c.correct;
+  const critical = (c.critical||[]).includes(k);
+
+  // update stats
+  const stats=loadTrainStats(); stats.cases++; if(correct) stats.correctDispo++; if(ts._dxCorrect) stats.correctDx++; saveTrainStats(stats);
+
+  const dispoSuccess = c.success || "המטופל קיבל את הטיפול המתאים ומצבו יציב.";
+  const wrongMsg = (c.wrong && c.wrong[k]) || `החלטה שגויה — במקרה זה הניתוב הנכון הוא: ${DISPO_LABEL[c.correct]}.`;
+
+  let html="";
+  if(correct){
+    html += `<div class="reveal-card"><h3 class="feedback-good">✅ החלטה נכונה — ${esc(DISPO_LABEL[k])}</h3>
+      <p style="margin:6px 0;">${esc(dispoSuccess)}</p>
+      <p class="muted" style="margin:0;"><b>נימוק:</b> ${esc(c.rationale)}</p></div>`;
+  } else {
+    if(critical) html += `<div class="critical-banner">⛔ כשל קריטי!</div>`;
+    html += `<div class="reveal-card fail" style="margin-top:${critical?'10px':'0'};"><h3 class="feedback-bad">❌ החלטה שגויה — ${esc(DISPO_LABEL[k])}</h3>
+      <p style="margin:6px 0;">${esc(wrongMsg)}</p>
+      <p class="muted" style="margin:0;"><b>הניתוב הנכון:</b> ${esc(DISPO_LABEL[c.correct])} — ${esc(c.rationale)}</p></div>`;
+  }
+  // reveal diagnosis
+  html += `<div class="panel panel-pad" style="margin-top:12px;">
+    <div style="font-weight:700;color:var(--navy-dark);margin-bottom:4px;">האבחנה החבויה הייתה:</div>
+    <div style="font-size:1.15rem;font-weight:900;color:var(--navy);">${c.emoji} ${esc(c.dx)}</div>
+    ${ts.dxGuess? `<div class="muted" style="margin-top:6px;">האבחנה שלך: ${esc(ts.dxGuess)} ${ts._dxCorrect?'<span class="feedback-good">(נכון ✓)</span>':'<span class="feedback-bad">(לא מדויק)</span>'}</div>`:""}
+    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn teal sm" id="tDoc">📄 הפק מרשם ומכתב שחרור</button>
+      <button class="btn sm" id="tNext">🆕 מקרה חדש</button>
+    </div></div>`;
+
+  ts._outcomeHtml=html;
+  renderActiveCase();
+  $("tOutcome").scrollIntoView({behavior:"smooth",block:"nearest"});
+  const td=$("tDoc"); if(td) td.addEventListener("click",openTrainRx);
+  const tn=$("tNext"); if(tn) tn.addEventListener("click",newTrainingCase);
+}
+
+function revealCase(decision){
+  // surrender path — just reveal without scoring a correct decision
+  tState.decided=true;
+  const stats=loadTrainStats(); stats.cases++; if(tState._dxCorrect) stats.correctDx++; saveTrainStats(stats);
+  const c=tCase;
+  tState._outcomeHtml = `<div class="reveal-card"><h3>📖 גילוי המקרה</h3>
+    <p style="margin:6px 0;">האבחנה החבויה: <b>${c.emoji} ${esc(c.dx)}</b></p>
+    <p class="muted" style="margin:0;"><b>הניתוב הנכון:</b> ${esc(DISPO_LABEL[c.correct])} — ${esc(c.rationale)}</p>
+    <div style="margin-top:12px;"><button class="btn sm" id="tNext3">🆕 מקרה חדש</button></div></div>`;
+  renderActiveCase();
+  const tn=$("tNext3"); if(tn) tn.addEventListener("click",newTrainingCase);
+}
+
+/* ---------- Prescription + discharge document (reuses official template) ---------- */
+function openTrainRx(){
+  // default meds suggestion per disposition
+  if(!tRxMeds.length){
+    tRxMeds = [{drug:"פרצטמול (אקמול)", dose:"500", unit:"מ\"ג", freq:"3 פעמים ביום (X3)", route:"PO"}];
+  }
+  renderRxModal();
+}
+function renderRxModal(){
+  const list = tRxMeds.length? tRxMeds.map((m,i)=>`<div class="med-row"><span class="mname">${esc(m.drug)}</span><span>${esc(m.dose)} ${esc(m.unit)}</span><span class="muted">·</span><span>${esc(m.freq)}</span><span class="pill-route">${esc(ROUTE_HE[m.route]||m.route)}</span><div class="grow"></div><button class="btn sm ghost" data-rxdel="${i}">✕</button></div>`).join("") : `<p class="muted">לא נוספו תרופות.</p>`;
+  openModal(`<div class="modal-head"><h3>📝 מרשם רופא — OM Hospital</h3><button class="x" onclick="closeModal()">×</button></div>
+    <div class="modal-body">
+      <div class="grid2">
+        <div class="field"><label>תרופה</label><select class="ctrl" id="rxn_drug">${FORMULARY.map(d=>`<option value="${esc(d.name)}">${esc(d.name)}</option>`).join("")}</select></div>
+        <div class="field"><label>מינון</label><div style="display:flex;gap:6px;"><input class="ctrl" id="rxn_dose" placeholder="500" style="flex:1;"><select class="ctrl" id="rxn_unit" style="width:80px;"><option>מ"ג</option><option>גרם</option><option>מ"ל</option></select></div></div>
+        <div class="field"><label>תדירות</label><select class="ctrl" id="rxn_freq"><option>פעם ביום (X1)</option><option>פעמיים ביום (X2)</option><option>3 פעמים ביום (X3)</option><option>לפי הצורך (PRN)</option></select></div>
+        <div class="field"><label>דרך מתן</label><select class="ctrl" id="rxn_route"></select></div>
+      </div>
+      <button class="btn teal sm" id="rxnAdd">➕ הוסף למרשם</button>
+      <div style="margin-top:14px;">${list}</div>
+    </div>
+    <div class="modal-foot"><button class="btn ghost" onclick="closeModal()">ביטול</button><button class="btn" id="rxnGen">📄 הפק מכתב שחרור</button></div>`, true);
+  const ds=$("rxn_drug"), rs=$("rxn_route");
+  const refr=()=>{ const d=FORMULARY.find(x=>x.name===ds.value); rs.innerHTML=(d?d.routes:["PO"]).map(r=>`<option value="${r}">${ROUTE_HE[r]}</option>`).join(""); };
+  ds.addEventListener("change",refr); refr();
+  $("rxnAdd").addEventListener("click",()=>{
+    const drug=ds.value, dose=$("rxn_dose").value.trim(); if(!dose){ toast("הזן מינון","err"); return; }
+    tRxMeds.push({drug, dose, unit:$("rxn_unit").value, freq:$("rxn_freq").value, route:rs.value}); renderRxModal();
+  });
+  document.querySelectorAll("[data-rxdel]").forEach(b=>b.addEventListener("click",()=>{ tRxMeds.splice(+b.dataset.rxdel,1); renderRxModal(); }));
+  $("rxnGen").addEventListener("click", generateTrainDoc);
+}
+function generateTrainDoc(){
+  const c=tCase, p=tPatient, ts=tState;
+  const now=Date.now();
+  const enc = {
+    _train:true, id:`OM-SIM-${Math.floor(1000+Math.random()*9000)}`, patientId:p.id, status:STATUS.DISCHARGED,
+    triage:{ bp:c.vitals.bp,pulse:c.vitals.pulse,temp:c.vitals.temp,spo2:c.vitals.spo2,pain:c.vitals.pain,weight:"" },
+    chiefComplaint:c.chief, hpi:c.story,
+    admittedAt: now-3*3600*1000, dischargedAt:now,
+    diagnosis:c.dx, clinicalCourse:`${c.exam} ${ts.decision===c.correct?"ההחלטה הקלינית: "+DISPO_LABEL[c.correct]+".":""}`,
+    disposition: DISPO_LABEL[ts.decision]||"",
+    orders: Object.keys(ts.imaging).map(m=>({type:"imaging",test:m,status:"resulted",resultedAt:now,results:c.imaging[m].report})),
+    meds: [], dischargeMeds:[], sickLeaveDays: ts.decision==="discharge"?"3":"0",
+    form17:"טופס 17 התקבל", signedBy: session?session.name:'ד"ר אופק משאל', signedLicense: session&&session.license?session.license:"88421"
+  };
+  // attach discharge meds as kind:home for the document's home-meds section
+  enc.meds = tRxMeds.map((m,i)=>({id:"RX"+i, kind:"home", drug:m.drug, dose:m.dose, unit:m.unit, freq:m.freq, route:m.route, administered:false}));
+  const patient = { id:p.id, name:p.name, dob:p.dob, gender:p.gender, bloodType:p.bloodType, hmo:p.hmo,
+    phone:"", emergencyContact:"", allergies:[], pastHistory: tCase.qa.pmh||"", homeMeds: tCase.qa.meds||"" };
+  closeModal();
+  navigate("document", { enc, patient });
 }
 
 /* ==================================================================
