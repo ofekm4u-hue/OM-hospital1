@@ -1,0 +1,1477 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0b3d5c">
+<title>OM Hospital — סימולטור מיון</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&family=Assistant:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ===================== Design tokens ===================== */
+  :root{
+    --navy:        #0b3d5c;   /* OM Hospital primary */
+    --navy-dark:   #082d44;
+    --navy-light:  #14567d;
+    --teal:        #0f9b8e;
+    --teal-dark:   #0b7a70;
+    --red:         #c01a2b;   /* alerts / critical */
+    --red-dark:    #9a1422;
+    --red-bg:      #fdeaec;
+    --amber:       #d68a0c;
+    --amber-bg:    #fcf2dc;
+    --green:       #2e8b57;
+    --green-bg:    #e4f3ea;
+    --gray-bg:     #f3f5f8;
+    --card-bg:     #ffffff;
+    --border:      #dde3ea;
+    --border-soft: #eef1f5;
+    --text:        #1b2430;
+    --text-soft:   #5a6675;
+    --text-faint:  #8b97a6;
+    --shadow-sm:   0 1px 3px rgba(11,61,92,.08);
+    --shadow-md:   0 6px 18px rgba(11,61,92,.12);
+    --shadow-lg:   0 16px 44px rgba(11,61,92,.20);
+    --r-sm: 7px; --r-md: 12px; --r-lg: 18px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Heebo','Assistant',system-ui,sans-serif;
+    background:var(--gray-bg);
+    color:var(--text);
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  button{font-family:inherit;}
+  input,select,textarea{font-family:inherit;}
+  ::-webkit-scrollbar{width:10px;height:10px;}
+  ::-webkit-scrollbar-thumb{background:#c7d0db;border-radius:8px;}
+
+  /* ===================== Buttons ===================== */
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:7px;
+    background:var(--navy);color:#fff;border:1px solid var(--navy);
+    padding:10px 18px;border-radius:var(--r-sm);font-size:.92rem;font-weight:600;
+    cursor:pointer;transition:.15s;white-space:nowrap;text-decoration:none;
+  }
+  .btn:hover{background:var(--navy-dark);border-color:var(--navy-dark);}
+  .btn:disabled{opacity:.5;cursor:not-allowed;}
+  .btn.teal{background:var(--teal);border-color:var(--teal);}
+  .btn.teal:hover{background:var(--teal-dark);border-color:var(--teal-dark);}
+  .btn.green{background:var(--green);border-color:var(--green);}
+  .btn.red{background:var(--red);border-color:var(--red);}
+  .btn.red:hover{background:var(--red-dark);border-color:var(--red-dark);}
+  .btn.ghost{background:transparent;color:var(--navy);border-color:var(--border);}
+  .btn.ghost:hover{background:var(--border-soft);}
+  .btn.sm{padding:6px 12px;font-size:.82rem;}
+  .btn.block{width:100%;}
+
+  /* ===================== Form controls ===================== */
+  .field{margin-bottom:14px;}
+  .field label{display:block;font-size:.85rem;font-weight:600;color:var(--text-soft);margin-bottom:5px;}
+  .field label .req{color:var(--red);}
+  .ctrl{
+    width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r-sm);
+    font-size:.94rem;background:#fff;color:var(--text);transition:.15s;
+  }
+  .ctrl:focus{outline:none;border-color:var(--navy-light);box-shadow:0 0 0 3px rgba(20,86,125,.12);}
+  textarea.ctrl{resize:vertical;min-height:80px;line-height:1.55;}
+  .ctrl.invalid{border-color:var(--red);box-shadow:0 0 0 3px rgba(192,26,43,.12);}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 16px;}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 16px;}
+  @media(max-width:640px){.grid2,.grid3{grid-template-columns:1fr;}}
+  .hint{font-size:.78rem;color:var(--text-faint);margin-top:4px;}
+
+  /* ===================== Badges ===================== */
+  .badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;font-size:.78rem;font-weight:700;white-space:nowrap;}
+  .badge.red{background:var(--red-bg);color:var(--red-dark);}
+  .badge.amber{background:var(--amber-bg);color:var(--amber);}
+  .badge.green{background:var(--green-bg);color:var(--green);}
+  .badge.navy{background:#e6eef4;color:var(--navy);}
+  .badge.gray{background:#eceff3;color:var(--text-soft);}
+  .badge.teal{background:#dbf3f0;color:var(--teal-dark);}
+  .dot{width:9px;height:9px;border-radius:50%;display:inline-block;}
+  .dot.red{background:var(--red);} .dot.amber{background:var(--amber);} .dot.green{background:var(--green);}
+
+  /* ===================== Cards ===================== */
+  .panel{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--r-md);box-shadow:var(--shadow-sm);}
+  .panel-pad{padding:18px 20px;}
+  .section-title{font-size:1.02rem;font-weight:800;color:var(--navy-dark);margin:0 0 12px;display:flex;align-items:center;gap:8px;}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:20px;}
+  .stat{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--r-md);padding:15px 17px;box-shadow:var(--shadow-sm);position:relative;overflow:hidden;}
+  .stat::before{content:"";position:absolute;inset-inline-start:0;top:0;bottom:0;width:5px;background:var(--navy);}
+  .stat.red::before{background:var(--red);} .stat.amber::before{background:var(--amber);}
+  .stat.green::before{background:var(--green);} .stat.teal::before{background:var(--teal);}
+  .stat .label{font-size:.82rem;color:var(--text-soft);font-weight:600;margin-bottom:6px;}
+  .stat .value{font-size:1.7rem;font-weight:800;color:var(--navy-dark);line-height:1.1;}
+
+  /* ===================== Tables ===================== */
+  .tbl-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--r-md);background:#fff;}
+  table.tbl{width:100%;border-collapse:collapse;font-size:.9rem;min-width:680px;}
+  table.tbl th{background:#eef2f6;color:var(--text-soft);font-weight:700;text-align:right;padding:11px 14px;font-size:.8rem;border-bottom:1px solid var(--border);white-space:nowrap;}
+  table.tbl td{padding:11px 14px;border-bottom:1px solid var(--border-soft);vertical-align:middle;}
+  table.tbl tr:last-child td{border-bottom:none;}
+  table.tbl tr.clickable{cursor:pointer;transition:.12s;}
+  table.tbl tr.clickable:hover{background:#f5f9fc;}
+  table.tbl td.empty{text-align:center;color:var(--text-faint);padding:34px;font-size:.92rem;}
+  .acuity-cell{border-inline-start:5px solid transparent;font-weight:700;}
+  .acuity-cell.red{border-inline-start-color:var(--red);}
+  .acuity-cell.amber{border-inline-start-color:var(--amber);}
+  .acuity-cell.green{border-inline-start-color:var(--green);}
+
+  /* ===================== Login ===================== */
+  #loginView{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;
+    background:radial-gradient(1200px 600px at 80% -10%,rgba(15,155,142,.18),transparent),
+               linear-gradient(160deg,var(--navy-dark),var(--navy) 60%,var(--navy-light));}
+  .login-card{width:100%;max-width:430px;background:#fff;border-radius:var(--r-lg);box-shadow:var(--shadow-lg);overflow:hidden;}
+  .login-head{background:linear-gradient(135deg,var(--navy),var(--navy-light));color:#fff;padding:30px 30px 26px;text-align:center;}
+  .login-body{padding:26px 30px 30px;}
+  .login-foot{padding:0 30px 24px;font-size:.78rem;color:var(--text-faint);text-align:center;}
+
+  /* OM logo emblem */
+  .logo{display:inline-flex;align-items:center;gap:11px;}
+  .logo .mark{width:46px;height:46px;border-radius:11px;background:#fff;position:relative;flex:0 0 auto;box-shadow:inset 0 0 0 3px rgba(192,26,43,.12);}
+  .logo .mark::before,.logo .mark::after{content:"";position:absolute;background:var(--red);border-radius:2px;}
+  .logo .mark::before{width:46%;height:14%;top:43%;inset-inline-start:27%;}
+  .logo .mark::after{width:14%;height:46%;top:27%;inset-inline-start:43%;}
+  .logo .ltxt{line-height:1.1;text-align:start;}
+  .logo .ltxt b{font-size:1.18rem;font-weight:900;letter-spacing:.3px;display:block;}
+  .logo .ltxt span{font-size:.74rem;opacity:.85;font-weight:500;}
+
+  /* ===================== App shell ===================== */
+  #appView{display:none;}
+  header.app-header{background:linear-gradient(120deg,var(--navy-dark),var(--navy));color:#fff;
+    padding:11px 22px;display:flex;align-items:center;gap:14px;box-shadow:var(--shadow-md);position:sticky;top:0;z-index:50;}
+  .app-header .logo .mark{width:38px;height:38px;}
+  .app-header .grow{flex:1;min-width:0;}
+  .who{display:flex;align-items:center;gap:10px;font-size:.84rem;}
+  .who .uname{font-weight:700;}
+  .who .urole{opacity:.82;font-size:.76rem;}
+  .who .avatar{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3);
+    display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.92rem;}
+  .icon-btn{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.28);
+    width:34px;height:34px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:1rem;transition:.15s;}
+  .icon-btn:hover{background:rgba(255,255,255,.24);}
+
+  nav.tabs{display:flex;flex-wrap:wrap;gap:2px;background:var(--navy-light);padding:0 12px;box-shadow:var(--shadow-sm);
+    position:sticky;top:60px;z-index:40;}
+  nav.tabs button{background:transparent;border:none;color:rgba(255,255,255,.82);font-size:.92rem;font-weight:600;
+    padding:13px 16px;cursor:pointer;border-bottom:3px solid transparent;transition:.15s;display:inline-flex;align-items:center;gap:7px;}
+  nav.tabs button:hover{color:#fff;background:rgba(255,255,255,.08);}
+  nav.tabs button.active{color:#fff;background:rgba(255,255,255,.14);border-bottom-color:#fff;}
+  nav.tabs button.hidden{display:none;}
+
+  main{max-width:1280px;margin:0 auto;padding:22px 20px 80px;}
+  .view{display:none;animation:fade .22s ease;}
+  .view.active{display:block;}
+  @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+  .page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin-bottom:18px;flex-wrap:wrap;}
+  .page-head h2{font-size:1.5rem;font-weight:800;margin:0 0 2px;color:var(--navy-dark);}
+  .page-head p{margin:0;color:var(--text-soft);font-size:.9rem;}
+  .toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:16px;}
+  .toolbar .spacer{flex:1;}
+  .search{position:relative;}
+  .search input{padding-inline-start:34px;min-width:230px;}
+  .search::before{content:"🔍";position:absolute;inset-inline-start:11px;top:50%;transform:translateY(-50%);font-size:.85rem;opacity:.6;}
+
+  /* ===================== Patient record ===================== */
+  .pt-head{display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:#fff;border:1px solid var(--border);
+    border-radius:var(--r-md);padding:16px 20px;box-shadow:var(--shadow-sm);margin-bottom:8px;}
+  .pt-head .pt-name{font-size:1.35rem;font-weight:800;color:var(--navy-dark);}
+  .pt-head .pt-meta{font-size:.86rem;color:var(--text-soft);display:flex;flex-wrap:wrap;gap:4px 16px;margin-top:3px;}
+  .pt-head .grow{flex:1;}
+  .allergy-banner{background:var(--red-bg);border:1px solid var(--red);color:var(--red-dark);border-radius:var(--r-sm);
+    padding:10px 14px;font-weight:700;display:flex;align-items:center;gap:9px;margin:10px 0 0;font-size:.92rem;}
+  .allergy-banner.none{background:var(--green-bg);border-color:var(--green);color:var(--green);font-weight:600;}
+
+  .rec-tabs{display:flex;flex-wrap:wrap;gap:4px;margin:16px 0 14px;border-bottom:2px solid var(--border);}
+  .rec-tabs button{background:transparent;border:none;border-bottom:3px solid transparent;margin-bottom:-2px;
+    padding:11px 16px;font-size:.92rem;font-weight:600;color:var(--text-soft);cursor:pointer;transition:.15s;}
+  .rec-tabs button:hover{color:var(--navy);}
+  .rec-tabs button.active{color:var(--navy-dark);border-bottom-color:var(--navy);}
+  .rec-tabs button.hidden{display:none;}
+  .rec-panel{display:none;} .rec-panel.active{display:block;}
+
+  .vitals-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;}
+  .vital{background:#f7f9fb;border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 12px;}
+  .vital label{font-size:.78rem;color:var(--text-soft);font-weight:600;}
+  .vital input{margin-top:5px;}
+  .vital.abn input{border-color:var(--red);}
+
+  .order-group{border:1px solid var(--border);border-radius:var(--r-sm);padding:12px 14px;margin-bottom:12px;}
+  .order-group h4{margin:0 0 10px;font-size:.92rem;color:var(--navy-dark);}
+  .chk{display:flex;flex-wrap:wrap;gap:8px;}
+  .chk label{display:inline-flex;align-items:center;gap:6px;background:#f3f6f9;border:1px solid var(--border);
+    border-radius:999px;padding:6px 13px;font-size:.85rem;cursor:pointer;transition:.12s;user-select:none;}
+  .chk label:hover{background:#e9eff4;}
+  .chk input{accent-color:var(--navy);}
+  .chk label.checked{background:#e0edf5;border-color:var(--navy-light);color:var(--navy-dark);font-weight:600;}
+
+  .result-row{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px dashed var(--border-soft);font-size:.9rem;}
+  .result-row:last-child{border-bottom:none;}
+  .result-row .rv{font-weight:700;font-variant-numeric:tabular-nums;}
+  .result-row .rv.high{color:var(--red);} .result-row .rv.low{color:var(--amber);}
+  .result-row .flag{font-size:.72rem;font-weight:800;}
+  .flag.H{color:var(--red);} .flag.L{color:var(--amber);}
+  .radiology-report{background:#f7f9fb;border:1px solid var(--border);border-radius:var(--r-sm);padding:12px 14px;
+    font-size:.9rem;line-height:1.6;white-space:pre-wrap;}
+
+  .med-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#f7f9fb;border:1px solid var(--border);
+    border-radius:var(--r-sm);padding:10px 12px;margin-bottom:8px;}
+  .med-row .mname{font-weight:700;color:var(--navy-dark);}
+  .med-row .grow{flex:1;}
+
+  .timeline{list-style:none;margin:0;padding:0;}
+  .timeline li{position:relative;padding:0 22px 14px 0;border-inline-end:2px solid var(--border);margin-inline-end:6px;}
+  .timeline li::before{content:"";position:absolute;inset-inline-end:-6px;top:3px;width:10px;height:10px;border-radius:50%;background:var(--navy);}
+  .timeline li .tl-time{font-size:.76rem;color:var(--text-faint);}
+  .timeline li .tl-txt{font-size:.9rem;}
+
+  /* ===================== Modal ===================== */
+  .overlay{position:fixed;inset:0;background:rgba(11,30,46,.55);backdrop-filter:blur(2px);display:none;
+    align-items:center;justify-content:center;z-index:100;padding:18px;}
+  .overlay.open{display:flex;}
+  .modal{background:#fff;border-radius:var(--r-lg);box-shadow:var(--shadow-lg);width:100%;max-width:560px;max-height:90vh;
+    overflow:auto;animation:pop .2s ease;}
+  .modal.wide{max-width:760px;}
+  @keyframes pop{from{opacity:0;transform:scale(.96);}to{opacity:1;transform:none;}}
+  .modal-head{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+  .modal-head h3{margin:0;font-size:1.15rem;font-weight:800;color:var(--navy-dark);}
+  .modal-body{padding:20px 22px;}
+  .modal-foot{padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;}
+  .x{background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--text-faint);line-height:1;}
+
+  /* ===================== Toast ===================== */
+  #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(40px);opacity:0;
+    background:var(--navy-dark);color:#fff;padding:12px 22px;border-radius:999px;font-size:.9rem;font-weight:600;
+    box-shadow:var(--shadow-lg);z-index:200;transition:.3s;pointer-events:none;max-width:90vw;}
+  #toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
+  #toast.err{background:var(--red-dark);}
+  #toast.ok{background:var(--green);}
+
+  /* ===================== Discharge document ===================== */
+  #docView .doc-toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
+  .doc-sheet{background:#fff;max-width:820px;margin:0 auto;border:1px solid var(--border);box-shadow:var(--shadow-md);
+    padding:40px 46px;font-size:.92rem;line-height:1.6;color:#16202b;}
+  .doc-sheet .doc-top{text-align:center;border-bottom:3px double var(--navy);padding-bottom:14px;margin-bottom:10px;}
+  .doc-sheet .doc-top .h-name{font-size:1.5rem;font-weight:900;color:var(--navy-dark);letter-spacing:.5px;}
+  .doc-sheet .doc-top .h-en{font-size:.95rem;color:var(--text-soft);letter-spacing:2px;}
+  .doc-sheet .doc-top .h-addr{font-size:.82rem;color:var(--text-soft);margin-top:3px;}
+  .doc-meta{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 20px;font-size:.85rem;
+    background:#f5f8fa;border:1px solid var(--border);border-radius:6px;padding:10px 14px;margin-bottom:16px;}
+  .doc-sec{margin-bottom:15px;}
+  .doc-sec h3{font-size:.98rem;font-weight:800;color:#fff;background:var(--navy);padding:5px 12px;border-radius:5px;margin:0 0 9px;}
+  .doc-sec .en{font-weight:500;opacity:.8;font-size:.8rem;}
+  .doc-row{display:flex;flex-wrap:wrap;gap:3px 24px;margin-bottom:5px;}
+  .doc-row b{font-weight:700;}
+  .doc-pre{white-space:pre-wrap;}
+  .doc-allergy{color:var(--red);font-weight:800;}
+  .doc-warn{background:var(--red-bg);border:1px solid var(--red);border-radius:6px;padding:10px 13px;color:var(--red-dark);font-weight:600;}
+  .doc-sign{display:flex;justify-content:space-between;align-items:flex-end;margin-top:34px;gap:20px;}
+  .doc-sign .sig-line{border-top:1px solid #333;padding-top:5px;text-align:center;min-width:200px;font-size:.82rem;color:var(--text-soft);}
+  .doc-footer{text-align:center;border-top:3px double var(--navy);margin-top:24px;padding-top:10px;font-size:.78rem;color:var(--text-faint);}
+
+  .muted{color:var(--text-faint);}
+  .nowrap{white-space:nowrap;}
+  .pill-route{font-size:.7rem;background:#e6eef4;color:var(--navy);padding:2px 7px;border-radius:5px;font-weight:700;}
+
+  /* ===================== Print ===================== */
+  @media print{
+    body{background:#fff;}
+    header.app-header,nav.tabs,.page-head,.doc-toolbar,.no-print{display:none !important;}
+    main{padding:0;max-width:none;}
+    .view{display:none !important;}
+    #docView.active{display:block !important;}
+    .doc-sheet{box-shadow:none;border:none;margin:0;max-width:none;padding:0;}
+    .doc-sec h3{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    @page{margin:14mm;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================ LOGIN ============================ -->
+<div id="loginView">
+  <div class="login-card">
+    <div class="login-head">
+      <div class="logo" style="justify-content:center;">
+        <div class="mark"></div>
+        <div class="ltxt"><b>OM Hospital</b><span>בית חולים או.אם · רפואה דחופה</span></div>
+      </div>
+    </div>
+    <div class="login-body">
+      <!-- Step 1: credentials -->
+      <form id="loginForm" autocomplete="off">
+        <div class="field">
+          <label>שם משתמש / ת"ז <span class="req">*</span></label>
+          <input class="ctrl" id="li_user" placeholder="לדוגמה: ofek" required>
+        </div>
+        <div class="field">
+          <label>סיסמה <span class="req">*</span></label>
+          <input class="ctrl" id="li_pass" type="password" placeholder="••••••••" required>
+        </div>
+        <div class="field">
+          <label>מחלקה / עמדה</label>
+          <select class="ctrl" id="li_dept">
+            <option>מיון כללי — רפואה דחופה</option>
+            <option>פנימית א'</option>
+            <option>כירורגיה</option>
+            <option>אורתופדיה</option>
+            <option>קרדיולוגיה</option>
+          </select>
+        </div>
+        <div id="li_err" class="badge red" style="display:none;width:100%;justify-content:center;margin-bottom:12px;"></div>
+        <button class="btn block" type="submit">התחבר →</button>
+      </form>
+
+      <!-- Step 2: OTP -->
+      <form id="otpForm" style="display:none;" autocomplete="off">
+        <p style="font-size:.9rem;color:var(--text-soft);margin:0 0 6px;">אימות דו-שלבי (2FA) — הוזן קוד חד-פעמי למכשיר שלך.</p>
+        <div class="badge navy" id="otpDemo" style="margin-bottom:14px;font-size:.9rem;"></div>
+        <div class="field">
+          <label>קוד אימות (6 ספרות) <span class="req">*</span></label>
+          <input class="ctrl" id="li_otp" inputmode="numeric" maxlength="6" placeholder="______"
+            style="letter-spacing:8px;text-align:center;font-size:1.3rem;font-weight:800;">
+        </div>
+        <div id="otp_err" class="badge red" style="display:none;width:100%;justify-content:center;margin-bottom:12px;"></div>
+        <button class="btn block" type="submit">אמת והיכנס</button>
+        <button class="btn ghost block" type="button" id="otpBack" style="margin-top:8px;">חזרה</button>
+      </form>
+    </div>
+    <div class="login-foot" id="loginFoot"></div>
+  </div>
+</div>
+
+<!-- ============================ APP ============================ -->
+<div id="appView">
+  <header class="app-header">
+    <div class="logo">
+      <div class="mark"></div>
+      <div class="ltxt" style="color:#fff;"><b style="font-size:1.05rem;">OM Hospital</b><span id="hdrDept">רפואה דחופה</span></div>
+    </div>
+    <div class="grow"></div>
+    <div class="who">
+      <div class="avatar" id="hdrAvatar">–</div>
+      <div style="line-height:1.2;">
+        <div class="uname" id="hdrName">—</div>
+        <div class="urole" id="hdrRole">—</div>
+      </div>
+    </div>
+    <button class="icon-btn" id="btnData" title="ייצוא / ייבוא / איפוס נתונים">⚙︎</button>
+    <button class="icon-btn" id="btnLogout" title="התנתקות">⏻</button>
+  </header>
+
+  <nav class="tabs" id="tabsNav">
+    <button data-view="dashboard" class="active">🏥 לוח בקרה</button>
+    <button data-view="admit" data-perm="admit">➕ קבלת חולה חדש</button>
+    <button data-view="beds">🛏️ ניהול מיטות</button>
+    <button data-view="archive">🗄️ ארכיון שחרורים</button>
+    <button data-view="users" data-perm="manage">👤 משתמשים</button>
+    <button data-view="audit" data-perm="manage">📋 יומן ביקורת</button>
+  </nav>
+
+  <main>
+    <!-- DASHBOARD -->
+    <section class="view active" id="dashboardView"></section>
+    <!-- ADMIT -->
+    <section class="view" id="admitView"></section>
+    <!-- RECORD -->
+    <section class="view" id="recordView"></section>
+    <!-- BEDS -->
+    <section class="view" id="bedsView"></section>
+    <!-- ARCHIVE -->
+    <section class="view" id="archiveView"></section>
+    <!-- USERS -->
+    <section class="view" id="usersView"></section>
+    <!-- AUDIT -->
+    <section class="view" id="auditView"></section>
+    <!-- DOCUMENT -->
+    <section class="view" id="docView"></section>
+  </main>
+</div>
+
+<!-- Modal + toast -->
+<div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
+<div id="toast"></div>
+
+<script>
+/* =====================================================================
+   OM Hospital — ED/EMR simulator. Vanilla JS, single relational state
+   object persisted to localStorage. No backend.
+   ===================================================================== */
+"use strict";
+
+const STORAGE_KEY = "om_hospital_v1";
+const HOSPITAL = { name:"OM HOSPITAL", he:"בית חולים או.אם", addr:"רחוב המרכז הרפואי 1", phone:"03-5550100" };
+
+/* -------------------- Reference data -------------------- */
+const ROLE_HE = { reception:"פקיד/ת קבלה", nurse:"אח/ות", doctor:"רופא/ה", admin:"מנהל/ת מערכת" };
+
+// Built-in seed accounts. App starts with NO patients.
+const SEED_USERS = [
+  { id:"059874213", name:'ד"ר אופק משאל', username:"ofek",   password:"Ofek2026!", role:"doctor",    department:"רפואה דחופה (מיון)", license:"88421", admin:true },
+  { id:"022551144", name:'ד"ר דנה לוי',   username:"dana",   password:"Dana2026!", role:"doctor",    department:"רפואה דחופה (מיון)", license:"77310" },
+  { id:"031882277", name:"מירב כהן",       username:"merav",  password:"Merav2026!",role:"nurse",     department:"רפואה דחופה (מיון)" },
+  { id:"044120066", name:"יוסי אברהם",     username:"yossi",  password:"Yossi2026!",role:"reception", department:"קבלה ראשית" },
+];
+
+// Permissions per action key.
+const PERMS = {
+  doctor:    ["admit","triage","clinical","orders","results","rx","mar","discharge","disposition","manage"],
+  nurse:     ["admit","triage","mar","results"],
+  reception: ["admit","form17"],
+};
+function can(action){
+  const u = session; if(!u) return false;
+  if(u.admin) return true;
+  if(action==="manage") return !!u.admin;
+  return (PERMS[u.role]||[]).includes(action);
+}
+
+// Triage statuses flow
+const STATUS = {
+  WAIT_NURSE:"ממתין לאח/ות", WAIT_DOC:"ממתין לרופא/ה", IN_WORKUP:"בבירור — ממתין לתוצאות",
+  RESULTS_IN:"התקבלו תוצאות", READY:"מוכן/ה לשחרור", ADMITTED:"מאושפז/ת במחלקה", DISCHARGED:"שוחרר/ה"
+};
+
+// Lab catalog: panels -> analytes {name, unit, low, high, gen:[min,max]}
+const LAB_CATALOG = {
+  "ספירת דם (CBC)":[
+    {k:"WBC",  he:"כדוריות לבנות", unit:"K/µL", low:4.0,  high:10.0, gen:[2.5,18]},
+    {k:"HGB",  he:"המוגלובין",     unit:"g/dL", low:12.0, high:16.0, gen:[8,17]},
+    {k:"PLT",  he:"טסיות",         unit:"K/µL", low:150,  high:400,  gen:[90,520]},
+    {k:"NEUT%",he:"נויטרופילים",   unit:"%",    low:40,   high:75,   gen:[35,90]},
+  ],
+  "כימיה (Chemistry)":[
+    {k:"Na",  he:"נתרן",      unit:"mmol/L", low:135, high:145, gen:[128,148]},
+    {k:"K",   he:"אשלגן",     unit:"mmol/L", low:3.5, high:5.1, gen:[2.8,6.2]},
+    {k:"Creat",he:"קריאטינין",unit:"mg/dL",  low:0.6, high:1.2, gen:[0.5,2.6]},
+    {k:"Glu", he:"גלוקוז",    unit:"mg/dL",  low:70,  high:110, gen:[55,260]},
+    {k:"CRP", he:"CRP",       unit:"mg/L",   low:0,   high:5,   gen:[0,120]},
+  ],
+  "תפקודי קרישה (Coag)":[
+    {k:"INR", he:"INR",  unit:"",   low:0.8, high:1.2, gen:[0.9,3.5]},
+    {k:"PTT", he:"PTT",  unit:"sec",low:25,  high:35,  gen:[22,48]},
+  ],
+  "טרופונין (Troponin)":[
+    {k:"hs-Trop",he:"טרופונין רגיש",unit:"ng/L",low:0,high:14,gen:[2,180]},
+  ],
+};
+const IMAGING_CATALOG = [
+  "צילום חזה (CXR)","צילום גפה","CT ראש","CT בטן","US בטן","אק\"ג (ECG)"
+];
+const RADIOLOGY_TEMPLATES = {
+  "צילום חזה (CXR)":["ריאות נקיות, ללא תסנינים. צללית לב תקינה. אין נוזל פלאורלי. אין פנאומותורקס.",
+    "תסנין בבסיס ריאה ימין, מתאים לתהליך דלקתי. מומלץ מעקב קליני.","ללא ממצא חד פתולוגי. סינוסים חופשיים."],
+  "צילום גפה":["ללא שבר או תזוזה. מבנה העצם תקין. רקמות רכות תקינות.","חשד לשבר דק — מומלצת השלמת CT."],
+  "CT ראש":["ללא דימום תוך-גולגולתי, ללא אפקט מסה. מערכת חדרים תקינה לגיל.","ממצא איסכמי ישן. אין דימום אקוטי."],
+  "CT בטן":["ללא ממצא חד בטני. אין נוזל חופשי. כליות וכבד תקינים.","אפנדיציט אקוטי — מומלצת התייעצות כירורגית."],
+  "US בטן":["כבד, כליות וכיס מרה תקינים. אין נוזל חופשי.","אבנים בכיס המרה ללא סימני דלקת."],
+  "אק\"ג (ECG)":["קצב סינוס תקין, 72 לדקה. ללא שינויי ST-T חדים.","טכיקרדיה סינוסית. ללא הרמות ST.","פרפור פרוזדורים בתגובה חדרית מהירה."],
+};
+
+// Formulary: drug -> {routes:[], class, allergyKeys:[]}
+const FORMULARY = [
+  {name:"דיפירון (אופטלגין)", routes:["PO","IV"], cls:"משכך כאב", allergy:["dipyrone","optalgin"]},
+  {name:"פרצטמול (אקמול)",    routes:["PO","IV"], cls:"משכך כאב", allergy:["paracetamol","acamol"]},
+  {name:"איבופרופן (נורופן)", routes:["PO"],      cls:"NSAID",     allergy:["ibuprofen","nsaid"]},
+  {name:"אספירין (אקמולין)",  routes:["PO"],      cls:"NSAID",     allergy:["aspirin","nsaid"]},
+  {name:"אמוקסיצילין",        routes:["PO"],      cls:"אנטיביוטיקה (פניצילין)", allergy:["penicillin","amoxicillin","פניצילין"]},
+  {name:"אוגמנטין",           routes:["PO","IV"], cls:"אנטיביוטיקה (פניצילין)", allergy:["penicillin","augmentin","פניצילין"]},
+  {name:"צפטריאקסון (רוצפין)",routes:["IV","IM"], cls:"אנטיביוטיקה (צפלוספורין)", allergy:["ceftriaxone","cephalosporin"]},
+  {name:"מורפין",             routes:["IV","IM","PO"], cls:"אופיואיד", allergy:["morphine","opioid"]},
+  {name:"מטוקלופרמיד (פרמין)",routes:["IV","PO"], cls:"נוגד הקאות", allergy:["metoclopramide"]},
+  {name:"אומפרזול (אומפרדקס)",routes:["PO","IV"], cls:"מעכב משאבת פרוטונים", allergy:["omeprazole"]},
+  {name:"קלופידוגרל (פלביקס)",routes:["PO"],      cls:"נוגד טסיות", allergy:["clopidogrel"]},
+  {name:"אנוקספרין (קלקסן)",  routes:["SC"],      cls:"נוגד קרישה", allergy:["enoxaparin","heparin"]},
+  {name:"סלבוטמול (ונטולין)", routes:["INH"],     cls:"מרחיב סמפונות", allergy:["salbutamol"]},
+  {name:"פורוסמיד (פוסיד)",   routes:["IV","PO"], cls:"משתן", allergy:["furosemide"]},
+];
+const ROUTE_HE = { PO:"פומי (PO)", IV:"לוריד (IV)", IM:"לשריר (IM)", SC:"תת-עורי (SC)", INH:"אינהלציה (INH)" };
+const HMOS = ["כללית","מכבי","מאוחדת","לאומית","פרטי / ללא"];
+const DISPO_OPTIONS = ["שחרור הביתה","אשפוז במחלקה פנימית","אשפוז בכירורגיה","הפניה ליועץ קרדיולוג","הפניה ליועץ נוירולוג","הפניה ליועץ אורתופד","העברה לבי\"ח אחר"];
+
+/* -------------------- State core -------------------- */
+let state, session=null;
+
+function freshState(){
+  return { users: JSON.parse(JSON.stringify(SEED_USERS)), patients:[], encounters:[], auditLog:[], seq:1000 };
+}
+function loadState(){
+  try{ const raw = localStorage.getItem(STORAGE_KEY); if(raw){ state = JSON.parse(raw); return; } }
+  catch(e){ console.warn("load failed", e); }
+  state = freshState();
+  saveState();
+}
+function saveState(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+  catch(e){ console.warn("save failed", e); }
+}
+function audit(action, entity){
+  state.auditLog.unshift({ ts:Date.now(), userId:session?session.id:"—", userName:session?session.name:"מערכת", action, entity:entity||"" });
+  if(state.auditLog.length>500) state.auditLog.length=500;
+}
+function nextSeq(){ return ++state.seq; }
+function genVisitId(){
+  const d=new Date(); const ymd=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}`;
+  return `OM-${ymd}-${nextSeq()}`;
+}
+
+/* -------------------- Helpers -------------------- */
+const $ = (id)=>document.getElementById(id);
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function fmtDate(ts){ if(!ts) return "—"; const d=new Date(ts); return `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()}`; }
+function fmtTime(ts){ if(!ts) return "—"; const d=new Date(ts); return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`; }
+function fmtDateTime(ts){ return ts? `${fmtDate(ts)} ${fmtTime(ts)}` : "—"; }
+function ageFromDob(dob){ if(!dob) return "—"; const d=new Date(dob), n=new Date(); let a=n.getFullYear()-d.getFullYear(); if(n.getMonth()<d.getMonth()||(n.getMonth()===d.getMonth()&&n.getDate()<d.getDate()))a--; return a; }
+function waitMin(ts){ return Math.max(0, Math.round((Date.now()-ts)/60000)); }
+function fmtWait(ts){ const m=waitMin(ts); return m<60? `${m} ד'` : `${Math.floor(m/60)}:${String(m%60).padStart(2,"0")} שע'`; }
+function initials(name){ return (name||"").replace(/[^א-תa-zA-Z ]/g,"").trim().split(/\s+/).slice(0,2).map(w=>w[0]).join(""); }
+function rnd(min,max,dec){ const v=min+Math.random()*(max-min); return dec? +v.toFixed(dec) : Math.round(v); }
+function toast(msg,type){ const t=$("toast"); t.textContent=msg; t.className=(type||"")+" show"; clearTimeout(toast._t); toast._t=setTimeout(()=>t.className=t.className.replace("show","").trim(),2600); }
+
+function getPatient(id){ return state.patients.find(p=>p.id===id); }
+function getEncounter(id){ return state.encounters.find(e=>e.id===id); }
+function activeEncounters(){ return state.encounters.filter(e=>e.status!==STATUS.DISCHARGED && e.status!==STATUS.ADMITTED); }
+
+/* -------------------- Triage acuity -------------------- */
+function computeAcuity(v){
+  // returns {color:'red'|'amber'|'green', esi:1-5}
+  if(!v) return {color:"green", esi:5};
+  const sys = +(String(v.bp||"").split("/")[0])||0;
+  const pulse=+v.pulse||0, temp=+v.temp||0, spo2=+v.spo2||100, pain=+v.pain||0;
+  let red=false, amber=false;
+  if(spo2 && spo2<90) red=true;
+  if(sys && (sys<90 || sys>220)) red=true;
+  if(pulse && (pulse<40 || pulse>130)) red=true;
+  if(temp && temp>=39.5) red=true;
+  if(pain>=8) red=true;
+  if(!red){
+    if(spo2 && spo2<94) amber=true;
+    if(sys && (sys<100 || sys>180)) amber=true;
+    if(pulse && (pulse<50 || pulse>110)) amber=true;
+    if(temp && temp>=38) amber=true;
+    if(pain>=5) amber=true;
+  }
+  if(red) return {color:"red", esi: spo2<88||sys<80?1:2};
+  if(amber) return {color:"amber", esi:3};
+  return {color:"green", esi: pain>=2?4:5};
+}
+const ACUITY_HE = { red:"קריטי (אדום)", amber:"דחוף (צהוב)", green:"יציב (ירוק)" };
+
+/* -------------------- Allergy check -------------------- */
+function patientAllergyKeys(patient){
+  const txt = (patient.allergies||[]).join(" ").toLowerCase();
+  return txt;
+}
+function drugBlockedByAllergy(patient, drugName){
+  if(!patient || !(patient.allergies&&patient.allergies.length)) return null;
+  const allergyTxt = patientAllergyKeys(patient);
+  const drug = FORMULARY.find(d=>d.name===drugName);
+  if(!drug) return null;
+  for(const key of drug.allergy){
+    if(allergyTxt.includes(key.toLowerCase())) return key;
+  }
+  // also direct name match
+  if(allergyTxt.includes((drugName||"").toLowerCase().slice(0,4))) return drugName;
+  return null;
+}
+
+/* ==================================================================
+   LOGIN FLOW (with mock 2FA OTP)
+   ================================================================== */
+let pendingLogin = null, pendingOtp = null;
+
+function showLoginFoot(){
+  $("loginFoot").innerHTML =
+    'גישת דמו לרופא: שם משתמש <b>ofek</b> · סיסמה <b>Ofek2026!</b><br>' +
+    'אח/ות: <b>merav</b> / Merav2026! · קבלה: <b>yossi</b> / Yossi2026!';
+}
+
+$("loginForm").addEventListener("submit", e=>{
+  e.preventDefault();
+  const u = $("li_user").value.trim().toLowerCase();
+  const p = $("li_pass").value;
+  const err = $("li_err");
+  const user = state.users.find(x=> (x.username.toLowerCase()===u || x.id===u) && x.password===p );
+  if(!user){
+    err.textContent = "שם משתמש או סיסמה שגויים"; err.style.display="flex"; return;
+  }
+  err.style.display="none";
+  pendingLogin = { user, dept: $("li_dept").value };
+  pendingOtp = String(Math.floor(100000+Math.random()*900000));
+  $("otpDemo").innerHTML = `🔐 קוד הסימולציה שלך: <b style="font-size:1.05rem;margin-inline-start:6px;letter-spacing:3px;">${pendingOtp}</b>`;
+  $("loginForm").style.display="none";
+  $("otpForm").style.display="block";
+  $("li_otp").value=""; $("li_otp").focus();
+});
+
+$("otpBack").addEventListener("click", ()=>{
+  $("otpForm").style.display="none"; $("loginForm").style.display="block"; pendingLogin=null;
+});
+
+$("otpForm").addEventListener("submit", e=>{
+  e.preventDefault();
+  const err = $("otp_err");
+  if($("li_otp").value.trim() !== pendingOtp){
+    err.textContent="קוד אימות שגוי"; err.style.display="flex"; return;
+  }
+  err.style.display="none";
+  finishLogin(pendingLogin.user, pendingLogin.dept);
+});
+
+function finishLogin(user, dept){
+  session = { ...user, sessionDept: dept };
+  try{ sessionStorage.setItem("om_session", JSON.stringify(session)); }catch(e){}
+  audit("התחברות למערכת", `${user.name} (${ROLE_HE[user.role]})`); saveState();
+  enterApp();
+}
+
+function enterApp(){
+  $("loginView").style.display="none";
+  $("appView").style.display="block";
+  $("hdrName").textContent = session.name;
+  $("hdrRole").textContent = ROLE_HE[session.role] + (session.admin? " · מנהל":"");
+  $("hdrAvatar").textContent = initials(session.name) || "👤";
+  $("hdrDept").textContent = session.sessionDept || session.department || "רפואה דחופה";
+  applyPermsToNav();
+  navigate("dashboard");
+}
+
+function logout(){
+  audit("התנתקות","");
+  saveState();
+  session=null; pendingLogin=null;
+  try{ sessionStorage.removeItem("om_session"); }catch(e){}
+  $("appView").style.display="none";
+  $("loginView").style.display="flex";
+  $("loginForm").reset(); $("otpForm").reset();
+  $("otpForm").style.display="none"; $("loginForm").style.display="block";
+  $("li_err").style.display="none"; $("otp_err").style.display="none";
+}
+
+function applyPermsToNav(){
+  document.querySelectorAll("#tabsNav button").forEach(b=>{
+    const perm=b.dataset.perm;
+    b.classList.toggle("hidden", perm? !can(perm) : false);
+  });
+}
+
+/* ==================================================================
+   NAVIGATION
+   ================================================================== */
+let currentView="dashboard", currentEncounterId=null, currentRecTab="anamnesis";
+
+function navigate(view, opts){
+  opts=opts||{};
+  if(view==="record"){ currentEncounterId=opts.encId; }
+  currentView=view;
+  document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+  const map = { dashboard:"dashboardView", admit:"admitView", record:"recordView", beds:"bedsView",
+    archive:"archiveView", users:"usersView", audit:"auditView", document:"docView" };
+  const el = $(map[view]); if(el) el.classList.add("active");
+  document.querySelectorAll("#tabsNav button").forEach(b=>b.classList.toggle("active", b.dataset.view===view));
+  window.scrollTo(0,0);
+  renderView(view, opts);
+}
+
+function renderView(view, opts){
+  switch(view){
+    case "dashboard": renderDashboard(); break;
+    case "admit":     renderAdmit(opts); break;
+    case "record":    renderRecord(); break;
+    case "beds":      renderBeds(); break;
+    case "archive":   renderArchive(); break;
+    case "users":     renderUsers(); break;
+    case "audit":     renderAudit(); break;
+    case "document":  renderDocument(opts); break;
+  }
+}
+
+$("tabsNav").addEventListener("click", e=>{
+  const b=e.target.closest("button"); if(!b) return; navigate(b.dataset.view);
+});
+$("btnLogout").addEventListener("click", logout);
+$("btnData").addEventListener("click", openDataModal);
+
+/* ==================================================================
+   DASHBOARD
+   ================================================================== */
+let dashFilter="";
+function renderDashboard(){
+  const list = activeEncounters().slice().sort((a,b)=>{
+    const order={red:0,amber:1,green:2};
+    const aa=order[a.triage?.acuity?.color||"green"], bb=order[b.triage?.acuity?.color||"green"];
+    if(aa!==bb) return aa-bb; return a.admittedAt-b.admittedAt;
+  });
+  const f = dashFilter.trim();
+  const shown = f? list.filter(e=>{ const p=getPatient(e.patientId); return p && (p.name.includes(f)||p.id.includes(f)||e.id.includes(f)); }) : list;
+
+  const counts = { total:list.length, red:0, amber:0, green:0, ready:0 };
+  list.forEach(e=>{ const c=e.triage?.acuity?.color||"green"; counts[c]++; if(e.status===STATUS.READY) counts.ready++; });
+
+  const rows = shown.length? shown.map(e=>{
+    const p=getPatient(e.patientId); const ac=e.triage?.acuity||{color:"green"};
+    return `<tr class="clickable" data-enc="${e.id}">
+      <td>${e.bed? esc(e.bed):'<span class="muted">—</span>'}</td>
+      <td class="acuity-cell ${ac.color}"><b>${esc(p?p.name:"—")}</b></td>
+      <td class="nowrap muted">${esc(p?p.id:"")}</td>
+      <td class="nowrap">${fmtWait(e.admittedAt)}</td>
+      <td><span class="badge ${ac.color}"><span class="dot ${ac.color}"></span>${ACUITY_HE[ac.color]} · ESI ${ac.esi||"-"}</span></td>
+      <td>${statusBadge(e.status)}</td>
+      <td class="nowrap"><button class="btn sm ghost" data-enc="${e.id}">פתח תיק ←</button></td>
+    </tr>`;
+  }).join("") : `<tr><td class="empty" colspan="7">אין מטופלים פעילים במיון כרגע. לחצו על "קבלת חולה חדש" כדי להתחיל.</td></tr>`;
+
+  $("dashboardView").innerHTML = `
+    <div class="page-head">
+      <div><h2>לוח בקרה — מיון רפואה דחופה</h2><p>תמונת מצב בזמן אמת של כל המטופלים הפעילים</p></div>
+      ${can("admit")? `<button class="btn teal" id="dashAdmit">➕ קבלת חולה חדש</button>`:""}
+    </div>
+    <div class="cards">
+      <div class="stat teal"><div class="label">סה"כ במיון</div><div class="value">${counts.total}</div></div>
+      <div class="stat red"><div class="label">קריטי (אדום)</div><div class="value">${counts.red}</div></div>
+      <div class="stat amber"><div class="label">דחוף (צהוב)</div><div class="value">${counts.amber}</div></div>
+      <div class="stat green"><div class="label">יציב (ירוק)</div><div class="value">${counts.green}</div></div>
+      <div class="stat"><div class="label">מוכנים לשחרור</div><div class="value">${counts.ready}</div></div>
+    </div>
+    <div class="toolbar">
+      <div class="search"><input class="ctrl" id="dashSearch" placeholder="חיפוש לפי שם / ת.ז / מספר ביקור" value="${esc(dashFilter)}"></div>
+      <div class="spacer"></div>
+      <span class="muted" style="font-size:.84rem;">עודכן: ${fmtTime(Date.now())}</span>
+    </div>
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>מיטה</th><th>שם המטופל</th><th>ת"ז</th><th>זמן המתנה</th><th>דחיפות (טריאז')</th><th>סטטוס</th><th></th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+
+  const da=$("dashAdmit"); if(da) da.addEventListener("click",()=>navigate("admit"));
+  $("dashboardView").querySelectorAll("tr.clickable, button[data-enc]").forEach(el=>{
+    el.addEventListener("click",ev=>{ ev.stopPropagation(); navigate("record",{encId:el.dataset.enc}); });
+  });
+  const ds=$("dashSearch");
+  ds.addEventListener("input",()=>{ dashFilter=ds.value; const pos=ds.selectionStart; renderDashboard(); const n=$("dashSearch"); if(n){n.focus();n.setSelectionRange(pos,pos);} });
+}
+
+function statusBadge(s){
+  const map={ [STATUS.WAIT_NURSE]:"amber",[STATUS.WAIT_DOC]:"navy",[STATUS.IN_WORKUP]:"navy",
+    [STATUS.RESULTS_IN]:"teal",[STATUS.READY]:"green",[STATUS.ADMITTED]:"navy",[STATUS.DISCHARGED]:"gray" };
+  return `<span class="badge ${map[s]||"gray"}">${esc(s)}</span>`;
+}
+
+/* ==================================================================
+   ADMIT — new patient registration (reception/nurse/doctor)
+   ================================================================== */
+function renderAdmit(){
+  if(!can("admit")){ $("admitView").innerHTML = noPermHTML(); return; }
+  $("admitView").innerHTML = `
+    <div class="page-head"><div><h2>קבלת חולה חדש</h2><p>פתיחת מפגש רפואי (Encounter) ורישום פרטי המטופל</p></div></div>
+    <form id="admitForm">
+      <div class="panel panel-pad" style="margin-bottom:16px;">
+        <div class="section-title">👤 פרטים דמוגרפיים</div>
+        <div class="grid2">
+          <div class="field"><label>ת"ז / מספר זיהוי <span class="req">*</span></label><input class="ctrl" id="ad_id" required placeholder="9 ספרות"></div>
+          <div class="field"><label>שם מלא <span class="req">*</span></label><input class="ctrl" id="ad_name" required placeholder="שם פרטי ומשפחה"></div>
+          <div class="field"><label>תאריך לידה <span class="req">*</span></label><input class="ctrl" id="ad_dob" type="date" required></div>
+          <div class="field"><label>מגדר</label><select class="ctrl" id="ad_gender"><option>זכר</option><option>נקבה</option><option>אחר</option></select></div>
+          <div class="field"><label>סוג דם</label><select class="ctrl" id="ad_blood">${["לא ידוע","A+","A-","B+","B-","AB+","AB-","O+","O-"].map(b=>`<option>${b}</option>`).join("")}</select></div>
+          <div class="field"><label>קופת חולים</label><select class="ctrl" id="ad_hmo">${HMOS.map(h=>`<option>${h}</option>`).join("")}</select></div>
+          <div class="field"><label>טלפון</label><input class="ctrl" id="ad_phone" placeholder="05X-XXXXXXX"></div>
+          <div class="field"><label>איש קשר לחירום</label><input class="ctrl" id="ad_emc" placeholder="שם וטלפון"></div>
+        </div>
+      </div>
+      <div class="panel panel-pad" style="margin-bottom:16px;">
+        <div class="section-title" style="color:var(--red);">⚠️ אלרגיות ורגישויות לתרופות (קריטי)</div>
+        <div class="field"><label>אלרגיות ידועות (מופרדות בפסיק)</label>
+          <input class="ctrl" id="ad_allergy" placeholder="לדוגמה: פניצילין, דיפירון — או השאר ריק אם אין">
+          <div class="hint">רגישות שתוזן כאן תנעל אוטומטית את רישום אותה תרופה במערכת המרשמים.</div>
+        </div>
+      </div>
+      <div class="panel panel-pad" style="margin-bottom:16px;">
+        <div class="section-title">📋 רקע רפואי</div>
+        <div class="grid2">
+          <div class="field"><label>מחלות רקע</label><textarea class="ctrl" id="ad_pmh" placeholder="סוכרת, יתר לחץ דם, אסתמה..."></textarea></div>
+          <div class="field"><label>תרופות קבועות בבית</label><textarea class="ctrl" id="ad_meds" placeholder="רשימת תרופות כרוניות"></textarea></div>
+        </div>
+      </div>
+      ${can("form17")||session.role==="reception"? `
+      <div class="panel panel-pad" style="margin-bottom:16px;">
+        <div class="section-title">🧾 טופס 17 / התחייבות</div>
+        <div class="grid2">
+          <div class="field"><label>סטטוס התחייבות</label><select class="ctrl" id="ad_f17"><option>טופס 17 התקבל</option><option>בהמתנה לטופס 17</option><option>פרטי / תשלום עצמי</option><option>תאונת עבודה (ביטוח לאומי)</option><option>תאונת דרכים</option></select></div>
+          <div class="field"><label>מספר התחייבות / אסמכתא</label><input class="ctrl" id="ad_f17num" placeholder="אופציונלי"></div>
+        </div>
+      </div>`:""}
+      <div class="panel panel-pad" style="margin-bottom:16px;">
+        <div class="section-title">🚑 תלונה עיקרית בקבלה</div>
+        <div class="field"><label>תלונה עיקרית (Chief Complaint) <span class="req">*</span></label>
+          <textarea class="ctrl" id="ad_cc" required placeholder="לדוגמה: כאבים בחזה מזה שעתיים"></textarea></div>
+      </div>
+      <div class="toolbar"><button class="btn teal" type="submit">פתח מפגש והוסף ללוח →</button>
+        <button class="btn ghost" type="button" id="ad_cancel">ביטול</button></div>
+    </form>`;
+
+  $("ad_cancel").addEventListener("click",()=>navigate("dashboard"));
+  $("admitForm").addEventListener("submit", e=>{
+    e.preventDefault();
+    const id=$("ad_id").value.trim();
+    if(!/^\d{5,9}$/.test(id)){ toast("ת\"ז לא תקינה (5-9 ספרות)","err"); $("ad_id").focus(); return; }
+    let patient = getPatient(id);
+    const allergies = $("ad_allergy").value.split(",").map(s=>s.trim()).filter(Boolean);
+    const pdata = {
+      id, name:$("ad_name").value.trim(), dob:$("ad_dob").value, gender:$("ad_gender").value,
+      bloodType:$("ad_blood").value, hmo:$("ad_hmo").value, phone:$("ad_phone").value.trim(),
+      emergencyContact:$("ad_emc").value.trim(), allergies,
+      pastHistory:$("ad_pmh").value.trim(), homeMeds:$("ad_meds").value.trim()
+    };
+    if(patient){ Object.assign(patient, pdata); }
+    else { pdata.createdAt=Date.now(); state.patients.push(pdata); patient=pdata; }
+
+    const enc = {
+      id: genVisitId(), patientId:id, status:STATUS.WAIT_NURSE, bed:"",
+      triage:{ bp:"",pulse:"",temp:"",spo2:"",pain:"",weight:"",acuity:{color:"green",esi:5}, takenAt:null, takenBy:null },
+      chiefComplaint:$("ad_cc").value.trim(), hpi:"", admittedAt:Date.now(), admittedBy:session.name,
+      treatingDoctorId:"", diagnosis:"", clinicalCourse:"", disposition:"", orders:[], meds:[], dischargeMeds:[],
+      sickLeaveDays:"", form17:$("ad_f17")?$("ad_f17").value:"", form17num:$("ad_f17num")?$("ad_f17num").value:"",
+      events:[{ts:Date.now(),txt:`נפתח מפגש ע"י ${session.name}`}], dischargedAt:null, signedBy:""
+    };
+    state.encounters.push(enc);
+    audit("פתיחת מפגש חדש", `${patient.name} · ${enc.id}`);
+    saveState();
+    toast("המפגש נפתח — המטופל נוסף ללוח הבקרה","ok");
+    navigate("record",{encId:enc.id});
+  });
+}
+
+function noPermHTML(){
+  return `<div class="panel panel-pad" style="text-align:center;padding:50px;">
+    <div style="font-size:2.4rem;">🔒</div>
+    <h3 style="color:var(--navy-dark);margin:10px 0 4px;">אין הרשאה</h3>
+    <p class="muted">התפקיד שלך (${ROLE_HE[session.role]}) אינו מורשה לצפות במסך זה.</p></div>`;
+}
+
+/* ==================================================================
+   PATIENT RECORD — tabbed clinical chart
+   ================================================================== */
+function renderRecord(){
+  const enc = getEncounter(currentEncounterId);
+  if(!enc){ navigate("dashboard"); return; }
+  const p = getPatient(enc.patientId);
+  const ac = enc.triage?.acuity||{color:"green"};
+  const hasAllergy = p.allergies && p.allergies.length;
+
+  const tabs = [
+    {k:"anamnesis", label:"1 · קבלה ואנמנזה", perm:null},
+    {k:"orders",    label:"2 · הפניות ובדיקות", perm:"clinical"},
+    {k:"disposition",label:"3 · החלטה ומרשמים", perm:"clinical"},
+    {k:"timeline",  label:"⏱ ציר זמן", perm:null},
+  ];
+
+  $("recordView").innerHTML = `
+    <div class="toolbar"><button class="btn ghost sm" id="recBack">← חזרה ללוח</button>
+      <div class="spacer"></div>
+      ${can("clinical")? `<button class="btn ghost sm" id="recBed">🛏️ ${enc.bed? "מיטה "+esc(enc.bed):"שייך מיטה"}</button>`:""}
+      ${can("discharge") && enc.status!==STATUS.DISCHARGED? `<button class="btn green sm" id="recDischarge">✔ שחרור והפקת מכתב</button>`:""}
+      ${enc.status===STATUS.DISCHARGED? `<button class="btn teal sm" id="recDoc">📄 הצג מכתב שחרור</button>`:""}
+    </div>
+    <div class="pt-head">
+      <div class="avatar" style="width:54px;height:54px;border-radius:14px;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:800;">${initials(p.name)||"👤"}</div>
+      <div class="grow">
+        <div class="pt-name">${esc(p.name)}</div>
+        <div class="pt-meta">
+          <span>ת"ז: ${esc(p.id)}</span><span>${esc(p.gender)} · גיל ${ageFromDob(p.dob)}</span>
+          <span>סוג דם: ${esc(p.bloodType||"לא ידוע")}</span><span>קופ"ח: ${esc(p.hmo||"—")}</span>
+          <span>מספר ביקור: <b>${esc(enc.id)}</b></span>
+        </div>
+      </div>
+      <div style="text-align:center;">
+        <span class="badge ${ac.color}"><span class="dot ${ac.color}"></span>${ACUITY_HE[ac.color]}</span>
+        <div style="margin-top:6px;">${statusBadge(enc.status)}</div>
+      </div>
+    </div>
+    <div class="allergy-banner ${hasAllergy?"":"none"}">
+      ${hasAllergy? `🔴 אלרגיות: ${esc(p.allergies.join(", "))}` : "✓ לא דווחו אלרגיות ידועות"}
+    </div>
+
+    <div class="rec-tabs" id="recTabs">
+      ${tabs.map(t=>`<button data-rt="${t.k}" class="${t.perm&&!can(t.perm)?"hidden":""} ${currentRecTab===t.k?"active":""}">${t.label}</button>`).join("")}
+    </div>
+    <div class="rec-panel ${currentRecTab==="anamnesis"?"active":""}" id="rp_anamnesis">${recAnamnesis(enc,p)}</div>
+    <div class="rec-panel ${currentRecTab==="orders"?"active":""}" id="rp_orders">${can("clinical")?recOrders(enc,p):noPermHTML()}</div>
+    <div class="rec-panel ${currentRecTab==="disposition"?"active":""}" id="rp_disposition">${can("clinical")?recDisposition(enc,p):noPermHTML()}</div>
+    <div class="rec-panel ${currentRecTab==="timeline"?"active":""}" id="rp_timeline">${recTimeline(enc)}</div>`;
+
+  // toolbar events
+  $("recBack").addEventListener("click",()=>navigate("dashboard"));
+  const rb=$("recBed"); if(rb) rb.addEventListener("click",()=>assignBed(enc));
+  const rd=$("recDischarge"); if(rd) rd.addEventListener("click",()=>dischargeFlow(enc));
+  const rdoc=$("recDoc"); if(rdoc) rdoc.addEventListener("click",()=>navigate("document",{encId:enc.id}));
+
+  // record tab switching
+  $("recTabs").addEventListener("click", e=>{
+    const b=e.target.closest("button"); if(!b||b.classList.contains("hidden")) return;
+    currentRecTab=b.dataset.rt;
+    $("recTabs").querySelectorAll("button").forEach(x=>x.classList.toggle("active",x.dataset.rt===currentRecTab));
+    document.querySelectorAll(".rec-panel").forEach(pn=>pn.classList.remove("active"));
+    $("rp_"+currentRecTab).classList.add("active");
+  });
+
+  wireAnamnesis(enc,p);
+  if(can("clinical")){ wireOrders(enc,p); wireDisposition(enc,p); }
+}
+
+/* ---------- Tab 1: Anamnesis + Vitals ---------- */
+function recAnamnesis(enc,p){
+  const v=enc.triage; const canVitals=can("triage"); const canClin=can("clinical");
+  const vitalField=(id,label,unit,val,ph)=>`<div class="vital"><label>${label} ${unit?`<span class="muted">(${unit})</span>`:""}</label>
+    <input class="ctrl" id="${id}" value="${esc(val||"")}" placeholder="${ph||""}" ${canVitals?"":"disabled"}></div>`;
+  return `
+  <div class="panel panel-pad" style="margin-bottom:16px;">
+    <div class="section-title">🩺 סימנים חיוניים (Vitals) — טריאז' <span class="req" style="font-size:.8rem;">* חובה</span></div>
+    <div class="vitals-grid">
+      ${vitalField("v_bp","לחץ דם","מ\"מ כספית",v.bp,"120/80")}
+      ${vitalField("v_pulse","דופק","לדקה",v.pulse,"72")}
+      ${vitalField("v_temp","חום","°C",v.temp,"36.8")}
+      ${vitalField("v_spo2","סטורציה","%",v.spo2,"98")}
+      ${vitalField("v_pain","רמת כאב","0-10",v.pain,"3")}
+      ${vitalField("v_weight","משקל","ק\"ג",v.weight,"70")}
+    </div>
+    ${canVitals? `<div class="toolbar" style="margin-top:14px;"><button class="btn" id="saveVitals">שמור מדדים וחשב טריאז'</button>
+      <span id="acuityPreview"></span></div>`:`<p class="hint" style="margin-top:10px;">רק אח/ות או רופא/ה רשאים לעדכן מדדים.</p>`}
+    ${v.takenAt? `<p class="hint">נמדד לאחרונה: ${fmtDateTime(v.takenAt)}${v.takenBy?` ע"י ${esc(v.takenBy)}`:""}</p>`:""}
+  </div>
+  <div class="panel panel-pad">
+    <div class="section-title">📝 אנמנזה — תלונה וסיפור המחלה</div>
+    <div class="field"><label>תלונה עיקרית (Chief Complaint)</label>
+      <textarea class="ctrl" id="an_cc" ${canClin?"":"disabled"}>${esc(enc.chiefComplaint)}</textarea></div>
+    <div class="field"><label>סיפור המחלה הנוכחי (HPI) — מתי התחיל, מה מחמיר/מקל</label>
+      <textarea class="ctrl" id="an_hpi" ${canClin?"":"disabled"} placeholder="תיאור מפורט של המקרה...">${esc(enc.hpi)}</textarea></div>
+    <div class="grid2">
+      <div class="field"><label>מחלות רקע</label><textarea class="ctrl" id="an_pmh" ${canClin?"":"disabled"}>${esc(p.pastHistory||"")}</textarea></div>
+      <div class="field"><label>תרופות קבועות בבית</label><textarea class="ctrl" id="an_home" ${canClin?"":"disabled"}>${esc(p.homeMeds||"")}</textarea></div>
+    </div>
+    <div class="field"><label>אלרגיות (מופרדות בפסיק)</label>
+      <input class="ctrl" id="an_allergy" value="${esc((p.allergies||[]).join(", "))}" ${canClin?"":"disabled"}></div>
+    ${canClin? `<button class="btn" id="saveAnamnesis">שמור אנמנזה</button>`:""}
+  </div>`;
+}
+function wireAnamnesis(enc,p){
+  const sv=$("saveVitals");
+  if(sv){
+    const preview=()=>{ const a=computeAcuity(readVitals()); $("acuityPreview").innerHTML=`<span class="badge ${a.color}" style="margin-inline-start:10px;"><span class="dot ${a.color}"></span>${ACUITY_HE[a.color]} · ESI ${a.esi}</span>`; };
+    ["v_bp","v_pulse","v_temp","v_spo2","v_pain","v_weight"].forEach(id=>$(id)&&$(id).addEventListener("input",preview));
+    preview();
+    sv.addEventListener("click",()=>{
+      const vit=readVitals();
+      if(!vit.bp||!vit.pulse||!vit.temp||!vit.spo2){ toast("יש להזין לפחות לחץ דם, דופק, חום וסטורציה","err"); return; }
+      enc.triage={ ...enc.triage, ...vit, acuity:computeAcuity(vit), takenAt:Date.now(), takenBy:session.name };
+      if(enc.status===STATUS.WAIT_NURSE) enc.status=STATUS.WAIT_DOC;
+      enc.events.unshift({ts:Date.now(),txt:`מדדים נמדדו (טריאז' ${ACUITY_HE[enc.triage.acuity.color]}) ע"י ${session.name}`});
+      audit("עדכון מדדים/טריאז'",`${p.name} · ${enc.id}`); saveState();
+      toast("המדדים נשמרו, הטריאז' עודכן","ok"); renderRecord();
+    });
+  }
+  function readVitals(){ return { bp:$("v_bp").value.trim(),pulse:$("v_pulse").value.trim(),temp:$("v_temp").value.trim(),
+    spo2:$("v_spo2").value.trim(),pain:$("v_pain").value.trim(),weight:$("v_weight").value.trim() }; }
+  const sa=$("saveAnamnesis");
+  if(sa) sa.addEventListener("click",()=>{
+    enc.chiefComplaint=$("an_cc").value.trim(); enc.hpi=$("an_hpi").value.trim();
+    p.pastHistory=$("an_pmh").value.trim(); p.homeMeds=$("an_home").value.trim();
+    p.allergies=$("an_allergy").value.split(",").map(s=>s.trim()).filter(Boolean);
+    if(!enc.treatingDoctorId && session.role==="doctor"){ enc.treatingDoctorId=session.id; enc.treatingDoctorName=session.name; }
+    audit("עדכון אנמנזה",`${p.name} · ${enc.id}`); saveState();
+    toast("האנמנזה נשמרה","ok"); renderRecord();
+  });
+}
+
+/* ---------- Tab 2: Orders (CPOE) + result simulation ---------- */
+function recOrders(enc,p){
+  const pending = enc.orders.filter(o=>o.status!=="resulted");
+  const resulted = enc.orders.filter(o=>o.status==="resulted");
+  return `
+  <div class="panel panel-pad" style="margin-bottom:16px;">
+    <div class="section-title">🧪 הזמנת בדיקות מעבדה</div>
+    <div class="chk" id="labChk">
+      ${Object.keys(LAB_CATALOG).map(panel=>`<label><input type="checkbox" value="${esc(panel)}">${esc(panel)}</label>`).join("")}
+    </div>
+    <div class="section-title" style="margin-top:18px;">🖥️ הזמנת בדיקות דימות</div>
+    <div class="chk" id="imgChk">
+      ${IMAGING_CATALOG.map(im=>`<label><input type="checkbox" value="${esc(im)}">${esc(im)}</label>`).join("")}
+    </div>
+    <div class="field" style="margin-top:14px;"><label>אינדיקציה קלינית (חובה עבור דימות) <span class="req">*</span></label>
+      <input class="ctrl" id="ord_indication" placeholder="לדוגמה: כאב בטן ימני תחתון, חשד לאפנדיציט"></div>
+    <button class="btn teal" id="sendOrders">שלח הפניות →</button>
+  </div>
+
+  <div class="panel panel-pad" style="margin-bottom:16px;">
+    <div class="section-title">⏳ הפניות בהמתנה (${pending.length})</div>
+    ${pending.length? pending.map(o=>`
+      <div class="med-row">
+        <span class="badge ${o.type==="lab"?"navy":"teal"}">${o.type==="lab"?"מעבדה":"דימות"}</span>
+        <span class="mname">${esc(o.test)}</span>
+        ${o.indication?`<span class="muted" style="font-size:.82rem;">— ${esc(o.indication)}</span>`:""}
+        <div class="grow"></div>
+        <span class="muted nowrap" style="font-size:.8rem;">הוזמן ${fmtTime(o.orderedAt)}</span>
+        <button class="btn sm" data-result="${o.id}">קבל תוצאות</button>
+      </div>`).join("") : `<p class="muted">אין הפניות בהמתנה.</p>`}
+  </div>
+
+  <div class="panel panel-pad">
+    <div class="section-title">✅ תוצאות שהתקבלו (${resulted.length})</div>
+    ${resulted.length? resulted.map(o=>renderResultBlock(o)).join("") : `<p class="muted">טרם התקבלו תוצאות.</p>`}
+  </div>`;
+}
+function renderResultBlock(o){
+  if(o.type==="lab"){
+    return `<div style="margin-bottom:14px;"><div style="font-weight:700;color:var(--navy-dark);margin-bottom:6px;">🧪 ${esc(o.test)} <span class="muted" style="font-weight:400;font-size:.8rem;">— פוענח ${fmtTime(o.resultedAt)}</span></div>
+      ${o.results.map(r=>`<div class="result-row"><span>${esc(r.he)} <span class="muted">(${esc(r.k)})</span></span>
+        <span class="rv ${r.flag==='H'?'high':r.flag==='L'?'low':''}">${r.val} ${esc(r.unit)} ${r.flag?`<span class="flag ${r.flag}">${r.flag==='H'?'▲ גבוה':'▼ נמוך'}</span>`:''} <span class="muted" style="font-weight:400;font-size:.72rem;">(${r.low}-${r.high})</span></span></div>`).join("")}
+    </div>`;
+  }
+  return `<div style="margin-bottom:14px;"><div style="font-weight:700;color:var(--navy-dark);margin-bottom:6px;">🖥️ ${esc(o.test)} <span class="muted" style="font-weight:400;font-size:.8rem;">— פוענח ${fmtTime(o.resultedAt)}</span></div>
+    <div class="radiology-report">${esc(o.results)}</div></div>`;
+}
+function wireOrders(enc,p){
+  const so=$("sendOrders"); if(!so) return;
+  document.querySelectorAll("#labChk label, #imgChk label").forEach(l=>{
+    const cb=l.querySelector("input"); cb.addEventListener("change",()=>l.classList.toggle("checked",cb.checked));
+  });
+  so.addEventListener("click",()=>{
+    const labs=[...document.querySelectorAll("#labChk input:checked")].map(i=>i.value);
+    const imgs=[...document.querySelectorAll("#imgChk input:checked")].map(i=>i.value);
+    if(!labs.length && !imgs.length){ toast("בחר לפחות בדיקה אחת","err"); return; }
+    const indication=$("ord_indication").value.trim();
+    if(imgs.length && !indication){ toast("אינדיקציה קלינית חובה עבור בדיקות דימות","err"); $("ord_indication").focus(); return; }
+    labs.forEach(panel=> enc.orders.push({ id:"O"+nextSeq(), type:"lab", test:panel, indication:"", status:"pending", orderedAt:Date.now() }));
+    imgs.forEach(im=> enc.orders.push({ id:"O"+nextSeq(), type:"imaging", test:im, indication, status:"pending", orderedAt:Date.now() }));
+    if(enc.status===STATUS.WAIT_DOC||enc.status===STATUS.WAIT_NURSE) enc.status=STATUS.IN_WORKUP;
+    enc.events.unshift({ts:Date.now(),txt:`הוזמנו ${labs.length+imgs.length} בדיקות ע"י ${session.name}`});
+    audit("הזמנת בדיקות",`${p.name} · ${enc.id} · ${[...labs,...imgs].join(", ")}`); saveState();
+    toast("ההפניות נשלחו — סטטוס: בבירור","ok"); renderRecord();
+  });
+  document.querySelectorAll("[data-result]").forEach(b=>{
+    b.addEventListener("click",()=>{
+      const o=enc.orders.find(x=>x.id===b.dataset.result); if(!o) return;
+      simulateResult(o);
+      o.status="resulted"; o.resultedAt=Date.now();
+      if(!enc.orders.some(x=>x.status!=="resulted")) enc.status=STATUS.RESULTS_IN;
+      enc.events.unshift({ts:Date.now(),txt:`התקבלה תוצאה: ${o.test}`});
+      audit("קבלת תוצאות בדיקה",`${p.name} · ${o.test}`); saveState();
+      toast("התקבלו תוצאות","ok"); renderRecord();
+    });
+  });
+}
+function simulateResult(o){
+  if(o.type==="lab"){
+    const analytes=LAB_CATALOG[o.test]||[];
+    o.results=analytes.map(a=>{
+      const dec = (a.k==="HGB"||a.k==="K"||a.k==="Creat"||a.k==="INR")?1:0;
+      const val=rnd(a.gen[0],a.gen[1],dec);
+      let flag=""; if(val>a.high)flag="H"; else if(val<a.low)flag="L";
+      return { k:a.k, he:a.he, unit:a.unit, val, low:a.low, high:a.high, flag };
+    });
+  } else {
+    const tpls=RADIOLOGY_TEMPLATES[o.test]||["בדיקה תקינה ללא ממצא חד פתולוגי."];
+    o.results = tpls[Math.floor(Math.random()*tpls.length)] + `\n\nד"ר מ. רדיולוג — מכון הדימות, OM Hospital.`;
+  }
+}
+
+/* ---------- Tab 3: Disposition & Rx ---------- */
+function recDisposition(enc,p){
+  const canRx=can("rx"), canMar=can("mar");
+  return `
+  <div class="panel panel-pad" style="margin-bottom:16px;">
+    <div class="section-title">🔬 אבחנה וסיכום מהלך טיפול</div>
+    <div class="field"><label>אבחנה סופית (Diagnosis)</label>
+      <input class="ctrl" id="dx" value="${esc(enc.diagnosis)}" ${canRx?"":"disabled"} placeholder="לדוגמה: כאב חזה לא קרדיאלי"></div>
+    <div class="field"><label>מהלך הטיפול במיון והחלטה קלינית</label>
+      <textarea class="ctrl" id="course" ${canRx?"":"disabled"} placeholder="תיאור מהלך הטיפול, התייעצויות, תגובה לטיפול...">${esc(enc.clinicalCourse)}</textarea></div>
+    <div class="field"><label>החלטת המשך (Disposition)</label>
+      <select class="ctrl" id="dispo" ${canRx?"":"disabled"}>
+        <option value="">— בחר —</option>
+        ${DISPO_OPTIONS.map(d=>`<option ${enc.disposition===d?"selected":""}>${esc(d)}</option>`).join("")}
+      </select></div>
+    ${canRx? `<button class="btn" id="saveDispo">שמור החלטה קלינית</button>`:`<p class="hint">רק רופא/ה רשאי/ת לעדכן אבחנה והחלטה.</p>`}
+  </div>
+
+  <div class="panel panel-pad">
+    <div class="section-title">💊 תרופות וטיפול (e-Prescribing & MAR)</div>
+    ${(p.allergies&&p.allergies.length)? `<div class="allergy-banner" style="margin:0 0 12px;">🔴 שים לב לאלרגיות: ${esc(p.allergies.join(", "))} — רישום תרופה חוסמת ייחסם.</div>`:""}
+    ${canRx? `
+    <div class="panel" style="background:#f7f9fb;padding:14px;margin-bottom:14px;">
+      <div class="grid3">
+        <div class="field"><label>תרופה</label>
+          <select class="ctrl" id="rx_drug"><option value="">— בחר תרופה —</option>${FORMULARY.map(d=>`<option value="${esc(d.name)}">${esc(d.name)} · ${esc(d.cls)}</option>`).join("")}</select></div>
+        <div class="field"><label>מינון</label><div style="display:flex;gap:6px;"><input class="ctrl" id="rx_dose" placeholder="500" style="flex:1;"><select class="ctrl" id="rx_unit" style="width:90px;"><option>מ"ג</option><option>גרם</option><option>מ"ל</option><option>יח'</option></select></div></div>
+        <div class="field"><label>תדירות</label><select class="ctrl" id="rx_freq"><option>פעם ביום (X1)</option><option>פעמיים ביום (X2)</option><option>3 פעמים ביום (X3)</option><option>כל 6 שעות</option><option>כל 8 שעות</option><option>במנה חד-פעמית (STAT)</option><option>לפי הצורך (PRN)</option></select></div>
+        <div class="field"><label>דרך מתן</label><select class="ctrl" id="rx_route"></select></div>
+        <div class="field"><label>סוג</label><select class="ctrl" id="rx_type"><option value="ed">טיפול במיון</option><option value="home">מרשם לבית</option></select></div>
+      </div>
+      <button class="btn teal sm" id="addRx">➕ הוסף תרופה</button>
+    </div>`:""}
+
+    <div style="font-weight:700;margin:8px 0;">טיפול תרופתי שניתן במיון</div>
+    <div id="edMeds">${renderMedList(enc, p, "ed", canMar, canRx)}</div>
+    <div style="font-weight:700;margin:16px 0 8px;">מרשם תרופות לבית</div>
+    <div id="homeMeds">${renderMedList(enc, p, "home", false, canRx)}</div>
+
+    <div class="field" style="margin-top:16px;max-width:260px;"><label>ימי מחלה מומלצים</label>
+      <input class="ctrl" id="sickDays" type="number" min="0" max="60" value="${esc(enc.sickLeaveDays||"")}" ${canRx?"":"disabled"} placeholder="0"></div>
+  </div>`;
+}
+function renderMedList(enc,p,kind,canMar,canRx){
+  const meds=enc.meds.filter(m=>m.kind===kind);
+  if(!meds.length) return `<p class="muted" style="font-size:.88rem;">— אין —</p>`;
+  return meds.map(m=>`<div class="med-row">
+    <span class="mname">${esc(m.drug)}</span>
+    <span>${esc(m.dose)} ${esc(m.unit)}</span><span class="muted">·</span><span>${esc(m.freq)}</span>
+    <span class="pill-route">${esc(ROUTE_HE[m.route]||m.route)}</span>
+    ${m.allergyOverride?`<span class="badge red">חרג מאזהרת אלרגיה</span>`:""}
+    <div class="grow"></div>
+    ${kind==="ed"? (m.administered? `<span class="badge green">✓ ניתן ${fmtTime(m.administeredAt)}</span>` : (canMar?`<button class="btn sm green" data-give="${m.id}">סמן כניתן</button>`:`<span class="badge amber">ממתין למתן</span>`)):""}
+    ${canRx?`<button class="btn sm ghost" data-delmed="${m.id}">✕</button>`:""}
+  </div>`).join("");
+}
+function wireDisposition(enc,p){
+  const sd=$("saveDispo");
+  if(sd) sd.addEventListener("click",()=>{
+    enc.diagnosis=$("dx").value.trim(); enc.clinicalCourse=$("course").value.trim(); enc.disposition=$("dispo").value;
+    audit("עדכון אבחנה/החלטה",`${p.name} · ${enc.id}`); saveState(); toast("ההחלטה הקלינית נשמרה","ok");
+  });
+  const sdays=$("sickDays"); if(says_exists(sdays)) sdays.addEventListener("change",()=>{ enc.sickLeaveDays=sdays.value; saveState(); });
+
+  // route options depend on drug
+  const drugSel=$("rx_drug"), routeSel=$("rx_route");
+  function refreshRoutes(){
+    if(!drugSel||!routeSel) return;
+    const d=FORMULARY.find(x=>x.name===drugSel.value);
+    routeSel.innerHTML=(d?d.routes:["PO"]).map(r=>`<option value="${r}">${ROUTE_HE[r]}</option>`).join("");
+  }
+  if(drugSel){ drugSel.addEventListener("change",refreshRoutes); refreshRoutes(); }
+
+  const add=$("addRx");
+  if(add) add.addEventListener("click",()=>{
+    const drug=drugSel.value; if(!drug){ toast("בחר תרופה","err"); return; }
+    const dose=$("rx_dose").value.trim(); if(!dose){ toast("הזן מינון","err"); return; }
+    const blocked=drugBlockedByAllergy(p,drug);
+    const kind=$("rx_type").value;
+    const med={ id:"M"+nextSeq(), drug, dose, unit:$("rx_unit").value, freq:$("rx_freq").value,
+      route:routeSel.value, kind, administered:false, administeredAt:null, rxBy:session.name };
+    if(blocked){
+      confirmModal(`⚠️ אזהרת אלרגיה`,
+        `המטופל/ת רגיש/ה ל"<b>${esc(blocked)}</b>". התרופה <b>${esc(drug)}</b> עלולה להיות חוסמת.<br><br>האם לרשום בכל זאת (override) ולתעד חריגה?`,
+        ()=>{ med.allergyOverride=true; enc.meds.push(med); enc.events.unshift({ts:Date.now(),txt:`נרשמה ${drug} (override אלרגיה) ע"י ${session.name}`}); audit("רישום תרופה (override אלרגיה)",`${p.name} · ${drug}`); saveState(); toast("נרשם עם תיעוד חריגה","err"); renderRecord(); },
+        "רשום בכל זאת");
+      return;
+    }
+    enc.meds.push(med);
+    enc.events.unshift({ts:Date.now(),txt:`נרשמה תרופה: ${drug} ${dose}${med.unit} ${med.freq}`});
+    audit("רישום תרופה",`${p.name} · ${drug}`); saveState();
+    toast("התרופה נוספה","ok"); renderRecord();
+  });
+
+  document.querySelectorAll("[data-give]").forEach(b=>b.addEventListener("click",()=>{
+    const m=enc.meds.find(x=>x.id===b.dataset.give); if(!m)return;
+    m.administered=true; m.administeredAt=Date.now(); m.administeredBy=session.name;
+    enc.events.unshift({ts:Date.now(),txt:`ניתנה תרופה: ${m.drug} ע"י ${session.name}`});
+    audit("מתן תרופה (MAR)",`${p.name} · ${m.drug}`); saveState(); toast("תועד מתן התרופה","ok"); renderRecord();
+  }));
+  document.querySelectorAll("[data-delmed]").forEach(b=>b.addEventListener("click",()=>{
+    enc.meds=enc.meds.filter(x=>x.id!==b.dataset.delmed); saveState(); renderRecord();
+  }));
+}
+function says_exists(el){ return !!el; }
+
+/* ---------- Tab 4: Timeline ---------- */
+function recTimeline(enc){
+  const ev=enc.events||[];
+  return `<div class="panel panel-pad"><div class="section-title">⏱ ציר זמן המפגש</div>
+    ${ev.length? `<ul class="timeline">${ev.map(e=>`<li><div class="tl-time">${fmtDateTime(e.ts)}</div><div class="tl-txt">${esc(e.txt)}</div></li>`).join("")}</ul>`:`<p class="muted">אין אירועים.</p>`}
+  </div>`;
+}
+
+/* ==================================================================
+   MODAL infrastructure
+   ================================================================== */
+function openModal(html, wide){
+  $("modal").className="modal"+(wide?" wide":"");
+  $("modal").innerHTML=html;
+  $("overlay").classList.add("open");
+}
+function closeModal(){ $("overlay").classList.remove("open"); $("modal").innerHTML=""; }
+$("overlay").addEventListener("click",e=>{ if(e.target.id==="overlay") closeModal(); });
+document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeModal(); });
+
+function confirmModal(title, bodyHtml, onYes, yesLabel){
+  openModal(`<div class="modal-head"><h3>${title}</h3><button class="x" onclick="closeModal()">×</button></div>
+    <div class="modal-body">${bodyHtml}</div>
+    <div class="modal-foot"><button class="btn ghost" onclick="closeModal()">ביטול</button>
+      <button class="btn red" id="cfmYes">${yesLabel||"אישור"}</button></div>`);
+  $("cfmYes").addEventListener("click",()=>{ closeModal(); onYes(); });
+}
+window.closeModal=closeModal;
+
+/* ---------- Bed assignment ---------- */
+function assignBed(enc){
+  const used=activeEncounters().filter(e=>e.id!==enc.id).map(e=>e.bed).filter(Boolean);
+  const beds=[]; for(let i=1;i<=20;i++) beds.push("מיטה "+i);
+  openModal(`<div class="modal-head"><h3>שיוך מיטה</h3><button class="x" onclick="closeModal()">×</button></div>
+    <div class="modal-body"><div class="field"><label>בחר מיטה פנויה</label>
+      <select class="ctrl" id="bedSel"><option value="">— ללא מיטה —</option>
+      ${beds.map(b=>`<option ${enc.bed===b?"selected":""} ${used.includes(b)?"disabled":""}>${b}${used.includes(b)?" (תפוס)":""}</option>`).join("")}</select></div></div>
+    <div class="modal-foot"><button class="btn ghost" onclick="closeModal()">ביטול</button><button class="btn" id="bedSave">שמור</button></div>`);
+  $("bedSave").addEventListener("click",()=>{ enc.bed=$("bedSel").value; audit("שיוך מיטה",`${getPatient(enc.patientId).name} · ${enc.bed||"ללא"}`); saveState(); closeModal(); renderRecord(); toast("המיטה עודכנה","ok"); });
+}
+
+/* ---------- Discharge ---------- */
+function dischargeFlow(enc){
+  const p=getPatient(enc.patientId);
+  if(!enc.diagnosis){ toast("יש להזין אבחנה לפני שחרור","err"); currentRecTab="disposition"; renderRecord(); return; }
+  confirmModal("שחרור מטופל",
+    `האם לשחרר את <b>${esc(p.name)}</b> ולהפיק מכתב שחרור רשמי?<br><br>לאחר השחרור המטופל יוסר מלוח הבקרה ויעבור לארכיון.`,
+    ()=>{
+      const admit = enc.disposition && enc.disposition.startsWith("אשפוז");
+      enc.status = admit? STATUS.ADMITTED : STATUS.DISCHARGED;
+      enc.dischargedAt=Date.now();
+      enc.signedBy = session.role==="doctor"? session.name : (enc.treatingDoctorName||session.name);
+      enc.signedLicense = session.role==="doctor"? session.license : "";
+      enc.events.unshift({ts:Date.now(),txt:`${admit?"אושפז למחלקה":"שוחרר"} ע"י ${session.name}`});
+      audit(admit?"אשפוז מטופל":"שחרור מטופל",`${p.name} · ${enc.id}`); saveState();
+      navigate("document",{encId:enc.id});
+    }, "שחרר והפק מכתב");
+}
+
+/* ==================================================================
+   BEDS view
+   ================================================================== */
+function renderBeds(){
+  const map={}; activeEncounters().forEach(e=>{ if(e.bed) map[e.bed]=e; });
+  let cells="";
+  for(let i=1;i<=20;i++){
+    const bed="מיטה "+i; const e=map[bed]; const p=e?getPatient(e.patientId):null; const ac=e?.triage?.acuity?.color||"green";
+    cells+=`<div class="panel panel-pad" style="text-align:center;${e?`border-top:4px solid var(--${ac==='red'?'red':ac==='amber'?'amber':'green'});`:"opacity:.6;"}cursor:${e?"pointer":"default"};" ${e?`data-enc="${e.id}"`:""}>
+      <div style="font-weight:800;color:var(--navy-dark);">🛏️ ${bed}</div>
+      ${e? `<div style="font-weight:700;margin-top:6px;">${esc(p.name)}</div><div class="muted" style="font-size:.8rem;">${esc(p.id)}</div><div style="margin-top:6px;">${statusBadge(e.status)}</div>`
+          : `<div class="muted" style="margin-top:8px;">פנויה</div>`}
+    </div>`;
+  }
+  $("bedsView").innerHTML=`<div class="page-head"><div><h2>ניהול מיטות מיון</h2><p>${Object.keys(map).length} תפוסות מתוך 20</p></div></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;">${cells}</div>`;
+  $("bedsView").querySelectorAll("[data-enc]").forEach(el=>el.addEventListener("click",()=>navigate("record",{encId:el.dataset.enc})));
+}
+
+/* ==================================================================
+   ARCHIVE view
+   ================================================================== */
+function renderArchive(){
+  const list=state.encounters.filter(e=>e.status===STATUS.DISCHARGED||e.status===STATUS.ADMITTED).sort((a,b)=>b.dischargedAt-a.dischargedAt);
+  const rows=list.length? list.map(e=>{ const p=getPatient(e.patientId); return `<tr class="clickable" data-doc="${e.id}">
+    <td><b>${esc(p?p.name:"—")}</b></td><td class="muted nowrap">${esc(p?p.id:"")}</td>
+    <td class="nowrap">${esc(e.id)}</td><td class="nowrap">${fmtDateTime(e.dischargedAt)}</td>
+    <td>${esc(e.diagnosis||"—")}</td><td>${statusBadge(e.status)}</td>
+    <td><button class="btn sm ghost" data-doc="${e.id}">📄 מכתב</button></td></tr>`; }).join("")
+    : `<tr><td class="empty" colspan="7">אין רשומות בארכיון.</td></tr>`;
+  $("archiveView").innerHTML=`<div class="page-head"><div><h2>ארכיון שחרורים ואשפוזים</h2><p>היסטוריית מפגשים שהסתיימו</p></div></div>
+    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>שם</th><th>ת"ז</th><th>מספר ביקור</th><th>תאריך שחרור</th><th>אבחנה</th><th>סטטוס</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  $("archiveView").querySelectorAll("[data-doc]").forEach(el=>el.addEventListener("click",ev=>{ev.stopPropagation();navigate("document",{encId:el.dataset.doc});}));
+}
+
+/* ==================================================================
+   USERS view (admin)
+   ================================================================== */
+function renderUsers(){
+  if(!can("manage")){ $("usersView").innerHTML=noPermHTML(); return; }
+  const rows=state.users.map(u=>`<tr><td><b>${esc(u.name)}</b>${u.admin?' <span class="badge navy">מנהל</span>':""}</td>
+    <td>${esc(u.username)}</td><td>${esc(ROLE_HE[u.role])}</td><td>${esc(u.department||"")}</td>
+    <td>${u.license?'מ.ר '+esc(u.license):"—"}</td></tr>`).join("");
+  $("usersView").innerHTML=`<div class="page-head"><div><h2>ניהול משתמשים והרשאות</h2><p>חשבונות צוות המורשים לגשת למערכת</p></div>
+    <button class="btn teal" id="addUser">➕ הוסף משתמש</button></div>
+    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>שם</th><th>שם משתמש</th><th>תפקיד</th><th>מחלקה</th><th>רישיון</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  $("addUser").addEventListener("click",userModal);
+}
+function userModal(){
+  openModal(`<div class="modal-head"><h3>הוספת משתמש</h3><button class="x" onclick="closeModal()">×</button></div>
+    <div class="modal-body">
+      <div class="grid2">
+        <div class="field"><label>שם מלא <span class="req">*</span></label><input class="ctrl" id="u_name"></div>
+        <div class="field"><label>שם משתמש <span class="req">*</span></label><input class="ctrl" id="u_user"></div>
+        <div class="field"><label>ת"ז</label><input class="ctrl" id="u_id"></div>
+        <div class="field"><label>סיסמה <span class="req">*</span></label><input class="ctrl" id="u_pass"></div>
+        <div class="field"><label>תפקיד</label><select class="ctrl" id="u_role"><option value="doctor">רופא/ה</option><option value="nurse">אח/ות</option><option value="reception">פקיד/ת קבלה</option></select></div>
+        <div class="field"><label>מחלקה</label><input class="ctrl" id="u_dept" value="רפואה דחופה (מיון)"></div>
+        <div class="field"><label>מספר רישיון (לרופא)</label><input class="ctrl" id="u_lic"></div>
+      </div></div>
+    <div class="modal-foot"><button class="btn ghost" onclick="closeModal()">ביטול</button><button class="btn" id="u_save">שמור</button></div>`);
+  $("u_save").addEventListener("click",()=>{
+    const name=$("u_name").value.trim(),user=$("u_user").value.trim(),pass=$("u_pass").value;
+    if(!name||!user||!pass){ toast("מלא שם, שם משתמש וסיסמה","err"); return; }
+    if(state.users.some(x=>x.username.toLowerCase()===user.toLowerCase())){ toast("שם המשתמש כבר קיים","err"); return; }
+    state.users.push({ id:$("u_id").value.trim()||("U"+nextSeq()), name, username:user, password:pass,
+      role:$("u_role").value, department:$("u_dept").value.trim(), license:$("u_lic").value.trim() });
+    audit("הוספת משתמש",name); saveState(); closeModal(); renderUsers(); toast("המשתמש נוסף","ok");
+  });
+}
+
+/* ==================================================================
+   AUDIT view (admin)
+   ================================================================== */
+function renderAudit(){
+  if(!can("manage")){ $("auditView").innerHTML=noPermHTML(); return; }
+  const rows=state.auditLog.length? state.auditLog.map(a=>`<tr><td class="nowrap muted">${fmtDateTime(a.ts)}</td>
+    <td>${esc(a.userName)}</td><td><b>${esc(a.action)}</b></td><td class="muted">${esc(a.entity)}</td></tr>`).join("")
+    : `<tr><td class="empty" colspan="4">אין רישומים.</td></tr>`;
+  $("auditView").innerHTML=`<div class="page-head"><div><h2>יומן ביקורת (Audit Log)</h2><p>תיעוד פעולות במערכת לצורכי שקיפות ובקרה</p></div></div>
+    <div class="tbl-wrap"><table class="tbl"><thead><tr><th>תאריך ושעה</th><th>משתמש</th><th>פעולה</th><th>פרטים</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+/* ==================================================================
+   DISCHARGE DOCUMENT generator (official OM Hospital summary)
+   ================================================================== */
+function renderDocument(opts){
+  const enc=getEncounter(opts&&opts.encId? opts.encId : currentEncounterId);
+  if(!enc){ navigate("dashboard"); return; }
+  const p=getPatient(enc.patientId); const v=enc.triage||{};
+  const allergyHtml = (p.allergies&&p.allergies.length)? `<span class="doc-allergy">${esc(p.allergies.join(", "))}</span>` : "אין אלרגיות ידועות";
+
+  const labOrders=enc.orders.filter(o=>o.type==="lab"&&o.status==="resulted");
+  const imgOrders=enc.orders.filter(o=>o.type==="imaging"&&o.status==="resulted");
+  const labHtml = labOrders.length? labOrders.map(o=>`<b>${esc(o.test)}:</b> `+o.results.map(r=>`${esc(r.he)} ${r.val}${r.unit}${r.flag?` <span class="doc-allergy">[${r.flag==='H'?'גבוה':'נמוך'}]</span>`:""}`).join(" · ")).join("<br>") : "לא בוצעו בדיקות מעבדה.";
+  const imgHtml = imgOrders.length? imgOrders.map(o=>`<b>${esc(o.test)}:</b> ${esc(o.results)}`).join("<br><br>") : "לא בוצעו בדיקות דימות.";
+
+  const edMeds=enc.meds.filter(m=>m.kind==="ed");
+  const homeMeds=enc.meds.filter(m=>m.kind==="home");
+  const homeMedsHtml = homeMeds.length? homeMeds.map(m=>`• ${esc(m.drug)} — ${esc(m.dose)} ${esc(m.unit)}, ${esc(m.freq)}, ${esc(ROUTE_HE[m.route]||m.route)}`).join("<br>") : "אין מרשם תרופתי להמשך.";
+  const courseTxt = enc.clinicalCourse || (edMeds.length? `המטופל/ת טופל/ה במיון. ניתנו: ${edMeds.map(m=>m.drug).join(", ")}.` : "המטופל/ת נבדק/ה והוערך/ה במיון.");
+
+  const doctorName = enc.signedBy || enc.treatingDoctorName || session.name;
+  const doctorLic  = enc.signedLicense || (session.role==="doctor"?session.license:"") || "—";
+
+  $("docView").innerHTML=`
+  <div class="doc-toolbar no-print">
+    <button class="btn ghost" id="docBack">← חזרה</button>
+    <button class="btn" onclick="window.print()">🖨️ הדפסה / שמירה כ-PDF</button>
+    <span class="muted" style="align-self:center;font-size:.84rem;">בהדפסה יוצג רק המסמך הרשמי, ללא תפריטי המערכת.</span>
+  </div>
+  <div class="doc-sheet" id="docSheet">
+    <div class="doc-top">
+      <div class="h-name">OM HOSPITAL · בית חולים או.אם</div>
+      <div class="h-en">DISCHARGE SUMMARY · סיכום מחלה ומכתב שחרור</div>
+      <div class="h-addr">${HOSPITAL.addr}, טל': ${HOSPITAL.phone}</div>
+    </div>
+    <div class="doc-meta">
+      <span><b>תאריך קבלה:</b> ${fmtDate(enc.admittedAt)} ${fmtTime(enc.admittedAt)}</span>
+      <span><b>תאריך שחרור:</b> ${fmtDate(enc.dischargedAt||Date.now())} ${fmtTime(enc.dischargedAt||Date.now())}</span>
+      <span><b>מספר ביקור:</b> ${esc(enc.id)}</span>
+      <span><b>מחלקה מטפלת:</b> רפואה דחופה (מיון)</span>
+    </div>
+
+    <div class="doc-sec"><h3>1. פרטי המטופל <span class="en">/ PATIENT DETAILS</span></h3>
+      <div class="doc-row"><span><b>שם מלא:</b> ${esc(p.name)}</span><span><b>ת"ז:</b> ${esc(p.id)}</span></div>
+      <div class="doc-row"><span><b>תאריך לידה:</b> ${esc(p.dob||"—")} (גיל ${ageFromDob(p.dob)})</span><span><b>מגדר:</b> ${esc(p.gender)}</span></div>
+      <div class="doc-row"><span><b>קופת חולים:</b> ${esc(p.hmo||"—")}</span><span><b>איש קשר לחירום:</b> ${esc(p.emergencyContact||"—")}</span></div>
+      <div class="doc-row"><span><b>סוג דם:</b> ${esc(p.bloodType||"לא ידוע")}</span><span><b>טופס 17:</b> ${esc(enc.form17||"—")}</span></div>
+    </div>
+
+    <div class="doc-sec"><h3>2. סימנים חיוניים בקבלה (טריאז') <span class="en">/ VITALS</span></h3>
+      <div class="doc-row"><span><b>לחץ דם:</b> ${esc(v.bp||"—")} ממ"כ</span><span><b>דופק:</b> ${esc(v.pulse||"—")} לדקה</span><span><b>חום:</b> ${esc(v.temp||"—")}°C</span></div>
+      <div class="doc-row"><span><b>סטורציה:</b> ${esc(v.spo2||"—")}%</span><span><b>רמת כאב:</b> ${esc(v.pain||"—")}/10</span><span><b>משקל:</b> ${esc(v.weight||"—")} ק"ג</span></div>
+      <div class="doc-row" style="margin-top:4px;"><span><b>אלרגיות ורגישויות:</b> ${allergyHtml}</span></div>
+    </div>
+
+    <div class="doc-sec"><h3>3. תלונת המטופל וסיפור המחלה <span class="en">/ CHIEF COMPLAINT & HPI</span></h3>
+      <div class="doc-pre"><b>תלונה עיקרית:</b> ${esc(enc.chiefComplaint||"—")}${enc.hpi?`\n\n${esc(enc.hpi)}`:""}</div>
+      <div class="doc-row" style="margin-top:8px;"><span><b>מחלות רקע:</b> ${esc(p.pastHistory||"ללא")}</span></div>
+      <div class="doc-row"><span><b>תרופות קבועות בבית:</b> ${esc(p.homeMeds||"ללא")}</span></div>
+    </div>
+
+    <div class="doc-sec"><h3>4. בדיקות עזר ודימות <span class="en">/ DIAGNOSTIC RESULTS</span></h3>
+      <div style="margin-bottom:8px;"><b>בדיקות מעבדה (דם):</b><br>${labHtml}</div>
+      <div><b>בדיקות דימות ופענוח:</b><br><div class="doc-pre">${imgHtml}</div></div>
+    </div>
+
+    <div class="doc-sec"><h3>5. אבחנה וסיכום מהלך טיפול <span class="en">/ DIAGNOSIS & CLINICAL COURSE</span></h3>
+      <div class="doc-row"><span><b>אבחנה סופית:</b> ${esc(enc.diagnosis||"—")}</span></div>
+      <div class="doc-pre" style="margin-top:6px;"><b>מהלך הטיפול במיון:</b> ${esc(courseTxt)}</div>
+      ${enc.disposition?`<div class="doc-row" style="margin-top:6px;"><span><b>החלטה:</b> ${esc(enc.disposition)}</span></div>`:""}
+    </div>
+
+    <div class="doc-sec"><h3>6. המלצות להמשך טיפול ושחרור <span class="en">/ DISPOSITION & RECOMMENDATIONS</span></h3>
+      <div style="margin-bottom:6px;">1. המשך מעקב ובירור אצל רופא/ת המשפחה בקופת החולים תוך 48 שעות.</div>
+      <div style="margin-bottom:6px;">2. טיפול תרופתי מומלץ להמשך בבית:<br><div class="doc-pre" style="padding-inline-start:14px;">${homeMedsHtml}</div></div>
+      <div style="margin-bottom:6px;">3. מנוחה והיעדרות מהעבודה: מומלצים <b>${esc(enc.sickLeaveDays||"0")}</b> ימי מחלה.</div>
+      <div class="doc-warn" style="margin-top:8px;">4. אזהרה — חזרה דחופה למיון: בכל מקרה של החמרת הסימפטומים, כאב לוחץ בחזה המקרין ליד או ללסת, קוצר נשימה חריף, הזעה קרה, אובדן הכרה או עליית חום — יש לפנות מיד לחדר המיון הקרוב או להזמין אמבולנס מד"א (101).</div>
+    </div>
+
+    <div class="doc-sign">
+      <div><b>בברכת בריאות שלמה,</b><br><br><b>${esc(doctorName)}</b><br>מ.ר (מספר רישיון): ${esc(doctorLic)}</div>
+      <div class="sig-line">חתימה וחותמת הרופא/ה המטפל/ת</div>
+    </div>
+    <div class="doc-footer">מסמך זה הופק אוטומטית ממערכת OM Hospital · ${fmtDateTime(Date.now())} · מסמך לדוגמה (סימולציה בלבד)</div>
+  </div>`;
+  $("docBack").addEventListener("click",()=>{
+    if(enc.status===STATUS.DISCHARGED||enc.status===STATUS.ADMITTED) navigate("archive");
+    else navigate("record",{encId:enc.id});
+  });
+}
+
+/* ==================================================================
+   DATA modal (export / import / reset)
+   ================================================================== */
+function openDataModal(){
+  openModal(`<div class="modal-head"><h3>נתוני המערכת</h3><button class="x" onclick="closeModal()">×</button></div>
+    <div class="modal-body">
+      <p class="muted" style="font-size:.88rem;">כל הנתונים נשמרים מקומית בדפדפן זה (localStorage). אין שרת חיצוני.</p>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px;">
+        <button class="btn" id="d_export">⬇️ ייצוא גיבוי (JSON)</button>
+        <button class="btn ghost" id="d_import">⬆️ ייבוא גיבוי</button>
+        <input type="file" id="d_file" accept="application/json" style="display:none;">
+        <button class="btn red" id="d_reset">🗑️ איפוס כל הנתונים</button>
+      </div>
+      <p class="muted" style="font-size:.8rem;margin-top:14px;">נתונים סטטיסטיים: ${state.patients.length} מטופלים · ${state.encounters.length} מפגשים · ${state.users.length} משתמשים.</p>
+    </div>`);
+  $("d_export").addEventListener("click",()=>{
+    const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
+    const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+    a.download=`om-hospital-backup-${new Date().toISOString().slice(0,10)}.json`; a.click();
+    toast("הגיבוי יוצא","ok");
+  });
+  $("d_import").addEventListener("click",()=>$("d_file").click());
+  $("d_file").addEventListener("change",e=>{
+    const f=e.target.files[0]; if(!f) return; const r=new FileReader();
+    r.onload=()=>{ try{ const data=JSON.parse(r.result); if(!data.users||!data.encounters) throw 0;
+      state=data; saveState(); closeModal(); toast("הגיבוי יובא בהצלחה","ok"); navigate("dashboard"); }
+      catch(err){ toast("קובץ לא תקין","err"); } };
+    r.readAsText(f);
+  });
+  $("d_reset").addEventListener("click",()=>{
+    confirmModal("איפוס נתונים","פעולה זו תמחק את כל המטופלים, המפגשים והיומן ותחזיר את המערכת למצב התחלתי (חשבונות הצוות יישמרו). להמשיך?",
+      ()=>{ const users=state.users; state=freshState(); state.users=users; saveState(); toast("הנתונים אופסו","ok"); navigate("dashboard"); },"אפס הכל");
+  });
+}
+
+/* ==================================================================
+   INIT
+   ================================================================== */
+function init(){
+  loadState();
+  showLoginFoot();
+  // restore session if present
+  try{
+    const s=sessionStorage.getItem("om_session");
+    if(s){ const sObj=JSON.parse(s); const u=state.users.find(x=>x.id===sObj.id); if(u){ session={...u,sessionDept:sObj.sessionDept}; enterApp(); } }
+  }catch(e){}
+  // periodic refresh of wait times on dashboard
+  setInterval(()=>{ if(session && currentView==="dashboard") renderDashboard(); }, 30000);
+  // register service worker
+  if("serviceWorker" in navigator){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
+}
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+{
+  "name": "OM Hospital — סימולטור מיון",
+  "short_name": "OM Hospital",
+  "description": "סימולטור חדר מיון (ED/EMR) מקצועי בעברית — קבלה, טריאז', תיק קליני, הזמנת בדיקות, מרשמים ומכתב שחרור.",
+  "lang": "he",
+  "dir": "rtl",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f3f5f8",
+  "theme_color": "#0b3d5c",
+  "categories": ["medical", "education", "productivity", "simulation"],
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
