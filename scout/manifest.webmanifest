@@ -2,7 +2,7 @@
   "name": "שו״ב | תנועת הצופים",
   "short_name": "שו״ב צופים",
   "description": "מערכת שליטה ובקרה למחנות הקיץ של תנועת הצופים",
-  "id": "/-/scout/",
+  "id": "./",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
