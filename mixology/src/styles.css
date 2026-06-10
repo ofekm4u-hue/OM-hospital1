@@ -1,0 +1,136 @@
+/* Ultimate Mixology Hub — base styling & motion.
+   Tailwind handles most styling; this file holds the dark-lounge backdrop,
+   custom scrollbars, and a few reusable animations. */
+
+:root {
+  --charcoal: #121212;
+  --graphite: #1e1e1e;
+  --gold: #d4af37;
+  --amber: #ffbf00;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: "Heebo", system-ui, sans-serif;
+  color: #ede6d6;
+  background-color: #121212;
+  /* Subtle dual-glow: warm gold from top, deep graphite floor — like a dim lounge. */
+  background-image:
+    radial-gradient(60rem 40rem at 85% -10%, rgba(212, 175, 55, 0.10), transparent 60%),
+    radial-gradient(50rem 40rem at 0% 0%, rgba(255, 191, 0, 0.06), transparent 55%),
+    linear-gradient(180deg, #161616 0%, #101010 40%, #0d0d0d 100%);
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Thin brushed-gold scrollbar to match the theme */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #161616;
+}
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #4a3f1f, #2a2516);
+  border-radius: 6px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #5e5026, #3a3320);
+}
+
+::selection {
+  background: rgba(212, 175, 55, 0.35);
+  color: #fff;
+}
+
+/* ---- Reusable animations ---- */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.anim-fade-up {
+  animation: fadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes pour {
+  0% {
+    transform: scale(0.96);
+    opacity: 0;
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+.anim-pour {
+  animation: pour 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+.gold-shimmer {
+  background: linear-gradient(
+    100deg,
+    #d4af37 0%,
+    #f5e08a 25%,
+    #d4af37 50%,
+    #b8932f 75%,
+    #d4af37 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 6s linear infinite;
+}
+
+@keyframes spinSlow {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.anim-spin-slow {
+  animation: spinSlow 1.1s linear infinite;
+}
+
+/* Honor reduced-motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* Custom checkbox/toggle reset is handled inline via Tailwind in components */
+.no-tap-highlight {
+  -webkit-tap-highlight-color: transparent;
+}
