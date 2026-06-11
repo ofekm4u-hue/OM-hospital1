@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ultimate Mixology Hub · מערכת מיקסולוגיה מתקדמת</title>
+  <meta name="description" content="אנציקלופדיית קוקטיילים קלאסיים ומעבדת מיקסולוגיה חכמה — בעברית מלאה." />
+  <!-- Tailwind via Play CDN (no build config needed) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;700;900&family=Frank+Ruhl+Libre:wght@500;700;900&display=swap" rel="stylesheet" />
+  <script>
+    // "Modern Dark Luxury" palette — charcoal/graphite base with brushed gold & warm amber,
+    // plus dynamic accent tones (deep mint for fresh drinks, ruby for bitter/vermouth).
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            charcoal: "#121212",
+            graphite: "#1E1E1E",
+            slate2:   "#252525",
+            gold:     "#D4AF37",
+            "gold-soft": "#E6C766",
+            amber:    "#FFBF00",
+            mint:     "#3FB68B",
+            ruby:     "#9E2B25",
+            cream:    "#EDE6D6",
+            muted:    "#9A9286",
+          },
+          fontFamily: {
+            sans:    ['Heebo', 'system-ui', 'sans-serif'],
+            display: ['"Frank Ruhl Libre"', 'Georgia', 'serif'],
+          },
+          boxShadow: {
+            lux: "0 18px 50px -12px rgba(0,0,0,0.75)",
+            gold: "0 0 0 1px rgba(212,175,55,0.25), 0 12px 36px -16px rgba(212,175,55,0.35)",
+          },
+        },
+      },
+    };
+  </script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+</html>
