@@ -24,7 +24,16 @@ Tailwind**. עיצוב "בר לאונג' אפלולי" (Modern Dark Luxury) בפ
 
 אם חסר רכיב אחד למתכון נהדר — המערכת מציעה מה כדאי לקנות.
 
-## הרצה מקומית
+## פתיחה מהירה (ללא התקנה)
+
+הקובץ [`standalone.html`](standalone.html) הוא **גרסה סגורה ועצמאית** של כל
+האפליקציה בקובץ HTML יחיד — פשוט פותחים אותו בדפדפן (דאבל-קליק). דורש חיבור
+אינטרנט בלבד ל-Tailwind ולפונטים, כמו שאר האפליקציות בפורטפוליו.
+
+> ⚠️ אי אפשר לפתוח את `index.html` ישירות — זהו קובץ המקור של Vite שמצביע על
+> `src/main.jsx` (JSX שדורש טרנספילציה). לפתיחה ישירה השתמשו ב-`standalone.html`.
+
+## הרצה מקומית (מצב פיתוח)
 
 ```bash
 cd mixology
@@ -32,12 +41,16 @@ npm install
 npm run dev        # שרת פיתוח על http://localhost:5174
 ```
 
-לבנייה לייצור:
+## בנייה לייצור
 
 ```bash
-npm run build      # פלט ל-dist/
+npm run build      # מטמיע הכל לקובץ יחיד ב-dist/index.html
 npm run preview    # תצוגה מקדימה של ה-build
 ```
+
+הבילד משתמש ב-[`vite-plugin-singlefile`](https://github.com/richardtallent/vite-plugin-singlefile)
+כדי להטמיע את כל ה-JS וה-CSS לתוך `dist/index.html` יחיד. כדי לרענן את
+`standalone.html` אחרי שינויים: `npm run build && cp dist/index.html standalone.html`.
 
 ## מבנה הקוד
 
